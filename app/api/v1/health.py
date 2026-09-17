@@ -1,22 +1,23 @@
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
 from app.api.deps import DbSessionDep
+from app.core.exceptions import ServiceUnavailableError
+from app.schemas.response import SuccessResponse
 
 router = APIRouter(tags=["health"])
 
 
-@router.get("/health")
-def liveness() -> dict[str, str]:
-    return {"status": "ok"}
+@router.get("/health", response_model=SuccessResponse[dict[str, str]])
+def liveness() -> SuccessResponse[dict[str, str]]:
+    return SuccessResponse(message="Service is healthy", data={"status": "ok"})
 
 
-@router.get("/health/db")
-def readiness(db: DbSessionDep, response: Response) -> dict[str, str]:
+@router.get("/health/db", response_model=SuccessResponse[dict[str, str]])
+def readiness(db: DbSessionDep) -> SuccessResponse[dict[str, str]]:
     try:
         db.execute(text("SELECT 1"))
-    except OperationalError:
-        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-        return {"status": "unavailable"}
-    return {"status": "ok"}
+    except OperationalError as exc:
+        raise ServiceUnavailableError("Database is unavailable") from exc
+    return SuccessResponse(message="Database is healthy", data={"status": "ok"})

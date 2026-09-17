@@ -76,7 +76,9 @@ Router (app/api/v1/<module>/)   -- thin: HTTP in/out, calls a service, returns
 ## API conventions
 
 - All routes versioned under `/api/v1/...`.
-- Success responses return the resource/schema directly — no envelope.
+- Success responses always use: `{"success": true, "message": "...", "data": ...}`,
+  via the shared `SuccessResponse` generic schema in `app/schemas/response.py`
+  — don't reimplement the envelope per-route.
 - Error responses always use: `{"success": false, "message": "...", "errors": [...]}`.
 - Pagination, filtering, and sorting use the shared reusable utilities/schemas
   once introduced — don't reimplement per-module.

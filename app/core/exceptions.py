@@ -24,3 +24,7 @@ class AuthenticationError(AppError):
 
 class AuthorizationError(AppError):
     status_code = 403
+
+
+class ServiceUnavailableError(AppError):
+    status_code = 503
