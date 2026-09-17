@@ -1,10 +1,12 @@
 from typing import Any
 from uuid import UUID
 
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.core.security import hash_password
+from app.core.storage import delete_profile_image, save_profile_image
 from app.models.user import User, UserStatus, UserType
 from app.repositories.user_repository import UserRepository
 from app.schemas.pagination import PaginationParams
@@ -66,6 +68,17 @@ class UserService:
         for field, value in data.items():
             setattr(user, field, value)
         return self._users.save(user)
+
+    def update_image(self, user: User, image: UploadFile, upload_dir: str) -> User:
+        previous_url = user.profile_image_url
+        user.profile_image_url = save_profile_image(image, upload_dir)
+        saved = self._users.save(user)
+        if previous_url is not None:
+            delete_profile_image(previous_url, upload_dir)
+        return saved
+
+    def update_image_for(self, user_id: UUID, image: UploadFile, upload_dir: str) -> User:
+        return self.update_image(self.get(user_id), image, upload_dir)
 
     def _check_uniqueness(self, user: User, data: dict[str, Any]) -> None:
         email = data.get("email")

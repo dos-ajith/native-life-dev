@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from pathlib import Path
 from uuid import UUID
 
 import pytest
@@ -103,17 +104,67 @@ def test_register_rejects_duplicate_email(client: TestClient, self_user: User) -
 def test_update_me_updates_own_profile(client: TestClient, auth_headers: dict[str, str]) -> None:
     response = client.patch(
         "/api/v1/users/me",
-        json={"first_name": "SelfUpdated", "profile_image_url": "https://example.com/a.png"},
+        json={"first_name": "SelfUpdated"},
         headers=auth_headers,
     )
 
     assert response.status_code == 200
     body = response.json()["data"]
     assert body["first_name"] == "SelfUpdated"
-    assert body["profile_image_url"] == "https://example.com/a.png"
 
 
 def test_update_me_rejects_missing_token(client: TestClient) -> None:
     response = client.patch("/api/v1/users/me", json={"first_name": "SelfUpdated"})
+
+    assert response.status_code == 401
+
+
+def test_update_me_image_uploads_and_replaces_previous(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    upload_dir = Path(get_settings().upload_dir)
+    first_response = client.post(
+        "/api/v1/users/me/image",
+        files={"image": ("first.png", b"first-bytes", "image/png")},
+        headers=auth_headers,
+    )
+    assert first_response.status_code == 200
+    first_url = first_response.json()["data"]["profile_image_url"]
+    first_path = upload_dir / Path(first_url).name
+    assert first_path.exists()
+
+    second_response = client.post(
+        "/api/v1/users/me/image",
+        files={"image": ("second.png", b"second-bytes", "image/png")},
+        headers=auth_headers,
+    )
+    assert second_response.status_code == 200
+    second_url = second_response.json()["data"]["profile_image_url"]
+    second_path = upload_dir / Path(second_url).name
+
+    assert second_url != first_url
+    assert second_path.read_bytes() == b"second-bytes"
+    assert not first_path.exists()
+
+    second_path.unlink(missing_ok=True)
+
+
+def test_update_me_image_rejects_unsupported_content_type(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    response = client.post(
+        "/api/v1/users/me/image",
+        files={"image": ("notes.txt", b"not-an-image", "text/plain")},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 422
+
+
+def test_update_me_image_rejects_missing_token(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/users/me/image",
+        files={"image": ("first.png", b"first-bytes", "image/png")},
+    )
 
     assert response.status_code == 401

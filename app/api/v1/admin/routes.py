@@ -2,7 +2,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from app.api.deps import CurrentAdminUserDep, DbSessionDep, PaginationDep
+from app.api.deps import (
+    CurrentAdminUserDep,
+    DbSessionDep,
+    PaginationDep,
+    ProfileImageDep,
+    SettingsDep,
+)
 from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
 from app.schemas.user import UserCreate, UserRead, UserUpdate
@@ -46,6 +52,18 @@ def update_user(
 ) -> SuccessResponse[UserRead]:
     user = UserService(db).update(user_id, payload)
     return SuccessResponse(message="User updated", data=UserRead.model_validate(user))
+
+
+@router.post("/update/{user_id}/image", response_model=SuccessResponse[UserRead])
+def update_user_image(
+    user_id: UUID,
+    db: DbSessionDep,
+    _: CurrentAdminUserDep,
+    settings: SettingsDep,
+    image: ProfileImageDep,
+) -> SuccessResponse[UserRead]:
+    user = UserService(db).update_image_for(user_id, image, settings.upload_dir)
+    return SuccessResponse(message="Profile image updated", data=UserRead.model_validate(user))
 
 
 @router.delete("/delete/{user_id}", response_model=SuccessResponse[None])

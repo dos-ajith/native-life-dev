@@ -31,3 +31,7 @@ Thumbs.db
 
 # Local Postman collection (quick-check API doc, not committed source)
 postman/
+
+# Uploaded user content (local filesystem storage)
+/uploads/*
+!/uploads/.gitkeep

@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from pathlib import Path
 from uuid import UUID, uuid4
 
 import pytest
@@ -301,6 +302,59 @@ def test_update_user_rejects_non_admin(
     response = client.patch(
         f"/api/v1/admin/users/update/{target_user.id}",
         json={"first_name": "Nope"},
+        headers=customer_headers,
+    )
+
+    assert response.status_code == 403
+
+
+def test_update_user_image_uploads_and_replaces_previous(
+    client: TestClient, admin_headers: dict[str, str], target_user: User
+) -> None:
+    upload_dir = Path(get_settings().upload_dir)
+    first_response = client.post(
+        f"/api/v1/admin/users/update/{target_user.id}/image",
+        files={"image": ("first.png", b"first-bytes", "image/png")},
+        headers=admin_headers,
+    )
+    assert first_response.status_code == 200
+    first_url = first_response.json()["data"]["profile_image_url"]
+    first_path = upload_dir / Path(first_url).name
+    assert first_path.exists()
+
+    second_response = client.post(
+        f"/api/v1/admin/users/update/{target_user.id}/image",
+        files={"image": ("second.png", b"second-bytes", "image/png")},
+        headers=admin_headers,
+    )
+    assert second_response.status_code == 200
+    second_url = second_response.json()["data"]["profile_image_url"]
+    second_path = upload_dir / Path(second_url).name
+
+    assert second_url != first_url
+    assert not first_path.exists()
+
+    second_path.unlink(missing_ok=True)
+
+
+def test_update_user_image_returns_404_for_unknown_id(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    response = client.post(
+        f"/api/v1/admin/users/update/{uuid4()}/image",
+        files={"image": ("first.png", b"first-bytes", "image/png")},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+
+def test_update_user_image_rejects_non_admin(
+    client: TestClient, customer_headers: dict[str, str], target_user: User
+) -> None:
+    response = client.post(
+        f"/api/v1/admin/users/update/{target_user.id}/image",
+        files={"image": ("first.png", b"first-bytes", "image/png")},
         headers=customer_headers,
     )
 

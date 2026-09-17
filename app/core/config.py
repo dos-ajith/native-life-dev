@@ -24,6 +24,8 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = []
 
+    upload_dir: str = "uploads"
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"

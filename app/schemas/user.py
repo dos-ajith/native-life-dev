@@ -31,7 +31,6 @@ class UserUpdate(BaseModel):
     last_name: str | None = None
     email: EmailStr | None = None
     phone: str | None = None
-    profile_image_url: str | None = None
     status: UserStatus | None = None
     user_type: UserType | None = None
 
@@ -40,4 +39,3 @@ class UserSelfUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     phone: str | None = None
-    profile_image_url: str | None = None

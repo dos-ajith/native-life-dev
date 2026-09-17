@@ -4,7 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, Query
+from fastapi import Depends, File, Query, UploadFile
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -88,3 +88,5 @@ def get_pagination_params(
 
 
 PaginationDep = Annotated[PaginationParams, Depends(get_pagination_params)]
+
+ProfileImageDep = Annotated[UploadFile, File(...)]
