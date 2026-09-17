@@ -61,14 +61,21 @@ scripts/          # one-off dev/ops scripts
 
 ### 1. Virtual environment
 
+**Windows (PowerShell)**
 ```powershell
 py -V:3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
+**macOS / Linux**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
 ### 2. Install dependencies
 
-```powershell
+```bash
 pip install -e ".[dev]"
 ```
 
