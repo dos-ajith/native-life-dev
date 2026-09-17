@@ -28,3 +28,6 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local Postman collection (quick-check API doc, not committed source)
+postman/

@@ -94,13 +94,27 @@ with `python -c "import secrets; print(secrets.token_urlsafe(64))"`).
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifetime |
 | `CORS_ORIGINS` | JSON array of allowed origins for the admin panel |
 
-### 4. Run the app *(pending — Phase 2)*
+### 4. Run the app
+
+```powershell
+uvicorn app.main:app --reload
+```
+
+Visit `http://127.0.0.1:8000/api/v1/health` (should return `{"status":"ok"}`)
+and `http://127.0.0.1:8000/docs` for interactive API docs.
 
 ### 5. Database & migrations *(pending — Phase 3/4)*
 
 ### 6. Docker *(pending — Phase 3, optional for local dev)*
 
-## Testing *(pending — Phase 8)*
+## Testing
+
+```powershell
+pytest
+```
+
+Full fixture/test-database setup lands in Phase 8 — for now, tests rely on
+your local `.env` being populated (see below for a known gap).
 
 ## Linting & type checking
 
