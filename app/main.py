@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
+from app.core.database import engine
 from app.core.exceptions import AppError
 from app.core.logging import RequestLoggingMiddleware, setup_logging
 
@@ -22,6 +23,7 @@ logger = logging.getLogger("app")
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     logger.info("Starting up: %s (%s)", settings.app_name, settings.app_env)
     yield
+    engine.dispose()
     logger.info("Shutting down")
 
 
