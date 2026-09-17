@@ -14,7 +14,7 @@ def liveness() -> SuccessResponse[dict[str, str]]:
     return SuccessResponse(message="Service is healthy", data={"status": "ok"})
 
 
-@router.get("/health/db", response_model=SuccessResponse[dict[str, str]])
+@router.get("/health/ready", response_model=SuccessResponse[dict[str, str]])
 def readiness(db: DbSessionDep) -> SuccessResponse[dict[str, str]]:
     try:
         db.execute(text("SELECT 1"))

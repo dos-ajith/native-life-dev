@@ -114,7 +114,7 @@ CREATE DATABASE nativelife_dev OWNER nativelife;
 
 Check connectivity from the app itself:
 ```
-GET http://127.0.0.1:8000/api/v1/health/db  -> {"status": "ok"}
+GET http://127.0.0.1:8000/api/v1/health/ready  -> {"status": "ok"}
 ```
 
 ### 6. Migrations (Alembic)

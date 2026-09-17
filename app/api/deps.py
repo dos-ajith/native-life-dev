@@ -4,7 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 import jwt
-from fastapi import Depends
+from fastapi import Depends, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -12,9 +12,10 @@ from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.core.exceptions import AuthenticationError, AuthorizationError
 from app.core.jwt import decode_access_token
-from app.models.user import User, UserStatus
+from app.models.user import User, UserStatus, UserType
 from app.repositories.active_token_repository import ActiveTokenRepository
 from app.repositories.user_repository import UserRepository
+from app.schemas.pagination import PaginationParams
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 DbSessionDep = Annotated[Session, Depends(get_db)]
@@ -68,3 +69,22 @@ def get_current_active_user(user: CurrentUserDep) -> User:
 
 
 CurrentActiveUserDep = Annotated[User, Depends(get_current_active_user)]
+
+
+def get_current_admin_user(user: CurrentActiveUserDep) -> User:
+    if user.user_type != UserType.PRIVATE:
+        raise AuthorizationError("Admin privileges required")
+    return user
+
+
+CurrentAdminUserDep = Annotated[User, Depends(get_current_admin_user)]
+
+
+def get_pagination_params(
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> PaginationParams:
+    return PaginationParams(page=page, page_size=page_size)
+
+
+PaginationDep = Annotated[PaginationParams, Depends(get_pagination_params)]

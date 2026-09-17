@@ -1,6 +1,6 @@
 from app.core.database import SessionLocal
 from app.core.security import hash_password
-from app.models.user import User, UserStatus
+from app.models.user import User, UserStatus, UserType
 from app.repositories.user_repository import UserRepository
 
 DEV_USER_EMAIL = "dev@nativelife.example"
@@ -20,6 +20,7 @@ def seed_dev_user() -> None:
             email=DEV_USER_EMAIL,
             password_hash=hash_password(DEV_USER_PASSWORD),
             status=UserStatus.ACTIVE,
+            user_type=UserType.PRIVATE,
         )
         db.add(user)
         db.commit()

@@ -10,8 +10,8 @@ def test_health_returns_ok(client: TestClient) -> None:
     assert body["data"] == {"status": "ok"}
 
 
-def test_health_db_returns_ok(client: TestClient) -> None:
-    response = client.get("/api/v1/health/db")
+def test_health_ready_returns_ok(client: TestClient) -> None:
+    response = client.get("/api/v1/health/ready")
 
     assert response.status_code == 200
     body = response.json()

@@ -1,6 +1,7 @@
 import enum
+from datetime import datetime
 
-from sqlalchemy import Enum, String
+from sqlalchemy import Enum, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -13,14 +14,34 @@ class UserStatus(enum.StrEnum):
     PENDING_VERIFICATION = "pending_verification"
 
 
+class UserType(enum.StrEnum):
+    PUBLIC = "public"
+    PRIVATE = "private"
+
+
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "users"
+    __table_args__ = (
+        Index(
+            "ix_users_email_active",
+            "email",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+        Index(
+            "ix_users_phone_active",
+            "phone",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+    )
 
     first_name: Mapped[str] = mapped_column(String(100))
     last_name: Mapped[str] = mapped_column(String(100))
-    email: Mapped[str] = mapped_column(String(255), unique=True)
-    phone: Mapped[str | None] = mapped_column(String(30), unique=True)
+    email: Mapped[str] = mapped_column(String(255))
+    phone: Mapped[str | None] = mapped_column(String(30))
     password_hash: Mapped[str] = mapped_column(String(255))
+    profile_image_url: Mapped[str | None] = mapped_column(String(2048))
     status: Mapped[UserStatus] = mapped_column(
         Enum(
             UserStatus,
@@ -30,3 +51,13 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         ),
         default=UserStatus.PENDING_VERIFICATION,
     )
+    user_type: Mapped[UserType] = mapped_column(
+        Enum(
+            UserType,
+            name="user_type",
+            native_enum=True,
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+        ),
+        default=UserType.PUBLIC,
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(default=None)
