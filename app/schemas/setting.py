@@ -1,6 +1,11 @@
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.validators import NonBlankStr
+
+SettingKey = Annotated[NonBlankStr, Field(max_length=150)]
 
 
 class SettingRead(BaseModel):
@@ -12,10 +17,10 @@ class SettingRead(BaseModel):
 
 
 class SettingCreate(BaseModel):
-    key: str
+    key: SettingKey
     value: str | None = None
 
 
 class SettingUpdate(BaseModel):
-    key: str | None = None
+    key: SettingKey | None = None
     value: str | None = None

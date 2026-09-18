@@ -60,6 +60,17 @@ class SettingMessages:
     KEY_TAKEN = "Setting key is already in use"
 
 
+class PageMessages:
+    CREATED = "Page created"
+    RETRIEVED = "Page retrieved"
+    LIST_RETRIEVED = "Pages retrieved"
+    UPDATED = "Page updated"
+    IMAGE_UPDATED = "Page image updated"
+    DELETED = "Page deleted"
+    NOT_FOUND = "Page not found"
+    SLUG_TAKEN = "Page slug is already in use"
+
+
 class HealthMessages:
     SERVICE_HEALTHY = "Service is healthy"
     DATABASE_HEALTHY = "Database is healthy"

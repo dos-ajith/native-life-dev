@@ -69,7 +69,7 @@ def auth_headers(client: TestClient, self_user: User) -> Iterator[dict[str, str]
 def test_register_creates_active_public_user(client: TestClient) -> None:
     response = client.post(
         "/api/v1/users/register",
-        json={
+        data={
             "first_name": "New",
             "last_name": "Customer",
             "email": REGISTER_EMAIL,
@@ -97,7 +97,7 @@ def test_register_creates_active_public_user(client: TestClient) -> None:
 def test_register_rejects_duplicate_email(client: TestClient, self_user: User) -> None:
     response = client.post(
         "/api/v1/users/register",
-        json={
+        data={
             "first_name": "Dup",
             "last_name": "Customer",
             "email": SELF_EMAIL,
@@ -109,10 +109,33 @@ def test_register_rejects_duplicate_email(client: TestClient, self_user: User) -
     assert response.json()["success"] is False
 
 
+def test_register_with_image_uploads_it(client: TestClient) -> None:
+    upload_dir = Path(get_settings().upload_dir)
+    response = client.post(
+        "/api/v1/users/register",
+        data={
+            "first_name": "New",
+            "last_name": "WithImage",
+            "email": "users-integration-register-image@example.com",
+            "password": "SomePassword123!",
+        },
+        files={"image": ("avatar.png", b"avatar-bytes", "image/png")},
+    )
+
+    assert response.status_code == 201
+    body = response.json()["data"]
+    assert body["profile_image_url"] is not None
+    image_path = upload_dir / Path(body["profile_image_url"]).name
+    assert image_path.exists()
+
+    image_path.unlink(missing_ok=True)
+    _delete_user(UUID(body["id"]))
+
+
 def test_update_me_updates_own_profile(client: TestClient, auth_headers: dict[str, str]) -> None:
     response = client.patch(
         "/api/v1/users/me",
-        json={"first_name": "SelfUpdated"},
+        data={"first_name": "SelfUpdated"},
         headers=auth_headers,
     )
 
@@ -121,8 +144,28 @@ def test_update_me_updates_own_profile(client: TestClient, auth_headers: dict[st
     assert body["first_name"] == "SelfUpdated"
 
 
+def test_update_me_with_image_uploads_it(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    upload_dir = Path(get_settings().upload_dir)
+    response = client.patch(
+        "/api/v1/users/me",
+        data={"first_name": "SelfUpdated"},
+        files={"image": ("avatar.png", b"avatar-bytes", "image/png")},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["profile_image_url"] is not None
+    image_path = upload_dir / Path(body["profile_image_url"]).name
+    assert image_path.exists()
+
+    image_path.unlink(missing_ok=True)
+
+
 def test_update_me_rejects_missing_token(client: TestClient) -> None:
-    response = client.patch("/api/v1/users/me", json={"first_name": "SelfUpdated"})
+    response = client.patch("/api/v1/users/me", data={"first_name": "SelfUpdated"})
 
     assert response.status_code == 401
 

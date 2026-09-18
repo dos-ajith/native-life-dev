@@ -125,7 +125,7 @@ def test_create_role_returns_created_role(
 ) -> None:
     response = client.post(
         "/api/v1/admin/roles/create",
-        json={"name": ROLE_NAME, "description": "Can edit things"},
+        data={"name": ROLE_NAME, "description": "Can edit things"},
         headers=admin_headers,
     )
 
@@ -142,7 +142,19 @@ def test_create_role_rejects_duplicate_name(
 ) -> None:
     response = client.post(
         "/api/v1/admin/roles/create",
-        json={"name": ROLE_NAME},
+        data={"name": ROLE_NAME},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_role_rejects_blank_name(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    response = client.post(
+        "/api/v1/admin/roles/create",
+        data={"name": "   "},
         headers=admin_headers,
     )
 
@@ -150,7 +162,7 @@ def test_create_role_rejects_duplicate_name(
 
 
 def test_create_role_rejects_missing_token(client: TestClient) -> None:
-    response = client.post("/api/v1/admin/roles/create", json={"name": ROLE_NAME})
+    response = client.post("/api/v1/admin/roles/create", data={"name": ROLE_NAME})
 
     assert response.status_code == 401
 
@@ -160,7 +172,7 @@ def test_create_role_rejects_non_admin(
 ) -> None:
     response = client.post(
         "/api/v1/admin/roles/create",
-        json={"name": ROLE_NAME},
+        data={"name": ROLE_NAME},
         headers=customer_headers,
     )
 
@@ -200,7 +212,7 @@ def test_update_role_changes_fields(
 ) -> None:
     response = client.patch(
         f"/api/v1/admin/roles/update/{role.id}",
-        json={"description": "Updated description"},
+        data={"description": "Updated description"},
         headers=admin_headers,
     )
 
@@ -224,7 +236,7 @@ def test_set_role_permissions_assigns_permissions(
 ) -> None:
     response = client.put(
         f"/api/v1/admin/roles/update/{role.id}/permissions",
-        json={"permission_ids": [str(permission.id)]},
+        data={"permission_ids": [str(permission.id)]},
         headers=admin_headers,
     )
 
@@ -238,7 +250,7 @@ def test_set_role_permissions_rejects_unknown_permission_id(
 ) -> None:
     response = client.put(
         f"/api/v1/admin/roles/update/{role.id}/permissions",
-        json={"permission_ids": [str(uuid4())]},
+        data={"permission_ids": [str(uuid4())]},
         headers=admin_headers,
     )
 
@@ -250,7 +262,7 @@ def test_set_role_permissions_rejects_non_admin(
 ) -> None:
     response = client.put(
         f"/api/v1/admin/roles/update/{role.id}/permissions",
-        json={"permission_ids": [str(permission.id)]},
+        data={"permission_ids": [str(permission.id)]},
         headers=customer_headers,
     )
 

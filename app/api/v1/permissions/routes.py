@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Form, status
 
 from app.api.deps import CurrentAdminUserDep, DbSessionDep, PaginationDep
 from app.core.messages import PermissionMessages
@@ -16,8 +17,12 @@ router = APIRouter(prefix="/admin/permissions", tags=["permissions"])
     "/create", response_model=SuccessResponse[PermissionRead], status_code=status.HTTP_201_CREATED
 )
 def create_permission(
-    payload: PermissionCreate, db: DbSessionDep, _: CurrentAdminUserDep
+    db: DbSessionDep,
+    _: CurrentAdminUserDep,
+    name: Annotated[str, Form()],
+    description: Annotated[str | None, Form()] = None,
 ) -> SuccessResponse[PermissionRead]:
+    payload = PermissionCreate(name=name, description=description)
     permission = PermissionService(db).create(payload)
     return SuccessResponse(
         message=PermissionMessages.CREATED, data=PermissionRead.model_validate(permission)
@@ -47,8 +52,13 @@ def edit_permission(
 
 @router.patch("/update/{permission_id}", response_model=SuccessResponse[PermissionRead])
 def update_permission(
-    permission_id: UUID, payload: PermissionUpdate, db: DbSessionDep, _: CurrentAdminUserDep
+    permission_id: UUID,
+    db: DbSessionDep,
+    _: CurrentAdminUserDep,
+    name: Annotated[str | None, Form()] = None,
+    description: Annotated[str | None, Form()] = None,
 ) -> SuccessResponse[PermissionRead]:
+    payload = PermissionUpdate(name=name, description=description)
     permission = PermissionService(db).update(permission_id, payload)
     return SuccessResponse(
         message=PermissionMessages.UPDATED, data=PermissionRead.model_validate(permission)

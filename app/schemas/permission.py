@@ -1,6 +1,12 @@
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.validators import NonBlankStr
+
+PermissionName = Annotated[NonBlankStr, Field(max_length=150)]
+PermissionDescription = Annotated[str, Field(max_length=255)]
 
 
 class PermissionRead(BaseModel):
@@ -19,10 +25,10 @@ class PermissionSummary(BaseModel):
 
 
 class PermissionCreate(BaseModel):
-    name: str
-    description: str | None = None
+    name: PermissionName
+    description: PermissionDescription | None = None
 
 
 class PermissionUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: PermissionName | None = None
+    description: PermissionDescription | None = None

@@ -1,4 +1,6 @@
-from fastapi import APIRouter, status
+from typing import Annotated
+
+from fastapi import APIRouter, File, Form, UploadFile, status
 
 from app.api.deps import CurrentActiveUserDep, DbSessionDep, ProfileImageDep, SettingsDep
 from app.core.messages import UserMessages
@@ -12,16 +14,39 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.post(
     "/register", response_model=SuccessResponse[UserRead], status_code=status.HTTP_201_CREATED
 )
-def register_user(payload: UserCreate, db: DbSessionDep) -> SuccessResponse[UserRead]:
+def register_user(
+    db: DbSessionDep,
+    settings: SettingsDep,
+    first_name: Annotated[str, Form()],
+    last_name: Annotated[str, Form()],
+    email: Annotated[str, Form()],
+    password: Annotated[str, Form()],
+    phone: Annotated[str | None, Form()] = None,
+    image: Annotated[UploadFile | None, File()] = None,
+) -> SuccessResponse[UserRead]:
+    payload = UserCreate(
+        first_name=first_name, last_name=last_name, email=email, phone=phone, password=password
+    )
     user = UserService(db).register(payload)
+    if image is not None:
+        user = UserService(db).update_image(user, image, settings.upload_dir)
     return SuccessResponse(message=UserMessages.REGISTERED, data=UserRead.model_validate(user))
 
 
 @router.patch("/me", response_model=SuccessResponse[UserRead])
 def update_me(
-    payload: UserSelfUpdate, db: DbSessionDep, current_user: CurrentActiveUserDep
+    db: DbSessionDep,
+    current_user: CurrentActiveUserDep,
+    settings: SettingsDep,
+    first_name: Annotated[str | None, Form()] = None,
+    last_name: Annotated[str | None, Form()] = None,
+    phone: Annotated[str | None, Form()] = None,
+    image: Annotated[UploadFile | None, File()] = None,
 ) -> SuccessResponse[UserRead]:
+    payload = UserSelfUpdate(first_name=first_name, last_name=last_name, phone=phone)
     user = UserService(db).update_self(current_user, payload)
+    if image is not None:
+        user = UserService(db).update_image(user, image, settings.upload_dir)
     return SuccessResponse(
         message=UserMessages.PROFILE_UPDATED, data=UserRead.model_validate(user)
     )

@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Form, status
 
 from app.api.deps import CurrentAdminUserDep, DbSessionDep, PaginationDep
 from app.core.messages import SettingMessages
@@ -16,8 +17,12 @@ router = APIRouter(prefix="/admin/settings", tags=["settings"])
     "/create", response_model=SuccessResponse[SettingRead], status_code=status.HTTP_201_CREATED
 )
 def create_setting(
-    payload: SettingCreate, db: DbSessionDep, _: CurrentAdminUserDep
+    db: DbSessionDep,
+    _: CurrentAdminUserDep,
+    key: Annotated[str, Form()],
+    value: Annotated[str | None, Form()] = None,
 ) -> SuccessResponse[SettingRead]:
+    payload = SettingCreate(key=key, value=value)
     setting = SettingService(db).create(payload)
     return SuccessResponse(
         message=SettingMessages.CREATED, data=SettingRead.model_validate(setting)
@@ -57,8 +62,13 @@ def get_setting_by_key(
 
 @router.patch("/update/{setting_id}", response_model=SuccessResponse[SettingRead])
 def update_setting(
-    setting_id: UUID, payload: SettingUpdate, db: DbSessionDep, _: CurrentAdminUserDep
+    setting_id: UUID,
+    db: DbSessionDep,
+    _: CurrentAdminUserDep,
+    key: Annotated[str | None, Form()] = None,
+    value: Annotated[str | None, Form()] = None,
 ) -> SuccessResponse[SettingRead]:
+    payload = SettingUpdate(key=key, value=value)
     setting = SettingService(db).update(setting_id, payload)
     return SuccessResponse(
         message=SettingMessages.UPDATED, data=SettingRead.model_validate(setting)

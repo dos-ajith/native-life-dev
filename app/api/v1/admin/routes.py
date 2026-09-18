@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, File, Form, UploadFile, status
 
 from app.api.deps import (
     CurrentAdminUserDep,
@@ -10,9 +11,10 @@ from app.api.deps import (
     SettingsDep,
 )
 from app.core.messages import UserMessages
+from app.models.user import UserStatus, UserType
 from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
-from app.schemas.user import UserCreate, UserRead, UserRolesAssign, UserUpdate
+from app.schemas.user import UserCreate, UserRead, UserUpdate
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/admin/users", tags=["admin"])
@@ -22,9 +24,22 @@ router = APIRouter(prefix="/admin/users", tags=["admin"])
     "/create", response_model=SuccessResponse[UserRead], status_code=status.HTTP_201_CREATED
 )
 def create_user(
-    payload: UserCreate, db: DbSessionDep, _: CurrentAdminUserDep
+    db: DbSessionDep,
+    _: CurrentAdminUserDep,
+    settings: SettingsDep,
+    first_name: Annotated[str, Form()],
+    last_name: Annotated[str, Form()],
+    email: Annotated[str, Form()],
+    password: Annotated[str, Form()],
+    phone: Annotated[str | None, Form()] = None,
+    image: Annotated[UploadFile | None, File()] = None,
 ) -> SuccessResponse[UserRead]:
+    payload = UserCreate(
+        first_name=first_name, last_name=last_name, email=email, phone=phone, password=password
+    )
     user = UserService(db).create(payload)
+    if image is not None:
+        user = UserService(db).update_image_for(user.id, image, settings.upload_dir)
     return SuccessResponse(message=UserMessages.CREATED, data=UserRead.model_validate(user))
 
 
@@ -49,9 +64,29 @@ def edit_user(
 
 @router.patch("/update/{user_id}", response_model=SuccessResponse[UserRead])
 def update_user(
-    user_id: UUID, payload: UserUpdate, db: DbSessionDep, _: CurrentAdminUserDep
+    user_id: UUID,
+    db: DbSessionDep,
+    _: CurrentAdminUserDep,
+    settings: SettingsDep,
+    first_name: Annotated[str | None, Form()] = None,
+    last_name: Annotated[str | None, Form()] = None,
+    email: Annotated[str | None, Form()] = None,
+    phone: Annotated[str | None, Form()] = None,
+    user_status: Annotated[UserStatus | None, Form(alias="status")] = None,
+    user_type: Annotated[UserType | None, Form()] = None,
+    image: Annotated[UploadFile | None, File()] = None,
 ) -> SuccessResponse[UserRead]:
+    payload = UserUpdate(
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        phone=phone,
+        status=user_status,
+        user_type=user_type,
+    )
     user = UserService(db).update(user_id, payload)
+    if image is not None:
+        user = UserService(db).update_image_for(user_id, image, settings.upload_dir)
     return SuccessResponse(message=UserMessages.UPDATED, data=UserRead.model_validate(user))
 
 
@@ -71,12 +106,13 @@ def update_user_image(
 
 @router.put("/update/{user_id}/roles", response_model=SuccessResponse[UserRead])
 def set_user_roles(
-    user_id: UUID, payload: UserRolesAssign, db: DbSessionDep, _: CurrentAdminUserDep
+    user_id: UUID,
+    db: DbSessionDep,
+    _: CurrentAdminUserDep,
+    role_ids: Annotated[list[UUID], Form(default_factory=list)],
 ) -> SuccessResponse[UserRead]:
-    user = UserService(db).assign_roles(user_id, payload.role_ids)
-    return SuccessResponse(
-        message=UserMessages.ROLES_UPDATED, data=UserRead.model_validate(user)
-    )
+    user = UserService(db).assign_roles(user_id, role_ids)
+    return SuccessResponse(message=UserMessages.ROLES_UPDATED, data=UserRead.model_validate(user))
 
 
 @router.delete("/delete/{user_id}", response_model=SuccessResponse[None])

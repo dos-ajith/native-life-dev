@@ -112,7 +112,7 @@ def test_create_user_returns_created_user(
 ) -> None:
     response = client.post(
         "/api/v1/admin/users/create",
-        json={
+        data={
             "first_name": "New",
             "last_name": "Person",
             "email": "admin-users-integration-created@example.com",
@@ -130,17 +130,42 @@ def test_create_user_returns_created_user(
     _delete_user(UUID(body["data"]["id"]))
 
 
+def test_create_user_with_image_uploads_it(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    upload_dir = Path(get_settings().upload_dir)
+    response = client.post(
+        "/api/v1/admin/users/create",
+        data={
+            "first_name": "New",
+            "last_name": "Person",
+            "email": "admin-users-integration-with-image@example.com",
+            "password": "SomePassword123!",
+        },
+        files={"image": ("avatar.png", b"avatar-bytes", "image/png")},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 201
+    body = response.json()["data"]
+    assert body["profile_image_url"] is not None
+    image_path = upload_dir / Path(body["profile_image_url"]).name
+    assert image_path.exists()
+
+    image_path.unlink(missing_ok=True)
+    _delete_user(UUID(body["id"]))
+
+
 def test_create_user_ignores_client_supplied_user_type(
     client: TestClient, admin_headers: dict[str, str]
 ) -> None:
     response = client.post(
         "/api/v1/admin/users/create",
-        json={
+        data={
             "first_name": "New",
             "last_name": "Person",
             "email": "admin-users-integration-type-override@example.com",
             "password": "SomePassword123!",
-            "user_type": "public",
         },
         headers=admin_headers,
     )
@@ -159,10 +184,62 @@ def test_create_user_ignores_client_supplied_user_type(
     _delete_user(UUID(body["id"]))
 
 
+def test_create_user_rejects_blank_first_name(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    response = client.post(
+        "/api/v1/admin/users/create",
+        data={
+            "first_name": "   ",
+            "last_name": "Person",
+            "email": "admin-users-integration-blank@example.com",
+            "password": "SomePassword123!",
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_user_rejects_short_password(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    response = client.post(
+        "/api/v1/admin/users/create",
+        data={
+            "first_name": "New",
+            "last_name": "Person",
+            "email": "admin-users-integration-short-pw@example.com",
+            "password": "short1",
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_user_rejects_invalid_phone(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    response = client.post(
+        "/api/v1/admin/users/create",
+        data={
+            "first_name": "New",
+            "last_name": "Person",
+            "email": "admin-users-integration-bad-phone@example.com",
+            "phone": "not-a-phone",
+            "password": "SomePassword123!",
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 422
+
+
 def test_create_user_rejects_missing_token(client: TestClient) -> None:
     response = client.post(
         "/api/v1/admin/users/create",
-        json={
+        data={
             "first_name": "New",
             "last_name": "Person",
             "email": "admin-users-integration-unauth@example.com",
@@ -178,7 +255,7 @@ def test_create_user_rejects_non_admin(
 ) -> None:
     response = client.post(
         "/api/v1/admin/users/create",
-        json={
+        data={
             "first_name": "New",
             "last_name": "Person",
             "email": "admin-users-integration-forbidden@example.com",
@@ -195,7 +272,7 @@ def test_create_user_rejects_duplicate_email(
 ) -> None:
     response = client.post(
         "/api/v1/admin/users/create",
-        json={
+        data={
             "first_name": "Dup",
             "last_name": "User",
             "email": TARGET_EMAIL,
@@ -273,7 +350,7 @@ def test_update_user_changes_fields(
 ) -> None:
     response = client.patch(
         f"/api/v1/admin/users/update/{target_user.id}",
-        json={"first_name": "Updated"},
+        data={"first_name": "Updated"},
         headers=admin_headers,
     )
 
@@ -281,12 +358,32 @@ def test_update_user_changes_fields(
     assert response.json()["data"]["first_name"] == "Updated"
 
 
+def test_update_user_with_image_uploads_it(
+    client: TestClient, admin_headers: dict[str, str], target_user: User
+) -> None:
+    upload_dir = Path(get_settings().upload_dir)
+    response = client.patch(
+        f"/api/v1/admin/users/update/{target_user.id}",
+        data={"first_name": "Updated"},
+        files={"image": ("avatar.png", b"avatar-bytes", "image/png")},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["profile_image_url"] is not None
+    image_path = upload_dir / Path(body["profile_image_url"]).name
+    assert image_path.exists()
+
+    image_path.unlink(missing_ok=True)
+
+
 def test_update_user_can_change_status_and_type(
     client: TestClient, admin_headers: dict[str, str], target_user: User
 ) -> None:
     response = client.patch(
         f"/api/v1/admin/users/update/{target_user.id}",
-        json={"status": "suspended", "user_type": "private"},
+        data={"status": "suspended", "user_type": "private"},
         headers=admin_headers,
     )
 
@@ -308,7 +405,7 @@ def test_update_user_rejects_duplicate_email(
 ) -> None:
     response = client.patch(
         f"/api/v1/admin/users/update/{target_user.id}",
-        json={"email": conflict_user.email},
+        data={"email": conflict_user.email},
         headers=admin_headers,
     )
 
@@ -320,7 +417,7 @@ def test_update_user_returns_404_for_unknown_id(
 ) -> None:
     response = client.patch(
         f"/api/v1/admin/users/update/{uuid4()}",
-        json={"first_name": "Nobody"},
+        data={"first_name": "Nobody"},
         headers=admin_headers,
     )
 
@@ -332,7 +429,7 @@ def test_update_user_rejects_non_admin(
 ) -> None:
     response = client.patch(
         f"/api/v1/admin/users/update/{target_user.id}",
-        json={"first_name": "Nope"},
+        data={"first_name": "Nope"},
         headers=customer_headers,
     )
 
@@ -344,7 +441,7 @@ def test_set_user_roles_assigns_roles(
 ) -> None:
     response = client.put(
         f"/api/v1/admin/users/update/{target_user.id}/roles",
-        json={"role_ids": [str(role.id)]},
+        data={"role_ids": [str(role.id)]},
         headers=admin_headers,
     )
 
@@ -358,7 +455,7 @@ def test_set_user_roles_rejects_unknown_role_id(
 ) -> None:
     response = client.put(
         f"/api/v1/admin/users/update/{target_user.id}/roles",
-        json={"role_ids": [str(uuid4())]},
+        data={"role_ids": [str(uuid4())]},
         headers=admin_headers,
     )
 
@@ -370,7 +467,7 @@ def test_set_user_roles_returns_404_for_unknown_user(
 ) -> None:
     response = client.put(
         f"/api/v1/admin/users/update/{uuid4()}/roles",
-        json={"role_ids": [str(role.id)]},
+        data={"role_ids": [str(role.id)]},
         headers=admin_headers,
     )
 
@@ -382,7 +479,7 @@ def test_set_user_roles_rejects_non_admin(
 ) -> None:
     response = client.put(
         f"/api/v1/admin/users/update/{target_user.id}/roles",
-        json={"role_ids": [str(role.id)]},
+        data={"role_ids": [str(role.id)]},
         headers=customer_headers,
     )
 
@@ -464,7 +561,7 @@ def test_delete_user_allows_email_reuse(
 
     create_response = client.post(
         "/api/v1/admin/users/create",
-        json={
+        data={
             "first_name": "Reused",
             "last_name": "Email",
             "email": TARGET_EMAIL,

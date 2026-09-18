@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1 import health
 from app.api.v1.admin import routes as admin_routes
 from app.api.v1.auth import routes as auth_routes
+from app.api.v1.pages import routes as page_routes
 from app.api.v1.permissions import routes as permission_routes
 from app.api.v1.roles import routes as role_routes
 from app.api.v1.settings import routes as setting_routes
@@ -16,3 +17,4 @@ api_router.include_router(role_routes.router)
 api_router.include_router(permission_routes.router)
 api_router.include_router(setting_routes.router)
 api_router.include_router(user_routes.router)
+api_router.include_router(page_routes.router)

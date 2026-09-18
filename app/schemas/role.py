@@ -1,8 +1,13 @@
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.permission import PermissionRead, PermissionSummary
+from app.schemas.validators import NonBlankStr
+
+RoleName = Annotated[NonBlankStr, Field(max_length=100)]
+RoleDescription = Annotated[str, Field(max_length=255)]
 
 
 class RoleRead(BaseModel):
@@ -33,14 +38,10 @@ class RoleWithPermissions(BaseModel):
 
 
 class RoleCreate(BaseModel):
-    name: str
-    description: str | None = None
+    name: RoleName
+    description: RoleDescription | None = None
 
 
 class RoleUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
-
-
-class RolePermissionsAssign(BaseModel):
-    permission_ids: list[UUID]
+    name: RoleName | None = None
+    description: RoleDescription | None = None

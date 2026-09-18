@@ -112,7 +112,7 @@ def test_create_permission_returns_created_permission(
 ) -> None:
     response = client.post(
         "/api/v1/admin/permissions/create",
-        json={"name": PERMISSION_NAME, "description": "View things"},
+        data={"name": PERMISSION_NAME, "description": "View things"},
         headers=admin_headers,
     )
 
@@ -128,7 +128,19 @@ def test_create_permission_rejects_duplicate_name(
 ) -> None:
     response = client.post(
         "/api/v1/admin/permissions/create",
-        json={"name": PERMISSION_NAME},
+        data={"name": PERMISSION_NAME},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_permission_rejects_blank_name(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    response = client.post(
+        "/api/v1/admin/permissions/create",
+        data={"name": "   "},
         headers=admin_headers,
     )
 
@@ -138,7 +150,7 @@ def test_create_permission_rejects_duplicate_name(
 def test_create_permission_rejects_missing_token(client: TestClient) -> None:
     response = client.post(
         "/api/v1/admin/permissions/create",
-        json={"name": PERMISSION_NAME},
+        data={"name": PERMISSION_NAME},
     )
 
     assert response.status_code == 401
@@ -149,7 +161,7 @@ def test_create_permission_rejects_non_admin(
 ) -> None:
     response = client.post(
         "/api/v1/admin/permissions/create",
-        json={"name": PERMISSION_NAME},
+        data={"name": PERMISSION_NAME},
         headers=customer_headers,
     )
 
@@ -192,7 +204,7 @@ def test_update_permission_changes_fields(
 ) -> None:
     response = client.patch(
         f"/api/v1/admin/permissions/update/{permission.id}",
-        json={"description": "Updated description"},
+        data={"description": "Updated description"},
         headers=admin_headers,
     )
 
@@ -205,14 +217,14 @@ def test_update_permission_rejects_duplicate_name(
 ) -> None:
     create_response = client.post(
         "/api/v1/admin/permissions/create",
-        json={"name": CONFLICT_PERMISSION_NAME},
+        data={"name": CONFLICT_PERMISSION_NAME},
         headers=admin_headers,
     )
     conflict_id = create_response.json()["data"]["id"]
 
     response = client.patch(
         f"/api/v1/admin/permissions/update/{conflict_id}",
-        json={"name": PERMISSION_NAME},
+        data={"name": PERMISSION_NAME},
         headers=admin_headers,
     )
 

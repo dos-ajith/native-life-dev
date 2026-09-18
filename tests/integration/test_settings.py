@@ -105,7 +105,7 @@ def test_create_setting_returns_created_setting(
 ) -> None:
     response = client.post(
         "/api/v1/admin/settings/create",
-        json={"key": SETTING_KEY, "value": "25"},
+        data={"key": SETTING_KEY, "value": "25"},
         headers=admin_headers,
     )
 
@@ -122,7 +122,19 @@ def test_create_setting_rejects_duplicate_key(
 ) -> None:
     response = client.post(
         "/api/v1/admin/settings/create",
-        json={"key": SETTING_KEY, "value": "50"},
+        data={"key": SETTING_KEY, "value": "50"},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_setting_rejects_blank_key(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    response = client.post(
+        "/api/v1/admin/settings/create",
+        data={"key": "   ", "value": "25"},
         headers=admin_headers,
     )
 
@@ -132,7 +144,7 @@ def test_create_setting_rejects_duplicate_key(
 def test_create_setting_rejects_missing_token(client: TestClient) -> None:
     response = client.post(
         "/api/v1/admin/settings/create",
-        json={"key": SETTING_KEY, "value": "25"},
+        data={"key": SETTING_KEY, "value": "25"},
     )
 
     assert response.status_code == 401
@@ -143,7 +155,7 @@ def test_create_setting_rejects_non_admin(
 ) -> None:
     response = client.post(
         "/api/v1/admin/settings/create",
-        json={"key": SETTING_KEY, "value": "25"},
+        data={"key": SETTING_KEY, "value": "25"},
         headers=customer_headers,
     )
 
@@ -203,7 +215,7 @@ def test_update_setting_changes_value(
 ) -> None:
     response = client.patch(
         f"/api/v1/admin/settings/update/{setting.id}",
-        json={"value": "50"},
+        data={"value": "50"},
         headers=admin_headers,
     )
 
@@ -216,14 +228,14 @@ def test_update_setting_rejects_duplicate_key(
 ) -> None:
     create_response = client.post(
         "/api/v1/admin/settings/create",
-        json={"key": CONFLICT_SETTING_KEY, "value": "1"},
+        data={"key": CONFLICT_SETTING_KEY, "value": "1"},
         headers=admin_headers,
     )
     conflict_id = create_response.json()["data"]["id"]
 
     response = client.patch(
         f"/api/v1/admin/settings/update/{conflict_id}",
-        json={"key": SETTING_KEY},
+        data={"key": SETTING_KEY},
         headers=admin_headers,
     )
 

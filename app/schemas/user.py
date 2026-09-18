@@ -1,9 +1,18 @@
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.user import UserStatus, UserType
 from app.schemas.role import RoleSummary, RoleWithPermissions
+from app.schemas.validators import NonBlankStr
+
+PHONE_PATTERN = r"^\+?[0-9]{7,15}$"
+
+Name = Annotated[NonBlankStr, Field(max_length=100)]
+Email = Annotated[EmailStr, Field(max_length=255)]
+Phone = Annotated[str, Field(max_length=30, pattern=PHONE_PATTERN)]
+Password = Annotated[str, Field(min_length=8, max_length=128)]
 
 
 class UserRead(BaseModel):
@@ -32,28 +41,24 @@ class AuthenticatedUserRead(BaseModel):
     roles: list[RoleWithPermissions]
 
 
-class UserRolesAssign(BaseModel):
-    role_ids: list[UUID]
-
-
 class UserCreate(BaseModel):
-    first_name: str
-    last_name: str
-    email: EmailStr
-    phone: str | None = None
-    password: str
+    first_name: Name
+    last_name: Name
+    email: Email
+    phone: Phone | None = None
+    password: Password
 
 
 class UserUpdate(BaseModel):
-    first_name: str | None = None
-    last_name: str | None = None
-    email: EmailStr | None = None
-    phone: str | None = None
+    first_name: Name | None = None
+    last_name: Name | None = None
+    email: Email | None = None
+    phone: Phone | None = None
     status: UserStatus | None = None
     user_type: UserType | None = None
 
 
 class UserSelfUpdate(BaseModel):
-    first_name: str | None = None
-    last_name: str | None = None
-    phone: str | None = None
+    first_name: Name | None = None
+    last_name: Name | None = None
+    phone: Phone | None = None

@@ -9,6 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import ValidationError
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
@@ -58,18 +59,29 @@ async def app_error_handler(_request: Request, exc: AppError) -> JSONResponse:
     )
 
 
-@app.exception_handler(RequestValidationError)
-async def validation_error_handler(
-    _request: Request, exc: RequestValidationError
-) -> JSONResponse:
+def _validation_error_response(errors: object) -> JSONResponse:
     return JSONResponse(
         status_code=422,
         content={
             "success": False,
             "message": "Validation failed",
-            "errors": jsonable_encoder(exc.errors()),
+            "errors": jsonable_encoder(errors),
         },
     )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(
+    _request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    return _validation_error_response(exc.errors())
+
+
+@app.exception_handler(ValidationError)
+async def pydantic_validation_error_handler(
+    _request: Request, exc: ValidationError
+) -> JSONResponse:
+    return _validation_error_response(exc.errors())
 
 
 @app.exception_handler(Exception)
