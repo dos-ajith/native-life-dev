@@ -81,6 +81,7 @@ def test_register_creates_active_public_user(client: TestClient) -> None:
     body = response.json()["data"]
     assert body["email"] == REGISTER_EMAIL
     assert body["status"] == "active"
+    assert [role["name"] for role in body["roles"]] == ["Public User"]
 
     db = SessionLocal()
     try:

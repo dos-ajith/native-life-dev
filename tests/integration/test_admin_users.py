@@ -13,6 +13,7 @@ from app.core.security import hash_password
 from app.models.active_token import ActiveToken
 from app.models.role import Role
 from app.models.user import User, UserStatus, UserType
+from app.utils.slug import slugify
 
 ADMIN_EMAIL = "admin-users-integration-admin@example.com"
 ADMIN_PASSWORD = "correct-horse-battery-staple"
@@ -75,7 +76,7 @@ def conflict_user() -> Iterator[User]:
 @pytest.fixture
 def role() -> Iterator[Role]:
     db = SessionLocal()
-    role = Role(name=ROLE_NAME, description="A role", permissions=[])
+    role = Role(name=ROLE_NAME, slug=slugify(ROLE_NAME), description="A role", permissions=[])
     db.add(role)
     db.commit()
     db.refresh(role)

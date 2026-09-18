@@ -4,15 +4,18 @@ from uuid import UUID
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import BusinessRuleError, NotFoundError
+from app.core.exceptions import BusinessRuleError, NotFoundError, ServiceUnavailableError
 from app.core.messages import UserMessages
 from app.core.security import hash_password
 from app.core.storage import delete_profile_image, save_profile_image
+from app.models.role import Role
 from app.models.user import User, UserStatus, UserType
 from app.repositories.role_repository import RoleRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.pagination import PaginationParams
 from app.schemas.user import UserCreate, UserSelfUpdate, UserUpdate
+
+DEFAULT_PUBLIC_ROLE_SLUG = "public-user"
 
 
 class UserService:
@@ -24,9 +27,14 @@ class UserService:
         return self._create(payload, UserType.PRIVATE)
 
     def register(self, payload: UserCreate) -> User:
-        return self._create(payload, UserType.PUBLIC)
+        default_role = self._roles.get_by_slug(DEFAULT_PUBLIC_ROLE_SLUG)
+        if default_role is None:
+            raise ServiceUnavailableError(UserMessages.DEFAULT_ROLE_MISSING)
+        return self._create(payload, UserType.PUBLIC, roles=[default_role])
 
-    def _create(self, payload: UserCreate, user_type: UserType) -> User:
+    def _create(
+        self, payload: UserCreate, user_type: UserType, roles: list[Role] | None = None
+    ) -> User:
         if self._users.get_by_email(payload.email) is not None:
             raise BusinessRuleError(UserMessages.EMAIL_TAKEN)
         if payload.phone is not None and self._users.get_by_phone(payload.phone) is not None:
@@ -39,6 +47,7 @@ class UserService:
             password_hash=hash_password(payload.password),
             status=UserStatus.ACTIVE,
             user_type=user_type,
+            roles=roles or [],
         )
         return self._users.add(user)
 

@@ -12,6 +12,7 @@ from app.models.active_token import ActiveToken
 from app.models.permission import Permission
 from app.models.role import Role
 from app.models.user import User, UserStatus
+from app.utils.slug import slugify
 
 TEST_EMAIL = "auth-integration-test@example.com"
 TEST_PASSWORD = "correct-horse-battery-staple"
@@ -85,7 +86,9 @@ def test_login_rejects_unknown_email(client: TestClient) -> None:
 def active_user_with_role() -> Iterator[User]:
     db = SessionLocal()
     permission = Permission(name=PERMISSION_NAME, description="A permission")
-    role = Role(name=ROLE_NAME, description="A role", permissions=[permission])
+    role = Role(
+        name=ROLE_NAME, slug=slugify(ROLE_NAME), description="A role", permissions=[permission]
+    )
     user = User(
         first_name="Test",
         last_name="User",

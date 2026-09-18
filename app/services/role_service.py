@@ -10,6 +10,7 @@ from app.repositories.permission_repository import PermissionRepository
 from app.repositories.role_repository import RoleRepository
 from app.schemas.pagination import PaginationParams
 from app.schemas.role import RoleCreate, RoleUpdate
+from app.utils.slug import slugify
 
 
 class RoleService:
@@ -20,7 +21,10 @@ class RoleService:
     def create(self, payload: RoleCreate) -> Role:
         if self._roles.get_by_name(payload.name) is not None:
             raise BusinessRuleError(RoleMessages.NAME_TAKEN)
-        role = Role(name=payload.name, description=payload.description, permissions=[])
+        slug = slugify(payload.name)
+        if self._roles.get_by_slug(slug) is not None:
+            raise BusinessRuleError(RoleMessages.SLUG_TAKEN)
+        role = Role(name=payload.name, slug=slug, description=payload.description, permissions=[])
         return self._roles.add(role)
 
     def get(self, role_id: UUID) -> Role:

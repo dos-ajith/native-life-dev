@@ -17,6 +17,9 @@ class RoleRepository:
     def get_by_name(self, name: str) -> Role | None:
         return self._db.scalar(select(Role).where(Role.name == name))
 
+    def get_by_slug(self, slug: str) -> Role | None:
+        return self._db.scalar(select(Role).where(Role.slug == slug))
+
     def get_by_ids(self, role_ids: list[UUID]) -> list[Role]:
         return list(self._db.scalars(select(Role).where(Role.id.in_(role_ids))))
 

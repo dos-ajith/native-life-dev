@@ -10,6 +10,7 @@ class RoleRead(BaseModel):
 
     id: UUID
     name: str
+    slug: str
     description: str | None
     permissions: list[PermissionRead]
 
@@ -19,6 +20,7 @@ class RoleSummary(BaseModel):
 
     id: UUID
     name: str
+    slug: str
 
 
 class RoleWithPermissions(BaseModel):
@@ -26,6 +28,7 @@ class RoleWithPermissions(BaseModel):
 
     id: UUID
     name: str
+    slug: str
     permissions: list[PermissionSummary]
 
 

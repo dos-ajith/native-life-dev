@@ -24,6 +24,7 @@ class UserMessages:
     PHONE_TAKEN = "Phone number is already registered"
     CANNOT_DELETE_SELF = "Cannot delete your own account"
     UNKNOWN_ROLE_IDS = "Unknown role id(s): {ids}"
+    DEFAULT_ROLE_MISSING = "Default role is not configured"
 
 
 class RoleMessages:
@@ -35,6 +36,7 @@ class RoleMessages:
     DELETED = "Role deleted"
     NOT_FOUND = "Role not found"
     NAME_TAKEN = "Role name is already in use"
+    SLUG_TAKEN = "Role slug is already in use"
     UNKNOWN_PERMISSION_IDS = "Unknown permission id(s): {ids}"
 
 

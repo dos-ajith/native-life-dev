@@ -13,6 +13,7 @@ from app.models.active_token import ActiveToken
 from app.models.permission import Permission
 from app.models.role import Role
 from app.models.user import User, UserStatus, UserType
+from app.utils.slug import slugify
 
 ADMIN_EMAIL = "roles-integration-admin@example.com"
 ADMIN_PASSWORD = "correct-horse-battery-staple"
@@ -71,7 +72,9 @@ def customer_actor() -> Iterator[User]:
 @pytest.fixture
 def role() -> Iterator[Role]:
     db = SessionLocal()
-    role = Role(name=ROLE_NAME, description="Can edit things", permissions=[])
+    role = Role(
+        name=ROLE_NAME, slug=slugify(ROLE_NAME), description="Can edit things", permissions=[]
+    )
     db.add(role)
     db.commit()
     db.refresh(role)

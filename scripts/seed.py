@@ -8,13 +8,22 @@ from app.repositories.permission_repository import PermissionRepository
 from app.repositories.role_repository import RoleRepository
 from app.repositories.setting_repository import SettingRepository
 from app.repositories.user_repository import UserRepository
+from app.utils.slug import slugify
 
-ADMIN_USER_EMAIL = "dev@nativelife.example"
-ADMIN_USER_PASSWORD = "Password123!"
+DEFAULT_USER_PASSWORD = "Password123!"
 
-ROLE_NAMES = ("admin", "customer", "promoter")
 PERMISSION_NAMES = ("user.view", "user.create", "user.update", "user.delete")
-ADMIN_ROLE_NAME = "admin"
+FULL_PERMISSIONS_ROLE_SLUG = "super-admin"
+
+ROLE_USERS = {
+    "Super Admin": ("dev@nativelife.com", UserType.PRIVATE),
+    "Native Admin": ("native.admin@nativelife.com", UserType.PRIVATE),
+    "Public Authority": ("public.authority@nativelife.com", UserType.PUBLIC),
+    "Business Profile": ("business.profile@nativelife.com", UserType.PUBLIC),
+    "Promoter": ("promoter@nativelife.com", UserType.PUBLIC),
+    "Public User": ("public.user@nativelife.com", UserType.PUBLIC),
+    "Delivery Team Member": ("delivery.team.member@nativelife.com", UserType.PRIVATE),
+}
 
 DEFAULT_SETTINGS = {
     "app_name": "Native Life",
@@ -42,53 +51,58 @@ def seed_roles_and_permissions() -> None:
             _get_or_create_permission(permissions, name) for name in PERMISSION_NAMES
         ]
 
-        for name in ROLE_NAMES:
-            if roles.get_by_name(name) is None:
-                roles.add(Role(name=name, permissions=[]))
+        for name in ROLE_USERS:
+            slug = slugify(name)
+            if roles.get_by_slug(slug) is None:
+                roles.add(Role(name=name, slug=slug, permissions=[]))
                 print(f"Seeded role: {name}")
 
-        admin_role = roles.get_by_name(ADMIN_ROLE_NAME)
-        if admin_role is not None:
-            admin_role.permissions = seeded_permissions
-            roles.save(admin_role)
-            print(f"Assigned {len(seeded_permissions)} permissions to role: {ADMIN_ROLE_NAME}")
+        full_role = roles.get_by_slug(FULL_PERMISSIONS_ROLE_SLUG)
+        if full_role is not None:
+            full_role.permissions = seeded_permissions
+            roles.save(full_role)
+            print(
+                f"Assigned {len(seeded_permissions)} permissions to role: "
+                f"{full_role.name}"
+            )
     finally:
         db.close()
 
 
-def seed_admin_user() -> None:
+def seed_role_users() -> None:
     db = SessionLocal()
     try:
         users = UserRepository(db)
         roles = RoleRepository(db)
 
-        admin_role = roles.get_by_name(ADMIN_ROLE_NAME)
-        if admin_role is None:
-            raise RuntimeError(
-                f"Role '{ADMIN_ROLE_NAME}' does not exist. Run seed_roles_and_permissions first."
-            )
+        for role_name, (email, user_type) in ROLE_USERS.items():
+            role = roles.get_by_slug(slugify(role_name))
+            if role is None:
+                raise RuntimeError(
+                    f"Role '{role_name}' does not exist. Run seed_roles_and_permissions first."
+                )
 
-        user = users.get_by_email(ADMIN_USER_EMAIL)
-        if user is None:
-            user = User(
-                first_name="Dev",
-                last_name="Admin",
-                email=ADMIN_USER_EMAIL,
-                password_hash=hash_password(ADMIN_USER_PASSWORD),
-                status=UserStatus.ACTIVE,
-                user_type=UserType.PRIVATE,
-                roles=[admin_role],
-            )
-            users.add(user)
-            print(f"Seeded admin user: {ADMIN_USER_EMAIL} / {ADMIN_USER_PASSWORD}")
-            return
+            user = users.get_by_email(email)
+            if user is None:
+                user = User(
+                    first_name="Dev",
+                    last_name=role_name,
+                    email=email,
+                    password_hash=hash_password(DEFAULT_USER_PASSWORD),
+                    status=UserStatus.ACTIVE,
+                    user_type=user_type,
+                    roles=[role],
+                )
+                users.add(user)
+                print(f"Seeded user for role '{role_name}': {email} / {DEFAULT_USER_PASSWORD}")
+                continue
 
-        if admin_role not in user.roles:
-            user.roles.append(admin_role)
-            users.save(user)
-            print(f"Assigned role '{ADMIN_ROLE_NAME}' to existing user: {ADMIN_USER_EMAIL}")
-        else:
-            print(f"Admin user already has role '{ADMIN_ROLE_NAME}': {ADMIN_USER_EMAIL}")
+            if role not in user.roles:
+                user.roles.append(role)
+                users.save(user)
+                print(f"Assigned role '{role_name}' to existing user: {email}")
+            else:
+                print(f"User already has role '{role_name}': {email}")
     finally:
         db.close()
 
@@ -113,5 +127,5 @@ def seed_settings() -> None:
 
 if __name__ == "__main__":
     seed_roles_and_permissions()
-    seed_admin_user()
+    seed_role_users()
     seed_settings()
