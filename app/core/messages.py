@@ -80,3 +80,22 @@ class HealthMessages:
 class StorageMessages:
     INVALID_IMAGE_TYPE = "Image must be JPEG, PNG, or WebP"
     IMAGE_TOO_LARGE = "Image must be 5MB or smaller"
+
+
+class GeographyMessages:
+    IMPORTED = "Geography imported successfully"
+    INVALID_FILE_TYPE = "Uploaded file must be a ZIP archive"
+    FILE_TOO_LARGE = "Uploaded file exceeds the maximum allowed size"
+    INVALID_ZIP = "Uploaded file is not a valid ZIP archive"
+    UNSAFE_ZIP_ENTRY = "ZIP archive contains an unsafe file path"
+    ZIP_TOO_LARGE_UNCOMPRESSED = "ZIP archive is too large when uncompressed"
+    MISSING_LAYER = "Required shapefile layer '{layer}' was not found in the archive"
+    MISSING_PRJ = "Layer '{layer}' is missing its .prj projection file"
+    MISSING_FIELD = "Layer '{layer}' is missing required field '{field}'"
+    NULL_REQUIRED_VALUE = "Layer '{layer}' has a blank value for required field '{field}'"
+    INVALID_STATE_LGD = "State LGD code must be '{expected}', found '{actual}'"
+    UNEXPECTED_STATE_RECORD_COUNT = "Expected exactly one state record, found {count}"
+    DUPLICATE_DISTRICT_LGD = "Duplicate district LGD code found: {code}"
+    DUPLICATE_TALUK_LGD = "Duplicate taluk LGD code found: {code}"
+    ORPHAN_TALUK_DISTRICT = "Taluk '{name}' references unknown district LGD code: {code}"
+    INVALID_GEOMETRY = "Layer '{layer}' contains an invalid geometry for record {identifier}"

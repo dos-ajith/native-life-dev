@@ -26,6 +26,8 @@ class Settings(BaseSettings):
 
     upload_dir: str = "uploads"
 
+    gis_import_max_upload_mb: int = 200
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
