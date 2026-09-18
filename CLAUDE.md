@@ -80,6 +80,11 @@ Router (app/api/v1/<module>/)   -- thin: HTTP in/out, calls a service, returns
   via the shared `SuccessResponse` generic schema in `app/schemas/response.py`
   — don't reimplement the envelope per-route.
 - Error responses always use: `{"success": false, "message": "...", "errors": [...]}`.
+- Every message string returned by the API — `SuccessResponse(message=...)` in
+  routers and messages passed to `AppError` subclasses raised in
+  services/deps — is a constant in `app/core/messages.py`, grouped into one
+  namespace class per module (`AuthMessages`, `UserMessages`, etc.). Never a
+  literal string inline in a router or service.
 - Pagination, filtering, and sorting use the shared reusable utilities/schemas
   once introduced — don't reimplement per-module.
 - Authentication ("who is this user?") and authorization ("can they do this?")

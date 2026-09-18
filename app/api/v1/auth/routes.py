@@ -1,9 +1,10 @@
 from fastapi import APIRouter
 
 from app.api.deps import CurrentUserDep, DbSessionDep, SettingsDep, TokenClaimsDep
+from app.core.messages import AuthMessages
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.schemas.response import SuccessResponse
-from app.schemas.user import UserRead
+from app.schemas.user import AuthenticatedUserRead
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -13,13 +14,18 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def login(
     payload: LoginRequest, db: DbSessionDep, settings: SettingsDep
 ) -> SuccessResponse[TokenResponse]:
-    token = AuthService(db, settings).authenticate(payload.email, payload.password)
-    return SuccessResponse(message="Login successful", data=TokenResponse(access_token=token))
+    token, user = AuthService(db, settings).authenticate(payload.email, payload.password)
+    return SuccessResponse(
+        message=AuthMessages.LOGIN_SUCCESSFUL,
+        data=TokenResponse(access_token=token, user=AuthenticatedUserRead.model_validate(user)),
+    )
 
 
-@router.get("/me", response_model=SuccessResponse[UserRead])
-def me(user: CurrentUserDep) -> SuccessResponse[UserRead]:
-    return SuccessResponse(message="User profile retrieved", data=UserRead.model_validate(user))
+@router.get("/me", response_model=SuccessResponse[AuthenticatedUserRead])
+def me(user: CurrentUserDep) -> SuccessResponse[AuthenticatedUserRead]:
+    return SuccessResponse(
+        message=AuthMessages.PROFILE_RETRIEVED, data=AuthenticatedUserRead.model_validate(user)
+    )
 
 
 @router.post("/logout", response_model=SuccessResponse[None])
@@ -30,4 +36,4 @@ def logout(
     settings: SettingsDep,
 ) -> SuccessResponse[None]:
     AuthService(db, settings).logout(claims.jti)
-    return SuccessResponse(message="Logged out", data=None)
+    return SuccessResponse(message=AuthMessages.LOGGED_OUT, data=None)

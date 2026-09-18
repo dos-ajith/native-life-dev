@@ -11,12 +11,14 @@ from app.core.database import SessionLocal
 from app.core.jwt import decode_access_token
 from app.core.security import hash_password
 from app.models.active_token import ActiveToken
+from app.models.role import Role
 from app.models.user import User, UserStatus, UserType
 
 ADMIN_EMAIL = "admin-users-integration-admin@example.com"
 ADMIN_PASSWORD = "correct-horse-battery-staple"
 TARGET_EMAIL = "admin-users-integration-target@example.com"
 CONFLICT_EMAIL = "admin-users-integration-conflict@example.com"
+ROLE_NAME = "admin-users-integration.role"
 
 
 def _delete_active_token(token: str) -> None:
@@ -70,6 +72,21 @@ def conflict_user() -> Iterator[User]:
     yield from _create_user(CONFLICT_EMAIL, "whatever-password", UserType.PUBLIC)
 
 
+@pytest.fixture
+def role() -> Iterator[Role]:
+    db = SessionLocal()
+    role = Role(name=ROLE_NAME, description="A role", permissions=[])
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+    try:
+        yield role
+    finally:
+        db.execute(delete(Role).where(Role.id == role.id))
+        db.commit()
+        db.close()
+
+
 def _login_headers(client: TestClient, email: str, password: str) -> Iterator[dict[str, str]]:
     login_response = client.post("/api/v1/auth/login", json={"email": email, "password": password})
     token = login_response.json()["data"]["access_token"]
@@ -108,7 +125,6 @@ def test_create_user_returns_created_user(
     assert body["success"] is True
     assert body["data"]["email"] == "admin-users-integration-created@example.com"
     assert body["data"]["status"] == "active"
-    assert body["data"]["user_type"] == "private"
 
     _delete_user(UUID(body["data"]["id"]))
 
@@ -130,7 +146,14 @@ def test_create_user_ignores_client_supplied_user_type(
 
     assert response.status_code == 201
     body = response.json()["data"]
-    assert body["user_type"] == "private"
+
+    db = SessionLocal()
+    try:
+        created = db.get(User, UUID(body["id"]))
+        assert created is not None
+        assert created.user_type == UserType.PRIVATE
+    finally:
+        db.close()
 
     _delete_user(UUID(body["id"]))
 
@@ -269,7 +292,14 @@ def test_update_user_can_change_status_and_type(
     assert response.status_code == 200
     body = response.json()["data"]
     assert body["status"] == "suspended"
-    assert body["user_type"] == "private"
+
+    db = SessionLocal()
+    try:
+        updated = db.get(User, target_user.id)
+        assert updated is not None
+        assert updated.user_type == UserType.PRIVATE
+    finally:
+        db.close()
 
 
 def test_update_user_rejects_duplicate_email(
@@ -302,6 +332,56 @@ def test_update_user_rejects_non_admin(
     response = client.patch(
         f"/api/v1/admin/users/update/{target_user.id}",
         json={"first_name": "Nope"},
+        headers=customer_headers,
+    )
+
+    assert response.status_code == 403
+
+
+def test_set_user_roles_assigns_roles(
+    client: TestClient, admin_headers: dict[str, str], target_user: User, role: Role
+) -> None:
+    response = client.put(
+        f"/api/v1/admin/users/update/{target_user.id}/roles",
+        json={"role_ids": [str(role.id)]},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert [r["id"] for r in body["roles"]] == [str(role.id)]
+
+
+def test_set_user_roles_rejects_unknown_role_id(
+    client: TestClient, admin_headers: dict[str, str], target_user: User
+) -> None:
+    response = client.put(
+        f"/api/v1/admin/users/update/{target_user.id}/roles",
+        json={"role_ids": [str(uuid4())]},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 422
+
+
+def test_set_user_roles_returns_404_for_unknown_user(
+    client: TestClient, admin_headers: dict[str, str], role: Role
+) -> None:
+    response = client.put(
+        f"/api/v1/admin/users/update/{uuid4()}/roles",
+        json={"role_ids": [str(role.id)]},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+
+def test_set_user_roles_rejects_non_admin(
+    client: TestClient, customer_headers: dict[str, str], target_user: User, role: Role
+) -> None:
+    response = client.put(
+        f"/api/v1/admin/users/update/{target_user.id}/roles",
+        json={"role_ids": [str(role.id)]},
         headers=customer_headers,
     )
 

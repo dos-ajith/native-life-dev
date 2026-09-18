@@ -2,7 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.permission import PermissionRead
+from app.schemas.permission import PermissionRead, PermissionSummary
 
 
 class RoleRead(BaseModel):
@@ -12,6 +12,21 @@ class RoleRead(BaseModel):
     name: str
     description: str | None
     permissions: list[PermissionRead]
+
+
+class RoleSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+
+
+class RoleWithPermissions(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    permissions: list[PermissionSummary]
 
 
 class RoleCreate(BaseModel):

@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi import UploadFile
 
 from app.core.exceptions import BusinessRuleError
+from app.core.messages import StorageMessages
 
 MEDIA_URL_PREFIX = "/media"
 MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024
@@ -17,11 +18,11 @@ ALLOWED_PROFILE_IMAGE_TYPES = {
 def save_profile_image(file: UploadFile, upload_dir: str) -> str:
     extension = ALLOWED_PROFILE_IMAGE_TYPES.get(file.content_type or "")
     if extension is None:
-        raise BusinessRuleError("Image must be JPEG, PNG, or WebP")
+        raise BusinessRuleError(StorageMessages.INVALID_IMAGE_TYPE)
 
     contents = file.file.read()
     if len(contents) > MAX_PROFILE_IMAGE_BYTES:
-        raise BusinessRuleError("Image must be 5MB or smaller")
+        raise BusinessRuleError(StorageMessages.IMAGE_TOO_LARGE)
 
     directory = Path(upload_dir)
     directory.mkdir(parents=True, exist_ok=True)

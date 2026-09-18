@@ -1,10 +1,15 @@
 import enum
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum, Index, String, text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.user_has_role import user_has_roles
+
+if TYPE_CHECKING:
+    from app.models.role import Role
 
 
 class UserStatus(enum.StrEnum):
@@ -61,3 +66,5 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         default=UserType.PUBLIC,
     )
     deleted_at: Mapped[datetime | None] = mapped_column(default=None)
+
+    roles: Mapped[list["Role"]] = relationship(secondary=user_has_roles, back_populates="users")

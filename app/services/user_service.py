@@ -5,9 +5,11 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessRuleError, NotFoundError
+from app.core.messages import UserMessages
 from app.core.security import hash_password
 from app.core.storage import delete_profile_image, save_profile_image
 from app.models.user import User, UserStatus, UserType
+from app.repositories.role_repository import RoleRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.pagination import PaginationParams
 from app.schemas.user import UserCreate, UserSelfUpdate, UserUpdate
@@ -16,6 +18,7 @@ from app.schemas.user import UserCreate, UserSelfUpdate, UserUpdate
 class UserService:
     def __init__(self, db: Session) -> None:
         self._users = UserRepository(db)
+        self._roles = RoleRepository(db)
 
     def create(self, payload: UserCreate) -> User:
         return self._create(payload, UserType.PRIVATE)
@@ -25,9 +28,9 @@ class UserService:
 
     def _create(self, payload: UserCreate, user_type: UserType) -> User:
         if self._users.get_by_email(payload.email) is not None:
-            raise BusinessRuleError("Email is already registered")
+            raise BusinessRuleError(UserMessages.EMAIL_TAKEN)
         if payload.phone is not None and self._users.get_by_phone(payload.phone) is not None:
-            raise BusinessRuleError("Phone number is already registered")
+            raise BusinessRuleError(UserMessages.PHONE_TAKEN)
         user = User(
             first_name=payload.first_name,
             last_name=payload.last_name,
@@ -42,15 +45,25 @@ class UserService:
     def get(self, user_id: UUID) -> User:
         user = self._users.get_by_id(user_id)
         if user is None:
-            raise NotFoundError("User not found")
+            raise NotFoundError(UserMessages.NOT_FOUND)
         return user
+
+    def assign_roles(self, user_id: UUID, role_ids: list[UUID]) -> User:
+        user = self.get(user_id)
+        roles = self._roles.get_by_ids(role_ids)
+        missing_ids = set(role_ids) - {role.id for role in roles}
+        if missing_ids:
+            names = ", ".join(str(role_id) for role_id in missing_ids)
+            raise BusinessRuleError(UserMessages.UNKNOWN_ROLE_IDS.format(ids=names))
+        user.roles = roles
+        return self._users.save(user)
 
     def list(self, params: PaginationParams) -> tuple[list[User], int]:
         return self._users.list(params)
 
     def delete(self, user_id: UUID, acting_user: User) -> None:
         if user_id == acting_user.id:
-            raise BusinessRuleError("Cannot delete your own account")
+            raise BusinessRuleError(UserMessages.CANNOT_DELETE_SELF)
         user = self.get(user_id)
         self._users.soft_delete(user)
 
@@ -83,7 +96,7 @@ class UserService:
     def _check_uniqueness(self, user: User, data: dict[str, Any]) -> None:
         email = data.get("email")
         if email is not None and email != user.email and self._users.get_by_email(email):
-            raise BusinessRuleError("Email is already registered")
+            raise BusinessRuleError(UserMessages.EMAIL_TAKEN)
         phone = data.get("phone")
         if phone is not None and phone != user.phone and self._users.get_by_phone(phone):
-            raise BusinessRuleError("Phone number is already registered")
+            raise BusinessRuleError(UserMessages.PHONE_TAKEN)

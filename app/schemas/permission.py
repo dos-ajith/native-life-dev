@@ -11,6 +11,13 @@ class PermissionRead(BaseModel):
     description: str | None
 
 
+class PermissionSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+
+
 class PermissionCreate(BaseModel):
     name: str
     description: str | None = None

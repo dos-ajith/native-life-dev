@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, status
 
 from app.api.deps import CurrentAdminUserDep, DbSessionDep, PaginationDep
+from app.core.messages import PermissionMessages
 from app.schemas.pagination import Page
 from app.schemas.permission import PermissionCreate, PermissionRead, PermissionUpdate
 from app.schemas.response import SuccessResponse
@@ -19,7 +20,7 @@ def create_permission(
 ) -> SuccessResponse[PermissionRead]:
     permission = PermissionService(db).create(payload)
     return SuccessResponse(
-        message="Permission created", data=PermissionRead.model_validate(permission)
+        message=PermissionMessages.CREATED, data=PermissionRead.model_validate(permission)
     )
 
 
@@ -31,7 +32,7 @@ def list_permissions(
     page = Page[PermissionRead].create(
         items=[PermissionRead.model_validate(item) for item in items], total=total, params=params
     )
-    return SuccessResponse(message="Permissions retrieved", data=page)
+    return SuccessResponse(message=PermissionMessages.LIST_RETRIEVED, data=page)
 
 
 @router.get("/edit/{permission_id}", response_model=SuccessResponse[PermissionRead])
@@ -40,7 +41,7 @@ def edit_permission(
 ) -> SuccessResponse[PermissionRead]:
     permission = PermissionService(db).get(permission_id)
     return SuccessResponse(
-        message="Permission retrieved", data=PermissionRead.model_validate(permission)
+        message=PermissionMessages.RETRIEVED, data=PermissionRead.model_validate(permission)
     )
 
 
@@ -50,7 +51,7 @@ def update_permission(
 ) -> SuccessResponse[PermissionRead]:
     permission = PermissionService(db).update(permission_id, payload)
     return SuccessResponse(
-        message="Permission updated", data=PermissionRead.model_validate(permission)
+        message=PermissionMessages.UPDATED, data=PermissionRead.model_validate(permission)
     )
 
 
@@ -59,4 +60,4 @@ def delete_permission(
     permission_id: UUID, db: DbSessionDep, _: CurrentAdminUserDep
 ) -> SuccessResponse[None]:
     PermissionService(db).delete(permission_id)
-    return SuccessResponse(message="Permission deleted", data=None)
+    return SuccessResponse(message=PermissionMessages.DELETED, data=None)

@@ -11,7 +11,7 @@ from app.core.database import SessionLocal
 from app.core.jwt import decode_access_token
 from app.core.security import hash_password
 from app.models.active_token import ActiveToken
-from app.models.user import User, UserStatus
+from app.models.user import User, UserStatus, UserType
 
 SELF_EMAIL = "users-integration-self@example.com"
 SELF_PASSWORD = "correct-horse-battery-staple"
@@ -81,7 +81,14 @@ def test_register_creates_active_public_user(client: TestClient) -> None:
     body = response.json()["data"]
     assert body["email"] == REGISTER_EMAIL
     assert body["status"] == "active"
-    assert body["user_type"] == "public"
+
+    db = SessionLocal()
+    try:
+        created = db.get(User, UUID(body["id"]))
+        assert created is not None
+        assert created.user_type == UserType.PUBLIC
+    finally:
+        db.close()
 
     _delete_user(UUID(body["id"]))
 

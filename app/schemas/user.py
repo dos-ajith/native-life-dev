@@ -3,6 +3,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 from app.models.user import UserStatus, UserType
+from app.schemas.role import RoleSummary, RoleWithPermissions
 
 
 class UserRead(BaseModel):
@@ -15,7 +16,24 @@ class UserRead(BaseModel):
     phone: str | None
     profile_image_url: str | None
     status: UserStatus
-    user_type: UserType
+    roles: list[RoleSummary]
+
+
+class AuthenticatedUserRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    first_name: str
+    last_name: str
+    email: EmailStr
+    phone: str | None
+    profile_image_url: str | None
+    status: UserStatus
+    roles: list[RoleWithPermissions]
+
+
+class UserRolesAssign(BaseModel):
+    role_ids: list[UUID]
 
 
 class UserCreate(BaseModel):
