@@ -48,6 +48,16 @@ class PermissionMessages:
     NAME_TAKEN = "Permission name is already in use"
 
 
+class SettingMessages:
+    CREATED = "Setting created"
+    RETRIEVED = "Setting retrieved"
+    LIST_RETRIEVED = "Settings retrieved"
+    UPDATED = "Setting updated"
+    DELETED = "Setting deleted"
+    NOT_FOUND = "Setting not found"
+    KEY_TAKEN = "Setting key is already in use"
+
+
 class HealthMessages:
     SERVICE_HEALTHY = "Service is healthy"
     DATABASE_HEALTHY = "Database is healthy"
