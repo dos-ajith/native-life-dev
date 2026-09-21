@@ -1555,6 +1555,119 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "Location",
+			"item": [
+				{
+					"name": "List states",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/geography/states?page=1&page_size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"geography",
+								"states"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number, starts at 1"
+								},
+								{
+									"key": "page_size",
+									"value": "20",
+									"description": "Items per page (max 100)"
+								}
+							]
+						},
+						"description": "Public. Returns a paginated list of GIS states."
+					}
+				},
+				{
+					"name": "List districts for state",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/geography/states/:state_id/districts?page=1&page_size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"geography",
+								"states",
+								":state_id",
+								"districts"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number, starts at 1"
+								},
+								{
+									"key": "page_size",
+									"value": "20",
+									"description": "Items per page (max 100)"
+								}
+							],
+							"variable": [
+								{
+									"key": "state_id",
+									"value": "",
+									"description": "UUID of the state"
+								}
+							]
+						},
+						"description": "Public. Returns a paginated list of GIS districts belonging to a state. 404 if the state does not exist."
+					}
+				},
+				{
+					"name": "List taluks for district",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/geography/districts/:district_id/taluks?page=1&page_size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"geography",
+								"districts",
+								":district_id",
+								"taluks"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number, starts at 1"
+								},
+								{
+									"key": "page_size",
+									"value": "20",
+									"description": "Items per page (max 100)"
+								}
+							],
+							"variable": [
+								{
+									"key": "district_id",
+									"value": "",
+									"description": "UUID of the district"
+								}
+							]
+						},
+						"description": "Public. Returns a paginated list of GIS taluks belonging to a district. 404 if the district does not exist."
+					}
+				}
+			]
 		}
 	]
 }

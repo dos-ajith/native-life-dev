@@ -1,8 +1,9 @@
 import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
+from uuid import UUID
 
-from sqlalchemy import Enum, Index, String, text
+from sqlalchemy import Enum, ForeignKey, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -66,5 +67,6 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         default=UserType.PUBLIC,
     )
     deleted_at: Mapped[datetime | None] = mapped_column(default=None)
+    created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
 
     roles: Mapped[list["Role"]] = relationship(secondary=user_has_roles, back_populates="users")

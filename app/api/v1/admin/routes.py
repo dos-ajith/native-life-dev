@@ -25,7 +25,7 @@ router = APIRouter(prefix="/admin/users", tags=["admin"])
 )
 def create_user(
     db: DbSessionDep,
-    _: CurrentAdminUserDep,
+    admin: CurrentAdminUserDep,
     settings: SettingsDep,
     first_name: Annotated[str, Form()],
     last_name: Annotated[str, Form()],
@@ -37,7 +37,7 @@ def create_user(
     payload = UserCreate(
         first_name=first_name, last_name=last_name, email=email, phone=phone, password=password
     )
-    user = UserService(db).create(payload)
+    user = UserService(db).create(payload, admin)
     if image is not None:
         user = UserService(db).update_image_for(user.id, image, settings.upload_dir)
     return SuccessResponse(message=UserMessages.CREATED, data=UserRead.model_validate(user))

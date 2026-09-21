@@ -23,8 +23,8 @@ class UserService:
         self._users = UserRepository(db)
         self._roles = RoleRepository(db)
 
-    def create(self, payload: UserCreate) -> User:
-        return self._create(payload, UserType.PRIVATE)
+    def create(self, payload: UserCreate, acting_user: User) -> User:
+        return self._create(payload, UserType.PRIVATE, created_by=acting_user.id)
 
     def register(self, payload: UserCreate) -> User:
         default_role = self._roles.get_by_slug(DEFAULT_PUBLIC_ROLE_SLUG)
@@ -33,7 +33,11 @@ class UserService:
         return self._create(payload, UserType.PUBLIC, roles=[default_role])
 
     def _create(
-        self, payload: UserCreate, user_type: UserType, roles: list[Role] | None = None
+        self,
+        payload: UserCreate,
+        user_type: UserType,
+        roles: list[Role] | None = None,
+        created_by: UUID | None = None,
     ) -> User:
         if self._users.get_by_email(payload.email) is not None:
             raise BusinessRuleError(UserMessages.EMAIL_TAKEN)
@@ -48,6 +52,7 @@ class UserService:
             status=UserStatus.ACTIVE,
             user_type=user_type,
             roles=roles or [],
+            created_by=created_by,
         )
         return self._users.add(user)
 
