@@ -3,8 +3,9 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
+from app.schemas.base import BaseReadSchema
 from app.schemas.validators import NonBlankStr
 
 if TYPE_CHECKING:
@@ -13,9 +14,7 @@ if TYPE_CHECKING:
 PostCommentContent = Annotated[NonBlankStr, Field(max_length=2000)]
 
 
-class PostCommentRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class PostCommentRead(BaseReadSchema):
     id: UUID
     post_id: UUID
     user_id: UUID

@@ -159,7 +159,20 @@ Migration rules for this project:
 5. Be careful with destructive operations (dropping columns/tables) once
    real data exists.
 
-### 7. Docker (optional, not required for local dev)
+### 7. Seed data
+
+Populate roles, permissions, dev users, and default settings:
+
+```powershell
+python -m scripts.seed
+```
+
+This runs `scripts/seed.py`, which seeds (in order): permissions and roles,
+one dev user per role, and default app settings. It's idempotent — safe to
+re-run, existing rows are left as-is. Seeded users all use the password
+`Password123!`, e.g. `dev@nativelife.com` for the Super Admin role.
+
+### 8. Docker (optional, not required for local dev)
 
 A `Dockerfile` and `docker-compose.yml` exist for later/deployment use, but
 local development in this project currently runs directly against a

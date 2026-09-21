@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
+from app.api.deps import apply_datetime_formats
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.database import engine
@@ -94,4 +95,8 @@ async def unhandled_exception_handler(_request: Request, exc: Exception) -> JSON
     )
 
 
-app.include_router(api_router, prefix=settings.api_v1_prefix)
+app.include_router(
+    api_router,
+    prefix=settings.api_v1_prefix,
+    dependencies=[Depends(apply_datetime_formats)],
+)

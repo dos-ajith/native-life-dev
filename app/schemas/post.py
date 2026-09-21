@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.post import PostStatus
 from app.models.post_media import PostMediaType
+from app.schemas.base import BaseReadSchema
 
 if TYPE_CHECKING:
     from app.models.post import Post
@@ -16,9 +17,7 @@ Latitude = Annotated[float, Field(ge=-90, le=90)]
 Longitude = Annotated[float, Field(ge=-180, le=180)]
 
 
-class PostRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class PostRead(BaseReadSchema):
     id: UUID
     user_id: UUID
     title: str | None
@@ -100,7 +99,7 @@ class PostAuthorRead(BaseModel):
         )
 
 
-class PostDetailRead(BaseModel):
+class PostDetailRead(BaseReadSchema):
     id: UUID
     author: PostAuthorRead
     title: str | None

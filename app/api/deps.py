@@ -11,10 +11,18 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.core.exceptions import AuthenticationError, AuthorizationError
+from app.core.formatting_context import (
+    APP_DATE_FORMAT_SETTING_KEY,
+    APP_TIME_FORMAT_SETTING_KEY,
+    DEFAULT_APP_DATE_FORMAT,
+    DEFAULT_APP_TIME_FORMAT,
+    set_datetime_formats,
+)
 from app.core.jwt import decode_access_token
 from app.core.messages import AuthMessages
 from app.models.user import User, UserStatus, UserType
 from app.repositories.active_token_repository import ActiveTokenRepository
+from app.repositories.setting_repository import SettingRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.geography import ReverseGeocodeQuery
 from app.schemas.pagination import PaginationParams
@@ -118,3 +126,13 @@ def get_activity_request_meta(request: Request) -> ActivityRequestMeta:
 
 
 ActivityRequestMetaDep = Annotated[ActivityRequestMeta, Depends(get_activity_request_meta)]
+
+
+def apply_datetime_formats(db: DbSessionDep) -> None:
+    settings = SettingRepository(db)
+    date_setting = settings.get_by_key(APP_DATE_FORMAT_SETTING_KEY)
+    time_setting = settings.get_by_key(APP_TIME_FORMAT_SETTING_KEY)
+    set_datetime_formats(
+        date_setting.value if date_setting and date_setting.value else DEFAULT_APP_DATE_FORMAT,
+        time_setting.value if time_setting and time_setting.value else DEFAULT_APP_TIME_FORMAT,
+    )

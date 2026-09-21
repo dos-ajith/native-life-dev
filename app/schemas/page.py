@@ -2,17 +2,16 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from app.models.page import PageStatus
+from app.schemas.base import BaseReadSchema
 from app.schemas.validators import NonBlankStr
 
 PageTitle = Annotated[NonBlankStr, Field(max_length=255)]
 
 
-class PageRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class PageRead(BaseReadSchema):
     id: UUID
     title: str
     slug: str
