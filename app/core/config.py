@@ -28,6 +28,8 @@ class Settings(BaseSettings):
 
     gis_import_max_upload_mb: int = 200
 
+    default_timezone: str = "Asia/Kolkata"
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"

@@ -35,3 +35,6 @@ Thumbs.db
 
 # Tests
 tests/
+
+# Local schema scratch file
+docs/schema.dbml

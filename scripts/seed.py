@@ -1,3 +1,4 @@
+from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.core.security import hash_password
 from app.models.permission import Permission
@@ -30,6 +31,8 @@ DEFAULT_SETTINGS = {
     "app_logo_url": None,
     "app_favicon_url": None,
     "app_site_motto": "Live Native. Live Free.",
+    "app_date_format": "DD-MM-YYYY",
+    "app_time_format": "hh:mm A",
 }
 
 
@@ -121,6 +124,7 @@ def seed_settings() -> None:
         settings = SettingRepository(db)
         for key, value in DEFAULT_SETTINGS.items():
             _get_or_create_setting(settings, key, value)
+        _get_or_create_setting(settings, "app_timezone", get_settings().default_timezone)
     finally:
         db.close()
 
