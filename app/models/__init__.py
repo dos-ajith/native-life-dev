@@ -6,6 +6,11 @@ from app.models.gis_state import GisState
 from app.models.gis_taluk import GisTaluk
 from app.models.page import Page
 from app.models.permission import Permission
+from app.models.post import Post
+from app.models.post_comment import PostComment
+from app.models.post_like import PostLike
+from app.models.post_media import PostMedia
+from app.models.post_share import PostShare
 from app.models.role import Role
 from app.models.role_has_permission import role_has_permissions
 from app.models.setting import Setting
@@ -21,6 +26,11 @@ __all__ = [
     "GisTaluk",
     "Page",
     "Permission",
+    "Post",
+    "PostComment",
+    "PostLike",
+    "PostMedia",
+    "PostShare",
     "Role",
     "Setting",
     "User",

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.core.messages import PageMessages
-from app.core.storage import delete_profile_image, save_profile_image
+from app.core.storage import delete_media_file, save_profile_image
 from app.models.page import Page, PageStatus
 from app.models.user import User
 from app.repositories.page_repository import PageRepository
@@ -71,5 +71,5 @@ class PageService:
         page.image_url = save_profile_image(image, upload_dir)
         saved = self._pages.save(page)
         if previous_url is not None:
-            delete_profile_image(previous_url, upload_dir)
+            delete_media_file(previous_url, upload_dir)
         return saved

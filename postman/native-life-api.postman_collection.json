@@ -1384,6 +1384,545 @@
 			]
 		},
 		{
+			"name": "Posts",
+			"item": [
+				{
+					"name": "Create post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts"
+							]
+						},
+						"description": "Creates a post owned by the authenticated user, as multipart/form-data so images and/or videos can be attached in the same request \u2014 there is no separate 'add media' endpoint. `user_id` is always taken from the authenticated user, never from the body.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) \u2014 one of: draft, scheduled, published. `published_at`/`published_by` are set automatically the first time status becomes `published` (`published_by` is whoever made this call, which may be an admin publishing on the owner's behalf).\n- `scheduled_at` (datetime, required when status is `scheduled`)\n- `latitude` / `longitude` (float, optional, provide both together) \u2014 WGS84 coordinates of where the post was created; stored as a PostGIS point.\n- `location_name` (string, optional) \u2014 human-readable place name. If omitted and latitude/longitude are given, it's auto-filled via reverse geocoding (taluk, district, state) against imported geography data; left null if nothing matches. Provide it explicitly to override or to set a place name without geocoding.\n- `images` (file[], optional) \u2014 JPEG/PNG/WebP, max 5MB each\n- `videos` (file[], optional) \u2014 MP4/MOV/WebM, max 100MB each\n- `video_thumbnails` (file[], required if `videos` is set) \u2014 one cover image per video, matched by position",
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"type": "text",
+									"value": "Weekend trip"
+								},
+								{
+									"key": "content",
+									"type": "text",
+									"value": "Hello from Native Life!"
+								},
+								{
+									"key": "status",
+									"type": "text",
+									"value": "draft"
+								},
+								{
+									"key": "latitude",
+									"type": "text",
+									"value": "12.9716"
+								},
+								{
+									"key": "longitude",
+									"type": "text",
+									"value": "77.5946"
+								},
+								{
+									"key": "location_name",
+									"type": "text",
+									"value": "",
+									"description": "Optional. Manual place name; overrides the automatic reverse-geocode fallback derived from latitude/longitude."
+								},
+								{
+									"key": "images",
+									"type": "file",
+									"src": [],
+									"description": "Optional. One or more image files (JPEG/PNG/WebP, max 5MB each)"
+								},
+								{
+									"key": "videos",
+									"type": "file",
+									"src": [],
+									"description": "Optional. One or more video files (MP4/MOV/WebM, max 100MB each)"
+								},
+								{
+									"key": "video_thumbnails",
+									"type": "file",
+									"src": [],
+									"description": "Required if 'videos' is set. One cover-image file per video, in the same order (JPEG/PNG/WebP, max 5MB each)"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "List posts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts?page=1&page_size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Returns a paginated list of non-deleted posts. Each item includes the resolved author and its media list (same shape as 'Get post'), batched in a couple of extra queries rather than one per post. Each item also includes likes_count, comments_count, and shares_count, batched per page."
+					}
+				},
+				{
+					"name": "Get post",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts/:post_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								":post_id"
+							],
+							"variable": [
+								{
+									"key": "post_id",
+									"value": "",
+									"description": "UUID of the post"
+								}
+							]
+						},
+						"description": "Retrieves a single post by ID, with the author (id, name, profile_image_url) resolved and its media list embedded, so a client can render a post without extra calls. Also includes likes_count, comments_count (all levels, not just top-level threads) and shares_count."
+					}
+				},
+				{
+					"name": "Update post",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts/:post_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								":post_id"
+							],
+							"variable": [
+								{
+									"key": "post_id",
+									"value": "",
+									"description": "UUID of the post"
+								}
+							]
+						},
+						"description": "Updates a post, as multipart/form-data. Only the owner (or an admin) may update it. Only the fields included are changed. Any images/videos included are appended to the post's existing media (this endpoint never removes media, use 'Delete post media' for that).\n\n**Body (form-data)** \u2014 same optional fields as Create post (including `latitude`/`longitude`, which re-run the reverse-geocode fallback for `location_name` unless you also pass `location_name` explicitly). Publishing here (status becomes `published`) also sets `published_by` to whoever made this call. `title` and `location_name` can also be changed independently of media/coordinates.",
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"type": "text",
+									"value": ""
+								},
+								{
+									"key": "content",
+									"type": "text",
+									"value": "Updated content"
+								},
+								{
+									"key": "status",
+									"type": "text",
+									"value": "published"
+								},
+								{
+									"key": "latitude",
+									"type": "text",
+									"value": ""
+								},
+								{
+									"key": "longitude",
+									"type": "text",
+									"value": ""
+								},
+								{
+									"key": "location_name",
+									"type": "text",
+									"value": "",
+									"description": "Optional. Set/override the place name directly, independent of latitude/longitude."
+								},
+								{
+									"key": "images",
+									"type": "file",
+									"src": [],
+									"description": "Optional. One or more additional image files to append"
+								},
+								{
+									"key": "videos",
+									"type": "file",
+									"src": [],
+									"description": "Optional. One or more additional video files to append"
+								},
+								{
+									"key": "video_thumbnails",
+									"type": "file",
+									"src": [],
+									"description": "Required if 'videos' is set. One cover-image file per video, in the same order"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete post",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts/:post_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								":post_id"
+							],
+							"variable": [
+								{
+									"key": "post_id",
+									"value": "",
+									"description": "UUID of the post"
+								}
+							]
+						},
+						"description": "Soft-deletes a post (sets deleted_at). Only the owner (or an admin) may delete it."
+					}
+				},
+				{
+					"name": "List post media",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts/:post_id/media",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								":post_id",
+								"media"
+							],
+							"variable": [
+								{
+									"key": "post_id",
+									"value": "",
+									"description": "UUID of the post"
+								}
+							]
+						},
+						"description": "Returns all images/videos attached to a post, ordered by sort_order. Each item has media_type (image or video); videos also carry a thumbnail_url."
+					}
+				},
+				{
+					"name": "Delete post media",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts/:post_id/media/:media_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								":post_id",
+								"media",
+								":media_id"
+							],
+							"variable": [
+								{
+									"key": "post_id",
+									"value": "",
+									"description": "UUID of the post"
+								},
+								{
+									"key": "media_id",
+									"value": "",
+									"description": "UUID of the media item"
+								}
+							]
+						},
+						"description": "Removes one image or video (and its thumbnail, if any) from a post (owner or admin only)."
+					}
+				},
+				{
+					"name": "Create comment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts/:post_id/comments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								":post_id",
+								"comments"
+							],
+							"variable": [
+								{
+									"key": "post_id",
+									"value": "",
+									"description": "UUID of the post"
+								}
+							]
+						},
+						"description": "Adds a comment to a post. Pass parent_id to reply to an existing comment on the same post.\n\n**Body (json)**\n- content (string, required)\n- parent_id (UUID, optional) \u2014 id of the comment being replied to",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"Nice post!\",\n  \"parent_id\": null\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					}
+				},
+				{
+					"name": "List comments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts/:post_id/comments?page=1&page_size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								":post_id",
+								"comments"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "20"
+								}
+							],
+							"variable": [
+								{
+									"key": "post_id",
+									"value": "",
+									"description": "UUID of the post"
+								}
+							]
+						},
+						"description": "Returns a paginated list of top-level comments for a post, newest first. Each comment carries its full reply thread nested under `replies` (unpaginated, in chronological order, arbitrarily deep). `page`/`page_size`/`total`/`pages` apply to top-level threads only \u2014 replies are not counted or paginated separately."
+					}
+				},
+				{
+					"name": "Delete comment",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts/comments/:comment_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								"comments",
+								":comment_id"
+							],
+							"variable": [
+								{
+									"key": "comment_id",
+									"value": "",
+									"description": "UUID of the comment"
+								}
+							]
+						},
+						"description": "Soft-deletes a comment. Only the comment's author (or an admin) may delete it."
+					}
+				},
+				{
+					"name": "Like post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts/:post_id/likes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								":post_id",
+								"likes"
+							],
+							"variable": [
+								{
+									"key": "post_id",
+									"value": "",
+									"description": "UUID of the post"
+								}
+							]
+						},
+						"description": "Likes a post as the authenticated user. A user can only like a post once."
+					}
+				},
+				{
+					"name": "Unlike post",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts/:post_id/likes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								":post_id",
+								"likes"
+							],
+							"variable": [
+								{
+									"key": "post_id",
+									"value": "",
+									"description": "UUID of the post"
+								}
+							]
+						},
+						"description": "Removes the authenticated user's like from a post."
+					}
+				},
+				{
+					"name": "Share post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts/:post_id/shares",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								":post_id",
+								"shares"
+							],
+							"variable": [
+								{
+									"key": "post_id",
+									"value": "",
+									"description": "UUID of the post"
+								}
+							]
+						},
+						"description": "Records that the authenticated user shared a post. A user may share the same post more than once (each share is a separate record), unlike likes.\n\n**Body (json, optional)**\n- `utm_source` (string, optional) \u2014 where the share came from (e.g. whatsapp, facebook, copy_link), for attribution. Omit the body entirely if not tracking this.",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"utm_source\": \"whatsapp\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					}
+				}
+			]
+		},
+		{
 			"name": "Users",
 			"item": [
 				{

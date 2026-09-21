@@ -9,7 +9,7 @@ from app.core.activity_actions import ActivityAction
 from app.core.exceptions import BusinessRuleError, NotFoundError, ServiceUnavailableError
 from app.core.messages import UserMessages
 from app.core.security import hash_password
-from app.core.storage import delete_profile_image, save_profile_image
+from app.core.storage import delete_media_file, save_profile_image
 from app.models.role import Role
 from app.models.user import User, UserStatus, UserType
 from app.repositories.role_repository import RoleRepository
@@ -174,7 +174,7 @@ class UserService:
         user.profile_image_url = save_profile_image(image, upload_dir)
         saved = self._users.save(user)
         if previous_url is not None:
-            delete_profile_image(previous_url, upload_dir)
+            delete_media_file(previous_url, upload_dir)
         return saved
 
     def update_image_for(self, user_id: UUID, image: UploadFile, upload_dir: str) -> User:

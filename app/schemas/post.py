@@ -1,0 +1,142 @@
+from datetime import datetime
+from typing import TYPE_CHECKING, Annotated
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from app.models.post import PostStatus
+from app.models.post_media import PostMediaType
+
+if TYPE_CHECKING:
+    from app.models.post import Post
+    from app.models.post_media import PostMedia
+    from app.models.user import User
+
+Latitude = Annotated[float, Field(ge=-90, le=90)]
+Longitude = Annotated[float, Field(ge=-180, le=180)]
+
+
+class PostRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    user_id: UUID
+    title: str | None
+    content: str | None
+    status: PostStatus
+    latitude: float | None
+    longitude: float | None
+    location_name: str | None
+    scheduled_at: datetime | None
+    published_at: datetime | None
+    published_by: UUID | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class PostCreate(BaseModel):
+    title: str | None = None
+    content: str | None = None
+    status: PostStatus = PostStatus.DRAFT
+    scheduled_at: datetime | None = None
+    latitude: Latitude | None = None
+    longitude: Longitude | None = None
+    location_name: str | None = None
+
+    @model_validator(mode="after")
+    def _validate(self) -> "PostCreate":
+        if self.status == PostStatus.SCHEDULED and self.scheduled_at is None:
+            raise ValueError("scheduled_at is required when status is scheduled")
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError("latitude and longitude must be provided together")
+        return self
+
+
+class PostUpdate(BaseModel):
+    title: str | None = None
+    content: str | None = None
+    status: PostStatus | None = None
+    scheduled_at: datetime | None = None
+    latitude: Latitude | None = None
+    longitude: Longitude | None = None
+    location_name: str | None = None
+
+    @model_validator(mode="after")
+    def _validate(self) -> "PostUpdate":
+        if self.status == PostStatus.SCHEDULED and self.scheduled_at is None:
+            raise ValueError("scheduled_at is required when status is scheduled")
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError("latitude and longitude must be provided together")
+        return self
+
+
+class PostMediaRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    post_id: UUID
+    media_type: PostMediaType
+    file_url: str
+    thumbnail_url: str | None
+    sort_order: int
+
+
+class PostWithMediaRead(BaseModel):
+    post: PostRead
+    media: list[PostMediaRead]
+
+
+class PostAuthorRead(BaseModel):
+    id: UUID
+    name: str
+    profile_image_url: str | None
+
+    @classmethod
+    def from_user(cls, user: "User") -> "PostAuthorRead":
+        return cls(
+            id=user.id,
+            name=f"{user.first_name} {user.last_name}",
+            profile_image_url=user.profile_image_url,
+        )
+
+
+class PostDetailRead(BaseModel):
+    id: UUID
+    author: PostAuthorRead
+    title: str | None
+    content: str | None
+    status: PostStatus
+    latitude: float | None
+    longitude: float | None
+    location_name: str | None
+    scheduled_at: datetime | None
+    published_at: datetime | None
+    published_by: UUID | None
+    created_at: datetime
+    updated_at: datetime
+    media: list[PostMediaRead]
+    likes_count: int
+    comments_count: int
+    shares_count: int
+
+    @classmethod
+    def from_post(cls, post: "Post", author: "User", media: list["PostMedia"]) -> "PostDetailRead":
+        return cls(
+            id=post.id,
+            author=PostAuthorRead.from_user(author),
+            title=post.title,
+            content=post.content,
+            status=post.status,
+            latitude=post.latitude,
+            longitude=post.longitude,
+            location_name=post.location_name,
+            scheduled_at=post.scheduled_at,
+            published_at=post.published_at,
+            published_by=post.published_by,
+            created_at=post.created_at,
+            updated_at=post.updated_at,
+            media=[PostMediaRead.model_validate(item) for item in media],
+            likes_count=post.likes_count,
+            comments_count=post.comments_count,
+            shares_count=post.shares_count,
+        )

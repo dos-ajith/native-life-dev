@@ -71,6 +71,42 @@ class PageMessages:
     SLUG_TAKEN = "Page slug is already in use"
 
 
+class PostMessages:
+    CREATED = "Post created"
+    RETRIEVED = "Post retrieved"
+    LIST_RETRIEVED = "Posts retrieved"
+    UPDATED = "Post updated"
+    DELETED = "Post deleted"
+    NOT_FOUND = "Post not found"
+    NOT_OWNER = "You do not have permission to modify this post"
+    SCHEDULED_AT_REQUIRED = "scheduled_at is required when status is scheduled"
+    LOCATION_INCOMPLETE = "latitude and longitude must be provided together"
+    MEDIA_RETRIEVED = "Post media retrieved"
+    MEDIA_REMOVED = "Post media removed"
+    MEDIA_NOT_FOUND = "Post media not found"
+    VIDEO_THUMBNAIL_REQUIRED = "Each video must include a matching thumbnail image"
+
+
+class PostCommentMessages:
+    CREATED = "Comment added"
+    LIST_RETRIEVED = "Comments retrieved"
+    DELETED = "Comment deleted"
+    NOT_FOUND = "Comment not found"
+    NOT_OWNER = "You do not have permission to delete this comment"
+    PARENT_NOT_FOUND = "Parent comment not found"
+
+
+class PostLikeMessages:
+    LIKED = "Post liked"
+    UNLIKED = "Post unliked"
+    ALREADY_LIKED = "You have already liked this post"
+    NOT_FOUND = "Like not found"
+
+
+class PostShareMessages:
+    SHARED = "Post shared"
+
+
 class HealthMessages:
     SERVICE_HEALTHY = "Service is healthy"
     DATABASE_HEALTHY = "Database is healthy"
@@ -80,6 +116,8 @@ class HealthMessages:
 class StorageMessages:
     INVALID_IMAGE_TYPE = "Image must be JPEG, PNG, or WebP"
     IMAGE_TOO_LARGE = "Image must be 5MB or smaller"
+    INVALID_VIDEO_TYPE = "Video must be MP4, MOV, or WebM"
+    VIDEO_TOO_LARGE = "Video must be 100MB or smaller"
 
 
 class GeographyMessages:

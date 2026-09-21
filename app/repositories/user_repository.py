@@ -27,6 +27,12 @@ class UserRepository:
             select(User).where(User.id == user_id, User.deleted_at.is_(None))
         )
 
+    def get_by_id_including_deleted(self, user_id: UUID) -> User | None:
+        return self._db.get(User, user_id)
+
+    def get_by_ids_including_deleted(self, user_ids: list[UUID]) -> list[User]:
+        return list(self._db.scalars(select(User).where(User.id.in_(user_ids))))
+
     def list(self, params: PaginationParams) -> tuple[list[User], int]:
         not_deleted = User.deleted_at.is_(None)
         total = self._db.scalar(select(func.count()).select_from(User).where(not_deleted)) or 0
