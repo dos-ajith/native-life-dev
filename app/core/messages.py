@@ -104,3 +104,5 @@ class GeographyMessages:
     DISTRICT_NOT_FOUND = "District not found"
     ORPHAN_TALUK_DISTRICT = "Taluk '{name}' references unknown district LGD code: {code}"
     INVALID_GEOMETRY = "Layer '{layer}' contains an invalid geometry for record {identifier}"
+    LOCATION_RESOLVED = "Location resolved"
+    LOCATION_NOT_FOUND = "No matching state, district, or taluk found for the given coordinates"

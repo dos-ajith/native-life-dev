@@ -2,9 +2,14 @@ from uuid import UUID
 
 from fastapi import APIRouter
 
-from app.api.deps import DbSessionDep, PaginationDep
+from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaginationDep, ReverseGeocodeQueryDep
 from app.core.messages import GeographyMessages
-from app.schemas.geography import GisDistrictRead, GisStateRead, GisTalukRead
+from app.schemas.geography import (
+    GisDistrictRead,
+    GisStateRead,
+    GisTalukRead,
+    ReverseGeocodeResult,
+)
 from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
 from app.services.geography_service import GeographyService
@@ -43,3 +48,16 @@ def list_taluks(
         items=[GisTalukRead.model_validate(item) for item in items], total=total, params=params
     )
     return SuccessResponse(message=GeographyMessages.TALUKS_RETRIEVED, data=page)
+
+
+@router.get("/reverse", response_model=SuccessResponse[ReverseGeocodeResult])
+def reverse_geocode(
+    db: DbSessionDep, _: CurrentActiveUserDep, params: ReverseGeocodeQueryDep
+) -> SuccessResponse[ReverseGeocodeResult]:
+    taluk = GeographyService(db).reverse_geocode(params.latitude, params.longitude)
+    result = ReverseGeocodeResult(
+        state=GisStateRead.model_validate(taluk.district.state),
+        district=GisDistrictRead.model_validate(taluk.district),
+        taluk=GisTalukRead.model_validate(taluk),
+    )
+    return SuccessResponse(message=GeographyMessages.LOCATION_RESOLVED, data=result)

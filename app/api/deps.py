@@ -16,6 +16,7 @@ from app.core.messages import AuthMessages
 from app.models.user import User, UserStatus, UserType
 from app.repositories.active_token_repository import ActiveTokenRepository
 from app.repositories.user_repository import UserRepository
+from app.schemas.geography import ReverseGeocodeQuery
 from app.schemas.pagination import PaginationParams
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
@@ -91,3 +92,13 @@ def get_pagination_params(
 PaginationDep = Annotated[PaginationParams, Depends(get_pagination_params)]
 
 ProfileImageDep = Annotated[UploadFile, File(...)]
+
+
+def get_reverse_geocode_params(
+    latitude: Annotated[float, Query(ge=-90, le=90)],
+    longitude: Annotated[float, Query(ge=-180, le=180)],
+) -> ReverseGeocodeQuery:
+    return ReverseGeocodeQuery(latitude=latitude, longitude=longitude)
+
+
+ReverseGeocodeQueryDep = Annotated[ReverseGeocodeQuery, Depends(get_reverse_geocode_params)]

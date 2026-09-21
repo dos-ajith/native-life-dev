@@ -36,3 +36,14 @@ class GisTalukRead(BaseModel):
     district_id: UUID
     lgd_code: str
     name: str
+
+
+class ReverseGeocodeQuery(BaseModel):
+    latitude: float
+    longitude: float
+
+
+class ReverseGeocodeResult(BaseModel):
+    state: GisStateRead
+    district: GisDistrictRead
+    taluk: GisTalukRead

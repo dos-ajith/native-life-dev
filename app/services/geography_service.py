@@ -35,3 +35,9 @@ class GeographyService:
         if self._districts.get_by_id(district_id) is None:
             raise NotFoundError(GeographyMessages.DISTRICT_NOT_FOUND)
         return self._taluks.list_by_district(district_id, params)
+
+    def reverse_geocode(self, latitude: float, longitude: float) -> GisTaluk:
+        taluk = self._taluks.find_containing_point(latitude, longitude)
+        if taluk is None:
+            raise NotFoundError(GeographyMessages.LOCATION_NOT_FOUND)
+        return taluk
