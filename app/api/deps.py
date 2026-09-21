@@ -4,7 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, File, Query, UploadFile
+from fastapi import Depends, File, Query, Request, UploadFile
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -102,3 +102,19 @@ def get_reverse_geocode_params(
 
 
 ReverseGeocodeQueryDep = Annotated[ReverseGeocodeQuery, Depends(get_reverse_geocode_params)]
+
+
+@dataclass
+class ActivityRequestMeta:
+    ip_address: str | None
+    user_agent: str | None
+
+
+def get_activity_request_meta(request: Request) -> ActivityRequestMeta:
+    return ActivityRequestMeta(
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+
+
+ActivityRequestMetaDep = Annotated[ActivityRequestMeta, Depends(get_activity_request_meta)]

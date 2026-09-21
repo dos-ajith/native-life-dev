@@ -1,4 +1,5 @@
 from app.models.active_token import ActiveToken
+from app.models.activity_log import ActivityLog
 from app.models.base import Base
 from app.models.gis_district import GisDistrict
 from app.models.gis_state import GisState
@@ -13,6 +14,7 @@ from app.models.user_has_role import user_has_roles
 
 __all__ = [
     "ActiveToken",
+    "ActivityLog",
     "Base",
     "GisDistrict",
     "GisState",

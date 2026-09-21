@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, File, Form, UploadFile, status
 
 from app.api.deps import (
+    ActivityRequestMetaDep,
     CurrentAdminUserDep,
     DbSessionDep,
     PaginationDep,
@@ -27,6 +28,7 @@ def create_user(
     db: DbSessionDep,
     admin: CurrentAdminUserDep,
     settings: SettingsDep,
+    meta: ActivityRequestMetaDep,
     first_name: Annotated[str, Form()],
     last_name: Annotated[str, Form()],
     email: Annotated[str, Form()],
@@ -37,7 +39,7 @@ def create_user(
     payload = UserCreate(
         first_name=first_name, last_name=last_name, email=email, phone=phone, password=password
     )
-    user = UserService(db).create(payload, admin)
+    user = UserService(db).create(payload, admin, meta.ip_address, meta.user_agent)
     if image is not None:
         user = UserService(db).update_image_for(user.id, image, settings.upload_dir)
     return SuccessResponse(message=UserMessages.CREATED, data=UserRead.model_validate(user))
@@ -66,7 +68,7 @@ def edit_user(
 def update_user(
     user_id: UUID,
     db: DbSessionDep,
-    _: CurrentAdminUserDep,
+    admin: CurrentAdminUserDep,
     settings: SettingsDep,
     first_name: Annotated[str | None, Form()] = None,
     last_name: Annotated[str | None, Form()] = None,
@@ -84,7 +86,7 @@ def update_user(
         status=user_status,
         user_type=user_type,
     )
-    user = UserService(db).update(user_id, payload)
+    user = UserService(db).update(user_id, payload, admin)
     if image is not None:
         user = UserService(db).update_image_for(user_id, image, settings.upload_dir)
     return SuccessResponse(message=UserMessages.UPDATED, data=UserRead.model_validate(user))
@@ -108,10 +110,10 @@ def update_user_image(
 def set_user_roles(
     user_id: UUID,
     db: DbSessionDep,
-    _: CurrentAdminUserDep,
+    admin: CurrentAdminUserDep,
     role_ids: Annotated[list[UUID], Form(default_factory=list)],
 ) -> SuccessResponse[UserRead]:
-    user = UserService(db).assign_roles(user_id, role_ids)
+    user = UserService(db).assign_roles(user_id, role_ids, admin)
     return SuccessResponse(message=UserMessages.ROLES_UPDATED, data=UserRead.model_validate(user))
 
 
