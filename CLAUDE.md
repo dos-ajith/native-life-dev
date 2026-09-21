@@ -43,6 +43,28 @@ Router (app/api/v1/<module>/)   -- thin: HTTP in/out, calls a service, returns
 - Mobile and admin endpoints share the same service layer where the business
   logic is identical; only authorization/presentation differs.
 
+## Activity logging
+
+- Every service-layer method that creates, updates, or deletes a persisted
+  entity must record an activity log entry via `ActivityLogService`
+  (`app/services/activity_log_service.py`), called only *after* the operation
+  succeeds — never before, so a failed/rolled-back operation never leaves an
+  orphan log entry.
+- Call `ActivityLogService.log(...)` from the service layer only. Routers
+  never call it directly, and repositories never know it exists.
+- The actor is always the authenticated `current_user`/admin passed down from
+  the request — never accept an actor id from the client. Use `actor=None`
+  only for genuine system/background operations.
+- Action names are constants in `app/core/activity_actions.py`
+  (`ActivityAction`) — one per business event (`USER_CREATED`,
+  `ROLE_ASSIGNED`, etc.) — never an inline string literal at the call site.
+- Never put passwords, password hashes, tokens, or other secrets in
+  `metadata`. `ActivityLogService` strips a few well-known sensitive keys as
+  a safety net, but don't rely on that — keep metadata minimal and
+  non-sensitive at the call site.
+- Don't add a write/POST API for activity logs. A read-only admin endpoint
+  (e.g. `GET /api/v1/admin/activity-logs`) may be added later, once needed.
+
 ## Coding standards
 
 - Type hints everywhere; code should pass `ruff check .` and `mypy app`
