@@ -1,0 +1,1560 @@
+{
+	"info": {
+		"name": "Native Life API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://127.0.0.1:8000/api/v1"
+		},
+		{
+			"key": "access_token",
+			"value": ""
+		}
+	],
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Liveness",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Checks whether the API process is running."
+					}
+				},
+				{
+					"name": "Readiness (DB)",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/health/ready",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health",
+								"ready"
+							]
+						},
+						"description": "Checks whether the API can connect to the database."
+					}
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"  pm.collectionVariables.set('access_token', pm.response.json().data.access_token);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"dev@nativelife.com\",\n  \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Authenticates with email and password, returns a JWT access token.\n\n**Body**\n- `email` (string, required) \u2014 registered account email\n- `password` (string, required)"
+					}
+				},
+				{
+					"name": "Me",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"description": "Returns the currently authenticated user's profile."
+					}
+				},
+				{
+					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"  pm.collectionVariables.set('access_token', '');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Invalidates the current access token."
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "Create user",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "first_name",
+									"value": "New",
+									"type": "text"
+								},
+								{
+									"key": "last_name",
+									"value": "User",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "new.user@example.com",
+									"type": "text"
+								},
+								{
+									"key": "phone",
+									"value": "",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "Password123!",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": "",
+									"description": "Optional. Image file to upload (JPEG/PNG/WebP, max 5MB)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/users/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"create"
+							]
+						},
+						"description": "Creates a new user account (admin only), as multipart/form-data so the profile image can be uploaded in the same request.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) \u2014 must be unique among active (non-deleted) users\n- `phone` (string, optional) \u2014 must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) \u2014 hashed server-side, never stored in plaintext\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update user image'."
+					}
+				},
+				{
+					"name": "List users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/users?page=1&page_size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number, starts at 1"
+								},
+								{
+									"key": "page_size",
+									"value": "20",
+									"description": "Items per page (max 100)"
+								}
+							]
+						},
+						"description": "Returns a paginated list of users (admin only)."
+					}
+				},
+				{
+					"name": "Get user",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/users/edit/:user_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"edit",
+								":user_id"
+							],
+							"variable": [
+								{
+									"key": "user_id",
+									"value": "",
+									"description": "UUID of the user to retrieve"
+								}
+							]
+						},
+						"description": "Retrieves a single user by ID (admin only)."
+					}
+				},
+				{
+					"name": "Update user",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "first_name",
+									"value": "Updated",
+									"type": "text"
+								},
+								{
+									"key": "status",
+									"value": "active",
+									"type": "text"
+								},
+								{
+									"key": "user_type",
+									"value": "public",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": "",
+									"description": "Optional. Image file to upload (JPEG/PNG/WebP, max 5MB)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/users/update/:user_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"update",
+								":user_id"
+							],
+							"variable": [
+								{
+									"key": "user_id",
+									"value": "",
+									"description": "UUID of the user to update"
+								}
+							]
+						},
+						"description": "Updates a user's details (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `first_name` (string, optional)\n- `last_name` (string, optional)\n- `email` (string, optional) \u2014 must stay unique among active (non-deleted) users\n- `phone` (string, optional) \u2014 must stay unique among active (non-deleted) users\n- `status` (enum, optional) \u2014 one of: active, inactive, suspended, pending_verification\n- `user_type` (enum, optional) \u2014 one of: public, private (private = admin access)\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB"
+					}
+				},
+				{
+					"name": "Update user image",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "image",
+									"type": "file",
+									"src": "",
+									"description": "Image file to upload (JPEG/PNG/WebP, max 5MB)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/users/update/:user_id/image",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"update",
+								":user_id",
+								"image"
+							],
+							"variable": [
+								{
+									"key": "user_id",
+									"value": "",
+									"description": "UUID of the user"
+								}
+							]
+						},
+						"description": "Uploads/replaces a user's profile image (admin only). Body: image file (JPEG/PNG/WebP, max 5MB)."
+					}
+				},
+				{
+					"name": "Set user roles",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "role_ids",
+									"value": "",
+									"type": "text",
+									"description": "Repeat this key once per role UUID. Omit entirely to clear all roles."
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/users/update/:user_id/roles",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"update",
+								":user_id",
+								"roles"
+							],
+							"variable": [
+								{
+									"key": "user_id",
+									"value": "",
+									"description": "UUID of the user"
+								}
+							]
+						},
+						"description": "Replaces the full set of roles assigned to a user (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `role_ids` (repeated field, one value per UUID) \u2014 replaces existing roles entirely, not additive. Send the key multiple times for multiple roles; omit it to clear all roles."
+					}
+				},
+				{
+					"name": "Delete user",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/users/delete/:user_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"delete",
+								":user_id"
+							],
+							"variable": [
+								{
+									"key": "user_id",
+									"value": "",
+									"description": "UUID of the user to delete"
+								}
+							]
+						},
+						"description": "Soft-deletes a user (admin only)."
+					}
+				}
+			]
+		},
+		{
+			"name": "Roles",
+			"item": [
+				{
+					"name": "Create role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "editor",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Can edit content",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/roles/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"roles",
+								"create"
+							]
+						},
+						"description": "Creates a new role (admin only), as multipart/form-data. A url-safe `slug` is auto-generated from `name` (e.g. 'Public User' -> 'public-user') and returned in the response; it cannot be set directly and never changes afterward, even if `name` is later updated.\n\n**Body (form-data)**\n- `name` (string, required) \u2014 must be unique\n- `description` (string, optional)"
+					}
+				},
+				{
+					"name": "List roles",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/roles?page=1&page_size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"roles"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number, starts at 1"
+								},
+								{
+									"key": "page_size",
+									"value": "20",
+									"description": "Items per page (max 100)"
+								}
+							]
+						},
+						"description": "Returns a paginated list of roles (admin only)."
+					}
+				},
+				{
+					"name": "Get role",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/roles/edit/:role_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"roles",
+								"edit",
+								":role_id"
+							],
+							"variable": [
+								{
+									"key": "role_id",
+									"value": "",
+									"description": "UUID of the role to retrieve"
+								}
+							]
+						},
+						"description": "Retrieves a single role by ID (admin only)."
+					}
+				},
+				{
+					"name": "Update role",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "editor",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Updated description",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/roles/update/:role_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"roles",
+								"update",
+								":role_id"
+							],
+							"variable": [
+								{
+									"key": "role_id",
+									"value": "",
+									"description": "UUID of the role to update"
+								}
+							]
+						},
+						"description": "Updates a role's name/description (admin only), as multipart/form-data. Only the fields you include are changed. `slug` is immutable and does not change even if `name` does.\n\n**Body (form-data)**\n- `name` (string, optional) \u2014 must stay unique\n- `description` (string, optional)"
+					}
+				},
+				{
+					"name": "Set role permissions",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "permission_ids",
+									"value": "",
+									"type": "text",
+									"description": "Repeat this key once per permission UUID. Omit entirely to clear all permissions."
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/roles/update/:role_id/permissions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"roles",
+								"update",
+								":role_id",
+								"permissions"
+							],
+							"variable": [
+								{
+									"key": "role_id",
+									"value": "",
+									"description": "UUID of the role"
+								}
+							]
+						},
+						"description": "Replaces the full set of permissions assigned to a role (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `permission_ids` (repeated field, one value per UUID) \u2014 replaces existing permissions entirely, not additive. Send the key multiple times for multiple permissions; omit it to clear all permissions."
+					}
+				},
+				{
+					"name": "Delete role",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/roles/delete/:role_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"roles",
+								"delete",
+								":role_id"
+							],
+							"variable": [
+								{
+									"key": "role_id",
+									"value": "",
+									"description": "UUID of the role to delete"
+								}
+							]
+						},
+						"description": "Deletes a role (admin only)."
+					}
+				}
+			]
+		},
+		{
+			"name": "Permissions",
+			"item": [
+				{
+					"name": "Create permission",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "users.delete",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Can delete users",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/permissions/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"permissions",
+								"create"
+							]
+						},
+						"description": "Creates a new permission (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `name` (string, required) \u2014 must be unique\n- `description` (string, optional)"
+					}
+				},
+				{
+					"name": "List permissions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/permissions?page=1&page_size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"permissions"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number, starts at 1"
+								},
+								{
+									"key": "page_size",
+									"value": "20",
+									"description": "Items per page (max 100)"
+								}
+							]
+						},
+						"description": "Returns a paginated list of permissions (admin only)."
+					}
+				},
+				{
+					"name": "Get permission",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/permissions/edit/:permission_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"permissions",
+								"edit",
+								":permission_id"
+							],
+							"variable": [
+								{
+									"key": "permission_id",
+									"value": "",
+									"description": "UUID of the permission to retrieve"
+								}
+							]
+						},
+						"description": "Retrieves a single permission by ID (admin only)."
+					}
+				},
+				{
+					"name": "Update permission",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "description",
+									"value": "Updated description",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/permissions/update/:permission_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"permissions",
+								"update",
+								":permission_id"
+							],
+							"variable": [
+								{
+									"key": "permission_id",
+									"value": "",
+									"description": "UUID of the permission to update"
+								}
+							]
+						},
+						"description": "Updates a permission's name/description (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `name` (string, optional) \u2014 must stay unique\n- `description` (string, optional)"
+					}
+				},
+				{
+					"name": "Delete permission",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/permissions/delete/:permission_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"permissions",
+								"delete",
+								":permission_id"
+							],
+							"variable": [
+								{
+									"key": "permission_id",
+									"value": "",
+									"description": "UUID of the permission to delete"
+								}
+							]
+						},
+						"description": "Deletes a permission (admin only)."
+					}
+				}
+			]
+		},
+		{
+			"name": "Settings",
+			"item": [
+				{
+					"name": "Create setting",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "key",
+									"value": "app_maintenance_mode",
+									"type": "text"
+								},
+								{
+									"key": "value",
+									"value": "false",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/settings/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"settings",
+								"create"
+							]
+						},
+						"description": "Creates a new key-value app setting (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `key` (string, required) \u2014 must be unique, e.g. app_name\n- `value` (string, optional) \u2014 stored as text; app decides how to interpret it"
+					}
+				},
+				{
+					"name": "List settings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/settings?page=1&page_size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"settings"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number, starts at 1"
+								},
+								{
+									"key": "page_size",
+									"value": "20",
+									"description": "Items per page (max 100)"
+								}
+							]
+						},
+						"description": "Returns a paginated list of app settings (admin only)."
+					}
+				},
+				{
+					"name": "Get setting",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/settings/edit/:setting_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"settings",
+								"edit",
+								":setting_id"
+							],
+							"variable": [
+								{
+									"key": "setting_id",
+									"value": "",
+									"description": "UUID of the setting to retrieve"
+								}
+							]
+						},
+						"description": "Retrieves a single setting by ID (admin only)."
+					}
+				},
+				{
+					"name": "Get setting by key",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/settings/key/:key",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"settings",
+								"key",
+								":key"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "app_maintenance_mode",
+									"description": "Unique setting key, e.g. app_name"
+								}
+							]
+						},
+						"description": "Retrieves a single setting by its unique key (admin only), e.g. app_name."
+					}
+				},
+				{
+					"name": "Update setting",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "value",
+									"value": "true",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/settings/update/:setting_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"settings",
+								"update",
+								":setting_id"
+							],
+							"variable": [
+								{
+									"key": "setting_id",
+									"value": "",
+									"description": "UUID of the setting to update"
+								}
+							]
+						},
+						"description": "Updates a setting's key or value (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `key` (string, optional) \u2014 must stay unique\n- `value` (string, optional)"
+					}
+				},
+				{
+					"name": "Delete setting",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/settings/delete/:setting_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"settings",
+								"delete",
+								":setting_id"
+							],
+							"variable": [
+								{
+									"key": "setting_id",
+									"value": "",
+									"description": "UUID of the setting to delete"
+								}
+							]
+						},
+						"description": "Deletes a setting (admin only)."
+					}
+				}
+			]
+		},
+		{
+			"name": "Pages",
+			"item": [
+				{
+					"name": "Create page",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "About Us",
+									"type": "text"
+								},
+								{
+									"key": "content",
+									"value": "<p>Some content</p>",
+									"type": "text"
+								},
+								{
+									"key": "status",
+									"value": "draft",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": "",
+									"description": "Optional. Image file to upload (JPEG/PNG/WebP, max 5MB)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/pages/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"pages",
+								"create"
+							]
+						},
+						"description": "Creates a new content page (admin only), as multipart/form-data so the featured image can be uploaded in the same request. A url-safe `slug` is auto-generated from `title` and returned in the response; it cannot be set directly and never changes afterward, even if `title` is later updated. `created_by`/`updated_by` are set to the authenticated admin, not from the body.\n\n**Body (form-data)**\n- `title` (string, required) \u2014 slug must be unique\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) \u2014 one of: draft, published, archived. `published_at` is set automatically the first time status becomes `published`.\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Leave empty to create without an image; it can be added later via 'Update page image'."
+					}
+				},
+				{
+					"name": "List pages",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/pages?page=1&page_size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"pages"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number, starts at 1"
+								},
+								{
+									"key": "page_size",
+									"value": "20",
+									"description": "Items per page (max 100)"
+								}
+							]
+						},
+						"description": "Returns a paginated list of pages (admin only)."
+					}
+				},
+				{
+					"name": "Get page",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/pages/edit/:page_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"pages",
+								"edit",
+								":page_id"
+							],
+							"variable": [
+								{
+									"key": "page_id",
+									"value": "",
+									"description": "UUID of the page to retrieve"
+								}
+							]
+						},
+						"description": "Retrieves a single page by ID (admin only)."
+					}
+				},
+				{
+					"name": "Get page by slug",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/pages/slug/:slug",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"pages",
+								"slug",
+								":slug"
+							],
+							"variable": [
+								{
+									"key": "slug",
+									"value": "about-us",
+									"description": "Unique page slug, e.g. about-us"
+								}
+							]
+						},
+						"description": "Retrieves a single page by its unique slug (admin only)."
+					}
+				},
+				{
+					"name": "Update page",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "content",
+									"value": "<p>Updated content</p>",
+									"type": "text"
+								},
+								{
+									"key": "status",
+									"value": "published",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": "",
+									"description": "Optional. Image file to upload (JPEG/PNG/WebP, max 5MB)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/pages/update/:page_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"pages",
+								"update",
+								":page_id"
+							],
+							"variable": [
+								{
+									"key": "page_id",
+									"value": "",
+									"description": "UUID of the page to update"
+								}
+							]
+						},
+						"description": "Updates a page's title/content/status (admin only), as multipart/form-data. Only the fields you include are changed. `slug` is immutable and does not change even if `title` does. `updated_by` is set to the authenticated admin; `published_at` is set automatically the first time status becomes `published`.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional) \u2014 one of: draft, published, archived\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set via 'Update page image'."
+					}
+				},
+				{
+					"name": "Update page image",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "image",
+									"type": "file",
+									"src": "",
+									"description": "Image file to upload (JPEG/PNG/WebP, max 5MB)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/pages/update/:page_id/image",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"pages",
+								"update",
+								":page_id",
+								"image"
+							],
+							"variable": [
+								{
+									"key": "page_id",
+									"value": "",
+									"description": "UUID of the page"
+								}
+							]
+						},
+						"description": "Uploads/replaces a page's featured image (admin only). Body: image file (JPEG/PNG/WebP, max 5MB)."
+					}
+				},
+				{
+					"name": "Delete page",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/pages/delete/:page_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"pages",
+								"delete",
+								":page_id"
+							],
+							"variable": [
+								{
+									"key": "page_id",
+									"value": "",
+									"description": "UUID of the page to delete"
+								}
+							]
+						},
+						"description": "Deletes a page (admin only)."
+					}
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "first_name",
+									"value": "New",
+									"type": "text"
+								},
+								{
+									"key": "last_name",
+									"value": "Customer",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "new.customer@example.com",
+									"type": "text"
+								},
+								{
+									"key": "phone",
+									"value": "",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "Password123!",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": "",
+									"description": "Optional. Image file to upload (JPEG/PNG/WebP, max 5MB)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/users/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"register"
+							]
+						},
+						"description": "Self-registers a new customer account (public), as multipart/form-data so the profile image can be uploaded in the same request.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) \u2014 must be unique among active (non-deleted) users\n- `phone` (string, optional) \u2014 must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) \u2014 hashed server-side, never stored in plaintext\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update my profile image'."
+					}
+				},
+				{
+					"name": "Update my profile",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "first_name",
+									"value": "Updated",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": "",
+									"description": "Optional. Image file to upload (JPEG/PNG/WebP, max 5MB)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/users/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"me"
+							]
+						},
+						"description": "Updates the authenticated user's own profile, as multipart/form-data. Only the fields you include are changed. Email cannot be changed through this endpoint.\n\n**Body (form-data)**\n- `first_name` (string, optional)\n- `last_name` (string, optional)\n- `phone` (string, optional) \u2014 must stay unique among active (non-deleted) users\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set via 'Update my profile image'."
+					}
+				},
+				{
+					"name": "Update my profile image",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "image",
+									"type": "file",
+									"src": "",
+									"description": "Image file to upload (JPEG/PNG/WebP, max 5MB)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/users/me/image",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"me",
+								"image"
+							]
+						},
+						"description": "Uploads/replaces the authenticated user's own profile image. Body: image file (JPEG/PNG/WebP, max 5MB)."
+					}
+				}
+			]
+		},
+		{
+			"name": "Geography",
+			"item": [
+				{
+					"name": "Import GIS boundaries",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "",
+									"description": "Survey of India Kerala Administrative Boundary Database ZIP (Shapefile export)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/geography/import",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"geography",
+								"import"
+							]
+						},
+						"description": "Admin only. Uploads a Survey of India Kerala Administrative Boundary Database ZIP, extracts KERALA_STATE_BDY/KERALA_DISTRICT_BDY/KERALA_SUBDISTRICT_BDY shapefiles, reprojects to EPSG:4326 and upserts gis_states/gis_districts/gis_taluks keyed by LGD code."
+					}
+				}
+			]
+		}
+	]
+}

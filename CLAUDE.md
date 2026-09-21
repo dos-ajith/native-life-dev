@@ -100,9 +100,8 @@ Router (app/api/v1/<module>/)   -- thin: HTTP in/out, calls a service, returns
 - Update the collection in the same change that adds/modifies an endpoint.
 - Use the `{{base_url}}` collection variable instead of hardcoded hosts, so
   it works against local/staging without edits.
-- The `postman/` folder is gitignored — it's a local working aid, not
-  committed source. Never put real tokens/secrets in it even though it's
-  git-ignored, since it can still end up shared ad hoc.
+- The `postman/` folder is committed source — never put real tokens/secrets
+  in it; use collection/environment variables instead.
 
 ## Testing
 
@@ -110,6 +109,7 @@ Router (app/api/v1/<module>/)   -- thin: HTTP in/out, calls a service, returns
 - `tests/integration/` — hits a real (test) database.
 - New business logic gets a test. Don't rely on manual testing alone for
   anything beyond a UI/browser check.
+- The `tests/` folder is gitignored and not committed source.
 
 ## Workflow
 
