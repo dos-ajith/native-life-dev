@@ -196,6 +196,12 @@
 									"type": "text"
 								},
 								{
+									"key": "role_ids",
+									"value": "",
+									"type": "text",
+									"description": "Optional. Repeat this key once per role UUID to assign on creation."
+								},
+								{
 									"key": "image",
 									"type": "file",
 									"src": "",
@@ -214,7 +220,7 @@
 								"create"
 							]
 						},
-						"description": "Creates a new user account (admin only), as multipart/form-data so the profile image can be uploaded in the same request.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) \u2014 must be unique among active (non-deleted) users\n- `phone` (string, optional) \u2014 must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) \u2014 hashed server-side, never stored in plaintext\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update user image'."
+						"description": "Creates a new user account (admin only), as multipart/form-data so the profile image can be uploaded in the same request.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) \u2014 must be unique among active (non-deleted) users\n- `phone` (string, optional) \u2014 must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) \u2014 hashed server-side, never stored in plaintext\n- `role_ids` (repeated field, optional) \u2014 one value per role UUID to assign on creation. Omit entirely to create the user with no roles.\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update user image'."
 					}
 				},
 				{
@@ -2068,7 +2074,7 @@
 			]
 		},
 		{
-			"name": "Geography",
+			"name": "Geography (only for Backend)",
 			"item": [
 				{
 					"name": "Import GIS boundaries",

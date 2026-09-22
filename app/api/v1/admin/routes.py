@@ -33,6 +33,7 @@ def create_user(
     last_name: Annotated[str, Form()],
     email: Annotated[str, Form()],
     password: Annotated[str, Form()],
+    role_ids: Annotated[list[UUID], Form(default_factory=list)],
     phone: Annotated[str | None, Form()] = None,
     image: Annotated[UploadFile | None, File()] = None,
 ) -> SuccessResponse[UserRead]:
@@ -46,6 +47,7 @@ def create_user(
         meta.user_agent,
         image=image,
         upload_dir=settings.upload_dir,
+        role_ids=role_ids,
     )
     return SuccessResponse(message=UserMessages.CREATED, data=UserRead.model_validate(user))
 

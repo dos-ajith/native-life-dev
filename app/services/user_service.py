@@ -35,10 +35,13 @@ class UserService:
         user_agent: str | None = None,
         image: UploadFile | None = None,
         upload_dir: str | None = None,
+        role_ids: list[UUID] | None = None,
     ) -> User:
+        roles = self._resolve_roles(role_ids) if role_ids else []
         user = self._create(
             payload,
             UserType.PRIVATE,
+            roles=roles,
             created_by=acting_user.id,
             image=image,
             upload_dir=upload_dir,
@@ -48,7 +51,11 @@ class UserService:
             action=ActivityAction.USER_CREATED,
             entity_type="user",
             entity_id=user.id,
-            metadata={"email": user.email, "user_type": user.user_type.value},
+            metadata={
+                "email": user.email,
+                "user_type": user.user_type.value,
+                "role_ids": [str(role.id) for role in roles],
+            },
             ip_address=ip_address,
             user_agent=user_agent,
         )
@@ -120,13 +127,17 @@ class UserService:
             raise NotFoundError(UserMessages.NOT_FOUND)
         return user
 
-    def assign_roles(self, user_id: UUID, role_ids: list[UUID], actor: User) -> User:
-        user = self.get(user_id)
+    def _resolve_roles(self, role_ids: list[UUID]) -> list[Role]:
         roles = self._roles.get_by_ids(role_ids)
         missing_ids = set(role_ids) - {role.id for role in roles}
         if missing_ids:
             names = ", ".join(str(role_id) for role_id in missing_ids)
             raise BusinessRuleError(UserMessages.UNKNOWN_ROLE_IDS.format(ids=names))
+        return roles
+
+    def assign_roles(self, user_id: UUID, role_ids: list[UUID], actor: User) -> User:
+        user = self.get(user_id)
+        roles = self._resolve_roles(role_ids)
         previous_role_ids = {role.id for role in user.roles}
         new_role_ids = {role.id for role in roles}
         added_roles = [role for role in roles if role.id not in previous_role_ids]
