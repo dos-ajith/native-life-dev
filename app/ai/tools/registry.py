@@ -16,6 +16,9 @@ class AIToolRegistry:
     def __init__(self, tools: list[AITool[Any]]) -> None:
         self._tools: dict[str, AITool[Any]] = {tool.name: tool for tool in tools}
 
+    def with_tool(self, tool: AITool[Any]) -> "AIToolRegistry":
+        return AIToolRegistry([*self._tools.values(), tool])
+
     def schemas(self) -> list[dict[str, Any]]:
         return [
             {

@@ -124,6 +124,22 @@ class AIMessages:
     TOOL_ITERATION_LIMIT_EXCEEDED = (
         "AI could not produce a final answer within the allotted tool-call attempts"
     )
+    AI_DISABLED_BY_USER = "AI features are disabled in your settings"
+
+
+class UserSettingsMessages:
+    RETRIEVED = "Settings retrieved"
+    UPDATED = "Settings updated"
+    AI_RETRIEVED = "AI settings retrieved"
+    AI_UPDATED = "AI settings updated"
+    NOTIFICATIONS_RETRIEVED = "Notification settings retrieved"
+    NOTIFICATIONS_UPDATED = "Notification settings updated"
+    PRIVACY_RETRIEVED = "Privacy settings retrieved"
+    PRIVACY_UPDATED = "Privacy settings updated"
+    CONTENT_RETRIEVED = "Content settings retrieved"
+    CONTENT_UPDATED = "Content settings updated"
+    UNKNOWN_TAG_IDS = "Unknown category id(s): {ids}"
+    UNKNOWN_DISTRICT_IDS = "Unknown location id(s): {ids}"
 
 
 class HealthMessages:

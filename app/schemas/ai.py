@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.models.post_media import PostMediaType
+from app.models.user_settings_enums import AIResponseStyle
 from app.schemas.post import PostDetailRead, PostMediaRead
 from app.schemas.validators import NonBlankStr
 
@@ -56,6 +57,15 @@ class PostReferenceRead(BaseModel):
             image_url=_primary_image_url(detail.media),
             tags=[tag.name for tag in detail.tags],
         )
+
+
+class AIPersonalizationContext(BaseModel):
+    ai_enabled: bool
+    personalization_enabled: bool
+    preferred_language: str
+    response_style: AIResponseStyle
+    preferred_category_names: list[str]
+    preferred_district_names: list[str]
 
 
 class AIAskRequest(BaseModel):

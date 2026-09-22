@@ -41,3 +41,6 @@ class GeographyService:
         if taluk is None:
             raise NotFoundError(GeographyMessages.LOCATION_NOT_FOUND)
         return taluk
+
+    def search_districts(self, query: str, limit: int) -> list[GisDistrict]:
+        return self._districts.search_by_name(query, limit)

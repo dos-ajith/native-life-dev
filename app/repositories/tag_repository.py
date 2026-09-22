@@ -17,6 +17,19 @@ class TagRepository:
             return []
         return list(self._db.scalars(select(Tag).where(Tag.slug.in_(slugs))))
 
+    def get_by_ids(self, tag_ids: list[UUID]) -> list[Tag]:
+        if not tag_ids:
+            return []
+        return list(self._db.scalars(select(Tag).where(Tag.id.in_(tag_ids))))
+
+    def search_by_name(self, query: str, limit: int) -> list[Tag]:
+        pattern = f"%{query}%"
+        return list(
+            self._db.scalars(
+                select(Tag).where(Tag.name.ilike(pattern)).order_by(Tag.name).limit(limit)
+            )
+        )
+
     def add(self, tag: Tag) -> Tag:
         self._db.add(tag)
         self._db.commit()

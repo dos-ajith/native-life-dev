@@ -14,6 +14,7 @@ from app.api.v1.posts import routes as post_routes
 from app.api.v1.posts import shares as post_share_routes
 from app.api.v1.roles import routes as role_routes
 from app.api.v1.settings import routes as setting_routes
+from app.api.v1.user_settings import routes as user_settings_routes
 from app.api.v1.users import routes as user_routes
 
 api_router = APIRouter()
@@ -26,6 +27,7 @@ api_router.include_router(geography_routes.router)
 api_router.include_router(role_routes.router)
 api_router.include_router(permission_routes.router)
 api_router.include_router(setting_routes.router)
+api_router.include_router(user_settings_routes.router)
 api_router.include_router(user_routes.router)
 api_router.include_router(page_routes.router)
 api_router.include_router(post_routes.router)

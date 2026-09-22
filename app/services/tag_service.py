@@ -54,3 +54,6 @@ class TagService:
 
     def list_for_posts(self, post_ids: list[UUID]) -> dict[UUID, list[Tag]]:
         return self._tags.list_by_posts(post_ids)
+
+    def search(self, query: str, limit: int) -> list[Tag]:
+        return self._tags.search_by_name(query, limit)

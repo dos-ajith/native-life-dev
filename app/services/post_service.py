@@ -167,6 +167,17 @@ class PostService:
         posts, total = self._posts.search(params, tag_slugs, query, status, order_by_likes)
         return self._to_details(posts, total)
 
+    def search_nearby_with_details(
+        self, latitude: float, longitude: float, radius_meters: int, limit: int
+    ) -> list[tuple[PostDetailRead, float]]:
+        posts_with_distance = self._posts.search_nearby(
+            latitude, longitude, radius_meters, PostStatus.PUBLISHED, limit
+        )
+        posts = [post for post, _ in posts_with_distance]
+        details, _ = self._to_details(posts, len(posts))
+        distances = [distance for _, distance in posts_with_distance]
+        return list(zip(details, distances, strict=True))
+
     def list(self, params: PaginationParams) -> tuple[list[Post], int]:
         return self._posts.list(params)
 

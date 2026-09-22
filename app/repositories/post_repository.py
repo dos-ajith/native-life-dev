@@ -3,7 +3,8 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, case, exists, func, or_, select, update
+from geoalchemy2 import Geography
+from sqlalchemy import ColumnElement, case, cast, exists, func, or_, select, update
 from sqlalchemy.orm import InstrumentedAttribute, Session
 
 from app.models.post import Post, PostStatus
@@ -130,6 +131,29 @@ class PostRepository:
             select(Post).where(*conditions).order_by(*order).offset(offset).limit(params.page_size)
         ).all()
         return list(items), total
+
+    def search_nearby(
+        self,
+        latitude: float,
+        longitude: float,
+        radius_meters: int,
+        status: PostStatus,
+        limit: int,
+    ) -> list[tuple[Post, float]]:
+        point = cast(func.ST_SetSRID(func.ST_Point(longitude, latitude), 4326), Geography)
+        location = cast(Post.location, Geography)
+        distance = func.ST_Distance(location, point).label("distance_meters")
+        rows = self._db.execute(
+            select(Post, distance)
+            .where(
+                Post.deleted_at.is_(None),
+                Post.status == status,
+                func.ST_DWithin(location, point, radius_meters),
+            )
+            .order_by(distance.asc(), Post.created_at.desc())
+            .limit(limit)
+        ).all()
+        return [(post, distance_meters) for post, distance_meters in rows]
 
     def list(self, params: PaginationParams) -> tuple[list[Post], int]:
         not_deleted = Post.deleted_at.is_(None)
