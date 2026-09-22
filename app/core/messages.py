@@ -87,6 +87,10 @@ class PostMessages:
     VIDEO_THUMBNAIL_REQUIRED = "Each video must include a matching thumbnail image"
 
 
+class TagMessages:
+    INVALID_NAME = "Tag names must contain at least one letter or number"
+
+
 class PostCommentMessages:
     CREATED = "Comment added"
     LIST_RETRIEVED = "Comments retrieved"

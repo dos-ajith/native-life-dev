@@ -11,9 +11,11 @@ from app.models.post_comment import PostComment
 from app.models.post_like import PostLike
 from app.models.post_media import PostMedia
 from app.models.post_share import PostShare
+from app.models.post_tag import post_tags
 from app.models.role import Role
 from app.models.role_has_permission import role_has_permissions
 from app.models.setting import Setting
+from app.models.tag import Tag
 from app.models.user import User
 from app.models.user_has_role import user_has_roles
 
@@ -33,7 +35,9 @@ __all__ = [
     "PostShare",
     "Role",
     "Setting",
+    "Tag",
     "User",
+    "post_tags",
     "role_has_permissions",
     "user_has_roles",
 ]

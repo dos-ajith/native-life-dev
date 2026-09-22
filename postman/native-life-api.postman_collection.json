@@ -1405,7 +1405,7 @@
 								"posts"
 							]
 						},
-						"description": "Creates a post owned by the authenticated user, as multipart/form-data so images and/or videos can be attached in the same request \u2014 there is no separate 'add media' endpoint. `user_id` is always taken from the authenticated user, never from the body.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) \u2014 one of: draft, scheduled, published. `published_at`/`published_by` are set automatically the first time status becomes `published` (`published_by` is whoever made this call, which may be an admin publishing on the owner's behalf).\n- `scheduled_at` (datetime, required when status is `scheduled`)\n- `latitude` / `longitude` (float, optional, provide both together) \u2014 WGS84 coordinates of where the post was created; stored as a PostGIS point.\n- `location_name` (string, optional) \u2014 human-readable place name. If omitted and latitude/longitude are given, it's auto-filled via reverse geocoding (taluk, district, state) against imported geography data; left null if nothing matches. Provide it explicitly to override or to set a place name without geocoding.\n- `images` (file[], optional) \u2014 JPEG/PNG/WebP, max 5MB each\n- `videos` (file[], optional) \u2014 MP4/MOV/WebM, max 100MB each\n- `video_thumbnails` (file[], required if `videos` is set) \u2014 one cover image per video, matched by position",
+						"description": "Creates a post owned by the authenticated user, as multipart/form-data so images and/or videos can be attached in the same request \u2014 there is no separate 'add media' endpoint. `user_id` is always taken from the authenticated user, never from the body.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) \u2014 one of: draft, scheduled, published. `published_at`/`published_by` are set automatically the first time status becomes `published` (`published_by` is whoever made this call, which may be an admin publishing on the owner's behalf).\n- `scheduled_at` (datetime, required when status is `scheduled`)\n- `latitude` / `longitude` (float, optional, provide both together) \u2014 WGS84 coordinates of where the post was created; stored as a PostGIS point.\n- `location_name` (string, optional) \u2014 human-readable place name. If omitted and latitude/longitude are given, it's auto-filled via reverse geocoding (taluk, district, state) against imported geography data; left null if nothing matches. Provide it explicitly to override or to set a place name without geocoding.\n- `tags` (string[], optional, repeat the `tags` key for each tag) \u2014 tag names, e.g. `Kerala`, `Travel`. Resolved against a normalized, case-insensitive slug (`Kerala` -> `kerala`), reusing an existing tag or creating a new one as needed. Client never sends tag IDs.\n- `images` (file[], optional) \u2014 JPEG/PNG/WebP, max 5MB each\n- `videos` (file[], optional) \u2014 MP4/MOV/WebM, max 100MB each\n- `video_thumbnails` (file[], required if `videos` is set) \u2014 one cover image per video, matched by position",
 						"body": {
 							"mode": "formdata",
 							"formdata": [
@@ -1439,6 +1439,12 @@
 									"type": "text",
 									"value": "",
 									"description": "Optional. Manual place name; overrides the automatic reverse-geocode fallback derived from latitude/longitude."
+								},
+								{
+									"key": "tags",
+									"type": "text",
+									"value": "Kerala",
+									"description": "Optional, repeatable. Send the 'tags' key multiple times for multiple tags. Names are normalized (trimmed, lowercased into a slug) so 'Kerala'/'kerala'/'KERALA' resolve to the same tag; unknown tag names are created automatically."
 								},
 								{
 									"key": "images",
@@ -1551,7 +1557,7 @@
 								}
 							]
 						},
-						"description": "Updates a post, as multipart/form-data. Only the owner (or an admin) may update it. Only the fields included are changed. Any images/videos included are appended to the post's existing media (this endpoint never removes media, use 'Delete post media' for that).\n\n**Body (form-data)** \u2014 same optional fields as Create post (including `latitude`/`longitude`, which re-run the reverse-geocode fallback for `location_name` unless you also pass `location_name` explicitly). Publishing here (status becomes `published`) also sets `published_by` to whoever made this call. `title` and `location_name` can also be changed independently of media/coordinates.",
+						"description": "Updates a post, as multipart/form-data. Only the owner (or an admin) may update it. Only the fields included are changed. Any images/videos included are appended to the post's existing media (this endpoint never removes media, use 'Delete post media' for that).\n\n**Body (form-data)** \u2014 same optional fields as Create post (including `latitude`/`longitude`, which re-run the reverse-geocode fallback for `location_name` unless you also pass `location_name` explicitly). Publishing here (status becomes `published`) also sets `published_by` to whoever made this call. `title` and `location_name` can also be changed independently of media/coordinates. `tags`, if included at all (even as an empty value), replaces the post's entire tag set; omit the key to leave existing tags untouched.",
 						"body": {
 							"mode": "formdata",
 							"formdata": [
@@ -1585,6 +1591,12 @@
 									"type": "text",
 									"value": "",
 									"description": "Optional. Set/override the place name directly, independent of latitude/longitude."
+								},
+								{
+									"key": "tags",
+									"type": "text",
+									"value": "Kerala",
+									"description": "Optional, repeatable. Omit entirely to leave tags unchanged; include (even empty) to replace the full tag set."
 								},
 								{
 									"key": "images",

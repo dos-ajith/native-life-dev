@@ -7,10 +7,12 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.models.post import PostStatus
 from app.models.post_media import PostMediaType
 from app.schemas.base import BaseReadSchema
+from app.schemas.tag import TagName, TagRead
 
 if TYPE_CHECKING:
     from app.models.post import Post
     from app.models.post_media import PostMedia
+    from app.models.tag import Tag
     from app.models.user import User
 
 Latitude = Annotated[float, Field(ge=-90, le=90)]
@@ -41,6 +43,7 @@ class PostCreate(BaseModel):
     latitude: Latitude | None = None
     longitude: Longitude | None = None
     location_name: str | None = None
+    tags: list[TagName] | None = None
 
     @model_validator(mode="after")
     def _validate(self) -> "PostCreate":
@@ -59,6 +62,7 @@ class PostUpdate(BaseModel):
     latitude: Latitude | None = None
     longitude: Longitude | None = None
     location_name: str | None = None
+    tags: list[TagName] | None = None
 
     @model_validator(mode="after")
     def _validate(self) -> "PostUpdate":
@@ -83,6 +87,7 @@ class PostMediaRead(BaseModel):
 class PostWithMediaRead(BaseModel):
     post: PostRead
     media: list[PostMediaRead]
+    tags: list[TagRead]
 
 
 class PostAuthorRead(BaseModel):
@@ -114,12 +119,19 @@ class PostDetailRead(BaseReadSchema):
     created_at: datetime
     updated_at: datetime
     media: list[PostMediaRead]
+    tags: list[TagRead]
     likes_count: int
     comments_count: int
     shares_count: int
 
     @classmethod
-    def from_post(cls, post: "Post", author: "User", media: list["PostMedia"]) -> "PostDetailRead":
+    def from_post(
+        cls,
+        post: "Post",
+        author: "User",
+        media: list["PostMedia"],
+        tags: list["Tag"],
+    ) -> "PostDetailRead":
         return cls(
             id=post.id,
             author=PostAuthorRead.from_user(author),
@@ -135,6 +147,7 @@ class PostDetailRead(BaseReadSchema):
             created_at=post.created_at,
             updated_at=post.updated_at,
             media=[PostMediaRead.model_validate(item) for item in media],
+            tags=[TagRead.model_validate(item) for item in tags],
             likes_count=post.likes_count,
             comments_count=post.comments_count,
             shares_count=post.shares_count,

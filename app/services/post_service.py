@@ -11,9 +11,11 @@ from app.core.exceptions import AuthorizationError, NotFoundError
 from app.core.messages import PostMessages
 from app.models.post import Post, PostStatus
 from app.models.post_media import PostMedia
+from app.models.tag import Tag
 from app.models.user import User, UserType
 from app.repositories.post_media_repository import PostMediaRepository
 from app.repositories.post_repository import PostRepository
+from app.repositories.tag_repository import TagRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.pagination import PaginationParams
 from app.schemas.post import PostCreate, PostDetailRead, PostUpdate
@@ -32,6 +34,7 @@ class PostService:
         self._posts = PostRepository(db)
         self._users = UserRepository(db)
         self._media = PostMediaRepository(db)
+        self._tags = TagRepository(db)
         self._geography = GeographyService(db)
         self._activity_logs = ActivityLogService(db)
 
@@ -92,7 +95,11 @@ class PostService:
         if author is None:
             raise NotFoundError(PostMessages.NOT_FOUND)
         media = self._media.list_by_post(post.id)
-        return PostDetailRead.from_post(post, author, media)
+        tags = self._tags.list_by_post(post.id)
+        return PostDetailRead.from_post(post, author, media, tags)
+
+    def list_tags(self, post_id: UUID) -> list[Tag]:
+        return self._tags.list_by_post(post_id)
 
     def list_with_details(self, params: PaginationParams) -> tuple[list[PostDetailRead], int]:
         posts, total = self._posts.list(params)
@@ -106,8 +113,11 @@ class PostService:
         media_by_post: dict[UUID, list[PostMedia]] = defaultdict(list)
         for media_item in self._media.list_by_posts(post_ids):
             media_by_post[media_item.post_id].append(media_item)
+        tags_by_post: dict[UUID, list[Tag]] = self._tags.list_by_posts(post_ids)
         items = [
-            PostDetailRead.from_post(post, authors[post.user_id], media_by_post[post.id])
+            PostDetailRead.from_post(
+                post, authors[post.user_id], media_by_post[post.id], tags_by_post[post.id]
+            )
             for post in posts
         ]
         return items, total
@@ -119,7 +129,7 @@ class PostService:
         post = self.get(post_id)
         self.ensure_can_modify(post, actor)
         data: dict[str, Any] = payload.model_dump(
-            exclude={"latitude", "longitude", "location_name"}, exclude_none=True
+            exclude={"latitude", "longitude", "location_name", "tags"}, exclude_none=True
         )
         new_status = data.get("status")
         if new_status == PostStatus.PUBLISHED and post.status != PostStatus.PUBLISHED:
@@ -135,12 +145,15 @@ class PostService:
         elif payload.location_name is not None:
             post.location_name = payload.location_name
         saved = self._posts.save(post)
+        updated_fields = list(data.keys())
+        if payload.tags is not None:
+            updated_fields.append("tags")
         self._activity_logs.log(
             actor=actor,
             action=ActivityAction.POST_UPDATED,
             entity_type="post",
             entity_id=post.id,
-            metadata={"updated_fields": list(data.keys())},
+            metadata={"updated_fields": updated_fields},
         )
         return saved
 
