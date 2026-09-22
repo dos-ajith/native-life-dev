@@ -33,6 +33,7 @@ DEFAULT_SETTINGS = {
     "app_site_motto": "Live Native. Live Free.",
     "app_date_format": "DD-MM-YYYY",
     "app_time_format": "hh:mm A",
+    "ai_allowed_languages": "all",
 }
 
 

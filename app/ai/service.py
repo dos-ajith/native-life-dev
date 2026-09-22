@@ -15,10 +15,11 @@ from app.ai.tools.registry import AIToolRegistry
 from app.core.activity_actions import ActivityAction
 from app.core.config import Settings
 from app.models.user import User
+from app.repositories.setting_repository import SettingRepository
 from app.schemas.ai import AIAskResponse, PostReferenceRead
 from app.services.activity_log_service import ActivityLogService
 
-_SYSTEM_INSTRUCTIONS = (
+_BASE_INSTRUCTIONS = (
     "You are the Native Life assistant. Use the available tools to look up posts, "
     "comments, and tags before answering questions about app content. "
     "Never invent post data you have not retrieved through a tool. "
@@ -37,6 +38,26 @@ _SYSTEM_INSTRUCTIONS = (
 
 _POST_REFERENCE_TOOLS = {"get_post"}
 _POST_LIST_TOOLS = {"search_posts", "get_user_posts"}
+
+AI_ALLOWED_LANGUAGES_SETTING_KEY = "ai_allowed_languages"
+_ALL_LANGUAGES_VALUE = "all"
+
+
+def _parse_allowed_languages(raw_value: str | None) -> list[str]:
+    if not raw_value or raw_value.strip().lower() == _ALL_LANGUAGES_VALUE:
+        return []
+    return [language.strip() for language in raw_value.split(",") if language.strip()]
+
+
+def _language_instruction(allowed_languages: list[str]) -> str:
+    if not allowed_languages:
+        return "Respond in the same language the user's prompt is written in."
+    names = ", ".join(allowed_languages)
+    return (
+        f"Only respond in one of these languages: {names}. If the user's prompt is "
+        f"written in one of them, reply in that same language; otherwise, reply in "
+        f"{allowed_languages[0]}."
+    )
 
 
 def build_default_registry() -> AIToolRegistry:
@@ -73,6 +94,11 @@ class AIService:
         self._client = client or get_ai_client()
         self._activity_logs = ActivityLogService(db)
 
+    def _build_instructions(self) -> str:
+        setting = SettingRepository(self._db).get_by_key(AI_ALLOWED_LANGUAGES_SETTING_KEY)
+        allowed_languages = _parse_allowed_languages(setting.value if setting else None)
+        return f"{_BASE_INSTRUCTIONS} {_language_instruction(allowed_languages)}"
+
     def ask(self, prompt: str, actor: User) -> AIAskResponse:
         context = ToolContext(db=self._db, actor=actor)
         referenced_posts: dict[str, dict[str, Any]] = {}
@@ -92,7 +118,7 @@ class AIService:
             return result
 
         answer = self._client.run(
-            instructions=_SYSTEM_INSTRUCTIONS,
+            instructions=self._build_instructions(),
             input_text=prompt,
             tool_schemas=self._registry.schemas(),
             handle_tool_call=handle_tool_call,
