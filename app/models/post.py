@@ -27,6 +27,7 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    slug: Mapped[str] = mapped_column(String(280), unique=True)
     title: Mapped[str | None] = mapped_column(String(255))
     content: Mapped[str | None] = mapped_column(Text())
     status: Mapped[PostStatus] = mapped_column(

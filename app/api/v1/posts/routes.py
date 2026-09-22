@@ -95,11 +95,11 @@ def list_posts(
     return SuccessResponse(message=PostMessages.LIST_RETRIEVED, data=page)
 
 
-@router.get("/{post_id}", response_model=SuccessResponse[PostDetailRead])
+@router.get("/{slug}", response_model=SuccessResponse[PostDetailRead])
 def get_post(
-    post_id: UUID, db: DbSessionDep, _: CurrentActiveUserDep
+    slug: str, db: DbSessionDep, _: CurrentActiveUserDep
 ) -> SuccessResponse[PostDetailRead]:
-    detail = PostService(db).get_detail(post_id)
+    detail = PostService(db).get_detail_by_slug(slug)
     return SuccessResponse(message=PostMessages.RETRIEVED, data=detail)
 
 

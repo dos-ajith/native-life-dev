@@ -1511,23 +1511,23 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/posts/:post_id",
+							"raw": "{{base_url}}/posts/:slug",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"posts",
-								":post_id"
+								":slug"
 							],
 							"variable": [
 								{
-									"key": "post_id",
+									"key": "slug",
 									"value": "",
-									"description": "UUID of the post"
+									"description": "Slug of the post"
 								}
 							]
 						},
-						"description": "Retrieves a single post by ID, with the author (id, name, profile_image_url) resolved and its media list embedded, so a client can render a post without extra calls. Also includes likes_count, comments_count (all levels, not just top-level threads) and shares_count."
+						"description": "Retrieves a single post by slug, with the author (id, name, profile_image_url) resolved and its media list embedded, so a client can render a post without extra calls. Also includes likes_count, comments_count (all levels, not just top-level threads) and shares_count."
 					}
 				},
 				{
@@ -2251,6 +2251,42 @@
 							]
 						},
 						"description": "Authenticated. Resolves the state, district, and taluk containing the given coordinates via PostGIS spatial lookup. 404 if no boundary matches."
+					}
+				}
+			]
+		},
+		{
+			"name": "AI",
+			"item": [
+				{
+					"name": "Ask",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"prompt\": \"Suggest some posts about Kerala food.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/ai/ask",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"ai",
+								"ask"
+							]
+						},
+						"description": "Authenticated. Sends a prompt to the AI assistant, which may use read-only tools (get_post, search_posts, get_post_comments, get_post_tags, get_user_posts) to look up application data before answering. 503 if the AI provider is not configured."
 					}
 				}
 			]

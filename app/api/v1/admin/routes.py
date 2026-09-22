@@ -39,9 +39,14 @@ def create_user(
     payload = UserCreate(
         first_name=first_name, last_name=last_name, email=email, phone=phone, password=password
     )
-    user = UserService(db).create(payload, admin, meta.ip_address, meta.user_agent)
-    if image is not None:
-        user = UserService(db).update_image_for(user.id, image, settings.upload_dir)
+    user = UserService(db).create(
+        payload,
+        admin,
+        meta.ip_address,
+        meta.user_agent,
+        image=image,
+        upload_dir=settings.upload_dir,
+    )
     return SuccessResponse(message=UserMessages.CREATED, data=UserRead.model_validate(user))
 
 

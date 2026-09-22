@@ -111,6 +111,21 @@ class PostShareMessages:
     SHARED = "Post shared"
 
 
+class AIMessages:
+    RESPONSE_GENERATED = "AI response generated"
+    PROMPT_REQUIRED = "A prompt is required"
+    UNKNOWN_TOOL = "Unknown AI tool: {name}"
+    INVALID_TOOL_ARGUMENTS = "Invalid arguments for AI tool: {name}"
+    TOOL_EXECUTION_FAILED = "AI tool execution failed"
+    USER_POSTS_FORBIDDEN = "You do not have permission to view this user's posts"
+    PROVIDER_UNAVAILABLE = "AI provider is currently unavailable"
+    PROVIDER_TIMEOUT = "AI provider request timed out"
+    MALFORMED_RESPONSE = "AI provider returned a malformed response"
+    TOOL_ITERATION_LIMIT_EXCEEDED = (
+        "AI could not produce a final answer within the allotted tool-call attempts"
+    )
+
+
 class HealthMessages:
     SERVICE_HEALTHY = "Service is healthy"
     DATABASE_HEALTHY = "Database is healthy"

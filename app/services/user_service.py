@@ -33,8 +33,16 @@ class UserService:
         acting_user: User,
         ip_address: str | None = None,
         user_agent: str | None = None,
+        image: UploadFile | None = None,
+        upload_dir: str | None = None,
     ) -> User:
-        user = self._create(payload, UserType.PRIVATE, created_by=acting_user.id)
+        user = self._create(
+            payload,
+            UserType.PRIVATE,
+            created_by=acting_user.id,
+            image=image,
+            upload_dir=upload_dir,
+        )
         self._activity_logs.log(
             actor=acting_user,
             action=ActivityAction.USER_CREATED,
@@ -47,12 +55,23 @@ class UserService:
         return user
 
     def register(
-        self, payload: UserCreate, ip_address: str | None = None, user_agent: str | None = None
+        self,
+        payload: UserCreate,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        image: UploadFile | None = None,
+        upload_dir: str | None = None,
     ) -> User:
         default_role = self._roles.get_by_slug(DEFAULT_PUBLIC_ROLE_SLUG)
         if default_role is None:
             raise ServiceUnavailableError(UserMessages.DEFAULT_ROLE_MISSING)
-        user = self._create(payload, UserType.PUBLIC, roles=[default_role])
+        user = self._create(
+            payload,
+            UserType.PUBLIC,
+            roles=[default_role],
+            image=image,
+            upload_dir=upload_dir,
+        )
         self._activity_logs.log(
             actor=user,
             action=ActivityAction.USER_CREATED,
@@ -70,11 +89,17 @@ class UserService:
         user_type: UserType,
         roles: list[Role] | None = None,
         created_by: UUID | None = None,
+        image: UploadFile | None = None,
+        upload_dir: str | None = None,
     ) -> User:
         if self._users.get_by_email(payload.email) is not None:
             raise BusinessRuleError(UserMessages.EMAIL_TAKEN)
         if payload.phone is not None and self._users.get_by_phone(payload.phone) is not None:
             raise BusinessRuleError(UserMessages.PHONE_TAKEN)
+        profile_image_url = None
+        if image is not None:
+            assert upload_dir is not None
+            profile_image_url = save_profile_image(image, upload_dir)
         user = User(
             first_name=payload.first_name,
             last_name=payload.last_name,
@@ -85,6 +110,7 @@ class UserService:
             user_type=user_type,
             roles=roles or [],
             created_by=created_by,
+            profile_image_url=profile_image_url,
         )
         return self._users.add(user)
 

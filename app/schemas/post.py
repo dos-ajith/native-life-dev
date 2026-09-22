@@ -22,6 +22,7 @@ Longitude = Annotated[float, Field(ge=-180, le=180)]
 class PostRead(BaseReadSchema):
     id: UUID
     user_id: UUID
+    slug: str
     title: str | None
     content: str | None
     status: PostStatus
@@ -107,6 +108,7 @@ class PostAuthorRead(BaseModel):
 class PostDetailRead(BaseReadSchema):
     id: UUID
     author: PostAuthorRead
+    slug: str
     title: str | None
     content: str | None
     status: PostStatus
@@ -135,6 +137,7 @@ class PostDetailRead(BaseReadSchema):
         return cls(
             id=post.id,
             author=PostAuthorRead.from_user(author),
+            slug=post.slug,
             title=post.title,
             content=post.content,
             status=post.status,

@@ -1,3 +1,4 @@
+import uuid
 from collections import defaultdict
 from datetime import UTC, datetime
 from typing import Any
@@ -21,6 +22,7 @@ from app.schemas.pagination import PaginationParams
 from app.schemas.post import PostCreate, PostDetailRead, PostUpdate
 from app.services.activity_log_service import ActivityLogService
 from app.services.geography_service import GeographyService
+from app.utils.slug import build_unique_slug, slugify
 
 
 def _build_location(latitude: float | None, longitude: float | None) -> Any | None:
@@ -58,8 +60,11 @@ class PostService:
         ip_address: str | None = None,
         user_agent: str | None = None,
     ) -> Post:
+        post_id = uuid.uuid4()
         post = Post(
+            id=post_id,
             user_id=acting_user.id,
+            slug=build_unique_slug(payload.title, post_id),
             title=payload.title,
             content=payload.content,
             status=payload.status,
@@ -89,8 +94,19 @@ class PostService:
             raise NotFoundError(PostMessages.NOT_FOUND)
         return post
 
+    def get_by_slug(self, slug: str) -> Post:
+        post = self._posts.get_by_slug(slug)
+        if post is None:
+            raise NotFoundError(PostMessages.NOT_FOUND)
+        return post
+
     def get_detail(self, post_id: UUID) -> PostDetailRead:
-        post = self.get(post_id)
+        return self._to_detail(self.get(post_id))
+
+    def get_detail_by_slug(self, slug: str) -> PostDetailRead:
+        return self._to_detail(self.get_by_slug(slug))
+
+    def _to_detail(self, post: Post) -> PostDetailRead:
         author = self._users.get_by_id_including_deleted(post.user_id)
         if author is None:
             raise NotFoundError(PostMessages.NOT_FOUND)
@@ -101,8 +117,9 @@ class PostService:
     def list_tags(self, post_id: UUID) -> list[Tag]:
         return self._tags.list_by_post(post_id)
 
-    def list_with_details(self, params: PaginationParams) -> tuple[list[PostDetailRead], int]:
-        posts, total = self._posts.list(params)
+    def _to_details(
+        self, posts: list[Post], total: int
+    ) -> tuple[list[PostDetailRead], int]:
         if not posts:
             return [], total
         author_ids = list({post.user_id for post in posts})
@@ -121,6 +138,34 @@ class PostService:
             for post in posts
         ]
         return items, total
+
+    def list_with_details(self, params: PaginationParams) -> tuple[list[PostDetailRead], int]:
+        posts, total = self._posts.list(params)
+        return self._to_details(posts, total)
+
+    def list_by_user_with_details(
+        self,
+        user_id: UUID,
+        params: PaginationParams,
+        published_only: bool = False,
+        order_by_likes: bool = False,
+    ) -> tuple[list[PostDetailRead], int]:
+        status = PostStatus.PUBLISHED if published_only else None
+        posts, total = self._posts.list_by_user(user_id, params, status, order_by_likes)
+        return self._to_details(posts, total)
+
+    def search_with_details(
+        self,
+        params: PaginationParams,
+        tag_names: list[str] | None = None,
+        query: str | None = None,
+        published_only: bool = True,
+        order_by_likes: bool = False,
+    ) -> tuple[list[PostDetailRead], int]:
+        tag_slugs = [slugify(name) for name in tag_names] if tag_names else None
+        status = PostStatus.PUBLISHED if published_only else None
+        posts, total = self._posts.search(params, tag_slugs, query, status, order_by_likes)
+        return self._to_details(posts, total)
 
     def list(self, params: PaginationParams) -> tuple[list[Post], int]:
         return self._posts.list(params)
