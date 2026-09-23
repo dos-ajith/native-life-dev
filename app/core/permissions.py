@@ -21,6 +21,7 @@ class PermissionName:
     PERMISSION_DELETE = "permission.delete"
 
     PAGE_VIEW = "page.view"
+    PAGE_READ = "page.read"
     PAGE_CREATE = "page.create"
     PAGE_UPDATE = "page.update"
     PAGE_DELETE = "page.delete"

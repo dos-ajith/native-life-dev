@@ -18,9 +18,9 @@ ALL_PERMISSION_NAMES = tuple(
     value for key, value in vars(PermissionName).items() if key.isupper()
 )
 
-POST_READER_PERMISSIONS = (PermissionName.POST_VIEW,)
+READER_PERMISSIONS = (PermissionName.POST_VIEW, PermissionName.PAGE_READ)
 POST_ENGAGER_PERMISSIONS = (
-    *POST_READER_PERMISSIONS,
+    *READER_PERMISSIONS,
     PermissionName.POST_LIKE,
     PermissionName.POST_COMMENT,
     PermissionName.POST_SHARE,
@@ -34,7 +34,7 @@ ROLE_PERMISSIONS: dict[str, tuple[str, ...]] = {
     "Business Profile": POST_AUTHOR_PERMISSIONS,
     "Promoter": POST_AUTHOR_PERMISSIONS,
     "Delivery Team Member": POST_ENGAGER_PERMISSIONS,
-    "Public User": POST_READER_PERMISSIONS,
+    "Public User": READER_PERMISSIONS,
 }
 
 ROLE_USERS = {
