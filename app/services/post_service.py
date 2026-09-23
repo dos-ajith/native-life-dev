@@ -10,10 +10,11 @@ from sqlalchemy.orm import Session
 from app.core.activity_actions import ActivityAction
 from app.core.exceptions import AuthorizationError, NotFoundError
 from app.core.messages import PostMessages
+from app.core.permissions import PermissionName
 from app.models.post import Post, PostStatus
 from app.models.post_media import PostMedia
 from app.models.tag import Tag
-from app.models.user import User, UserType
+from app.models.user import User
 from app.repositories.post_media_repository import PostMediaRepository
 from app.repositories.post_repository import PostRepository
 from app.repositories.tag_repository import TagRepository
@@ -21,6 +22,7 @@ from app.repositories.user_repository import UserRepository
 from app.schemas.pagination import PaginationParams
 from app.schemas.post import PostCreate, PostDetailRead, PostUpdate
 from app.services.activity_log_service import ActivityLogService
+from app.services.authorization_service import has_permission
 from app.services.geography_service import GeographyService
 from app.utils.slug import build_unique_slug, slugify
 
@@ -100,11 +102,19 @@ class PostService:
             raise NotFoundError(PostMessages.NOT_FOUND)
         return post
 
+    def get_visible(self, post_id: UUID, published_only: bool) -> Post:
+        return self._ensure_visible(self.get(post_id), published_only)
+
+    def _ensure_visible(self, post: Post, published_only: bool) -> Post:
+        if published_only and post.status != PostStatus.PUBLISHED:
+            raise NotFoundError(PostMessages.NOT_FOUND)
+        return post
+
     def get_detail(self, post_id: UUID) -> PostDetailRead:
         return self._to_detail(self.get(post_id))
 
-    def get_detail_by_slug(self, slug: str) -> PostDetailRead:
-        return self._to_detail(self.get_by_slug(slug))
+    def get_detail_by_slug(self, slug: str, published_only: bool = False) -> PostDetailRead:
+        return self._to_detail(self._ensure_visible(self.get_by_slug(slug), published_only))
 
     def _to_detail(self, post: Post) -> PostDetailRead:
         author = self._users.get_by_id_including_deleted(post.user_id)
@@ -139,8 +149,11 @@ class PostService:
         ]
         return items, total
 
-    def list_with_details(self, params: PaginationParams) -> tuple[list[PostDetailRead], int]:
-        posts, total = self._posts.list(params)
+    def list_with_details(
+        self, params: PaginationParams, published_only: bool = False
+    ) -> tuple[list[PostDetailRead], int]:
+        status = PostStatus.PUBLISHED if published_only else None
+        posts, total = self._posts.list(params, status)
         return self._to_details(posts, total)
 
     def list_by_user_with_details(
@@ -183,7 +196,7 @@ class PostService:
 
     def update(self, post_id: UUID, payload: PostUpdate, actor: User) -> Post:
         post = self.get(post_id)
-        self.ensure_can_modify(post, actor)
+        self.ensure_can_modify(post, actor, PermissionName.POST_UPDATE_ANY)
         data: dict[str, Any] = payload.model_dump(
             exclude={"latitude", "longitude", "location_name", "tags"}, exclude_none=True
         )
@@ -215,7 +228,7 @@ class PostService:
 
     def delete(self, post_id: UUID, actor: User) -> None:
         post = self.get(post_id)
-        self.ensure_can_modify(post, actor)
+        self.ensure_can_modify(post, actor, PermissionName.POST_DELETE_ANY)
         self._posts.soft_delete(post)
         self._activity_logs.log(
             actor=actor,
@@ -224,8 +237,8 @@ class PostService:
             entity_id=post.id,
         )
 
-    def ensure_can_modify(self, post: Post, actor: User) -> None:
-        if post.user_id != actor.id and actor.user_type != UserType.PRIVATE:
+    def ensure_can_modify(self, post: Post, actor: User, override_permission: str) -> None:
+        if post.user_id != actor.id and not has_permission(actor, override_permission):
             raise AuthorizationError(PostMessages.NOT_OWNER)
 
     def increment_likes_count(self, post_id: UUID) -> None:

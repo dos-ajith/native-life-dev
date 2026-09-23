@@ -11,6 +11,8 @@ from app.core.messages import AIMessages
 
 ToolCallHandler = Callable[[str, dict[str, Any]], dict[str, Any]]
 
+_FORCE_TEXT_ANSWER: dict[str, Any] = {"tool_choice": "none"}
+
 
 def _call_with_provider_error_handling(fn: Callable[[], Any]) -> Any:
     try:
@@ -60,8 +62,8 @@ class _ResponsesBackend:
             instructions=instructions, input=input_text, tools=tool_schemas
         )
 
-        for _ in range(self._max_tool_iterations):
-            function_calls = [item for item in response.output if item.type == "function_call"]
+        for iteration in range(self._max_tool_iterations):
+            function_calls = self._function_calls(response)
             if not function_calls:
                 return self._extract_text(response)
 
@@ -80,11 +82,20 @@ class _ResponsesBackend:
                     }
                 )
 
+            is_last_round = iteration == self._max_tool_iterations - 1
             response = self._create_response(
-                previous_response_id=response.id, input=outputs, tools=tool_schemas
+                previous_response_id=response.id,
+                input=outputs,
+                tools=tool_schemas,
+                **(_FORCE_TEXT_ANSWER if is_last_round else {}),
             )
 
-        raise AIResponseError(AIMessages.TOOL_ITERATION_LIMIT_EXCEEDED)
+        if self._function_calls(response):
+            raise AIResponseError(AIMessages.TOOL_ITERATION_LIMIT_EXCEEDED)
+        return self._extract_text(response)
+
+    def _function_calls(self, response: Any) -> list[Any]:
+        return [item for item in response.output if item.type == "function_call"]
 
     def _extract_text(self, response: Any) -> str:
         text = getattr(response, "output_text", None)
@@ -138,8 +149,13 @@ class _ChatCompletionsBackend:
             {"role": "user", "content": input_text},
         ]
 
-        for _ in range(self._max_tool_iterations):
-            response = self._create_completion(messages=messages, tools=chat_tools)
+        for iteration in range(self._max_tool_iterations + 1):
+            is_forced_answer = iteration == self._max_tool_iterations
+            response = self._create_completion(
+                messages=messages,
+                tools=chat_tools,
+                **(_FORCE_TEXT_ANSWER if is_forced_answer else {}),
+            )
             message = response.choices[0].message
             tool_calls = message.tool_calls or []
             if not tool_calls:

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.activity_actions import ActivityAction
 from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.core.messages import PostMessages
+from app.core.permissions import PermissionName
 from app.core.storage import delete_media_file, save_post_image, save_post_video
 from app.models.post_media import PostMedia, PostMediaType
 from app.models.user import User
@@ -20,8 +21,8 @@ class PostMediaService:
         self._posts = PostService(db)
         self._activity_logs = ActivityLogService(db)
 
-    def list_for_post(self, post_id: UUID) -> list[PostMedia]:
-        self._posts.get(post_id)
+    def list_for_post(self, post_id: UUID, published_only: bool = False) -> list[PostMedia]:
+        self._posts.get_visible(post_id, published_only)
         return self._media.list_by_post(post_id)
 
     def attach(
@@ -36,7 +37,7 @@ class PostMediaService:
         if not images and not videos:
             return []
         post = self._posts.get(post_id)
-        self._posts.ensure_can_modify(post, actor)
+        self._posts.ensure_can_modify(post, actor, PermissionName.POST_UPDATE_ANY)
         if videos and len(video_thumbnails) != len(videos):
             raise BusinessRuleError(PostMessages.VIDEO_THUMBNAIL_REQUIRED)
 
@@ -74,7 +75,7 @@ class PostMediaService:
 
     def remove(self, post_id: UUID, media_id: UUID, upload_dir: str, actor: User) -> None:
         post = self._posts.get(post_id)
-        self._posts.ensure_can_modify(post, actor)
+        self._posts.ensure_can_modify(post, actor, PermissionName.POST_UPDATE_ANY)
         media = self._media.get_by_id(media_id)
         if media is None or media.post_id != post_id:
             raise NotFoundError(PostMessages.MEDIA_NOT_FOUND)

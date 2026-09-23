@@ -1,18 +1,19 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 
 from app.api.deps import (
     ActivityRequestMetaDep,
-    CurrentAdminUserDep,
     DbSessionDep,
     PaginationDep,
     ProfileImageDep,
     SettingsDep,
+    require_permission,
 )
 from app.core.messages import UserMessages
-from app.models.user import UserStatus, UserType
+from app.core.permissions import PermissionName
+from app.models.user import User, UserStatus, UserType
 from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
 from app.schemas.user import UserCreate, UserRead, UserUpdate
@@ -20,13 +21,18 @@ from app.services.user_service import UserService
 
 router = APIRouter(prefix="/admin/users", tags=["admin"])
 
+UserCreateDep = Annotated[User, Depends(require_permission(PermissionName.USER_CREATE))]
+UserViewDep = Annotated[User, Depends(require_permission(PermissionName.USER_VIEW))]
+UserUpdateDep = Annotated[User, Depends(require_permission(PermissionName.USER_UPDATE))]
+UserDeleteDep = Annotated[User, Depends(require_permission(PermissionName.USER_DELETE))]
+
 
 @router.post(
     "/create", response_model=SuccessResponse[UserRead], status_code=status.HTTP_201_CREATED
 )
 def create_user(
     db: DbSessionDep,
-    admin: CurrentAdminUserDep,
+    admin: UserCreateDep,
     settings: SettingsDep,
     meta: ActivityRequestMetaDep,
     first_name: Annotated[str, Form()],
@@ -54,7 +60,7 @@ def create_user(
 
 @router.get("", response_model=SuccessResponse[Page[UserRead]])
 def list_users(
-    db: DbSessionDep, _: CurrentAdminUserDep, params: PaginationDep
+    db: DbSessionDep, _: UserViewDep, params: PaginationDep
 ) -> SuccessResponse[Page[UserRead]]:
     items, total = UserService(db).list(params)
     page = Page[UserRead].create(
@@ -65,7 +71,7 @@ def list_users(
 
 @router.get("/edit/{user_id}", response_model=SuccessResponse[UserRead])
 def edit_user(
-    user_id: UUID, db: DbSessionDep, _: CurrentAdminUserDep
+    user_id: UUID, db: DbSessionDep, _: UserViewDep
 ) -> SuccessResponse[UserRead]:
     user = UserService(db).get(user_id)
     return SuccessResponse(message=UserMessages.RETRIEVED, data=UserRead.model_validate(user))
@@ -75,7 +81,7 @@ def edit_user(
 def update_user(
     user_id: UUID,
     db: DbSessionDep,
-    admin: CurrentAdminUserDep,
+    admin: UserUpdateDep,
     settings: SettingsDep,
     first_name: Annotated[str | None, Form()] = None,
     last_name: Annotated[str | None, Form()] = None,
@@ -103,7 +109,7 @@ def update_user(
 def update_user_image(
     user_id: UUID,
     db: DbSessionDep,
-    _: CurrentAdminUserDep,
+    _: UserUpdateDep,
     settings: SettingsDep,
     image: ProfileImageDep,
 ) -> SuccessResponse[UserRead]:
@@ -117,7 +123,7 @@ def update_user_image(
 def set_user_roles(
     user_id: UUID,
     db: DbSessionDep,
-    admin: CurrentAdminUserDep,
+    admin: UserUpdateDep,
     role_ids: Annotated[list[UUID], Form(default_factory=list)],
 ) -> SuccessResponse[UserRead]:
     user = UserService(db).assign_roles(user_id, role_ids, admin)
@@ -126,7 +132,7 @@ def set_user_roles(
 
 @router.delete("/delete/{user_id}", response_model=SuccessResponse[None])
 def delete_user(
-    user_id: UUID, db: DbSessionDep, admin: CurrentAdminUserDep
+    user_id: UUID, db: DbSessionDep, admin: UserDeleteDep
 ) -> SuccessResponse[None]:
     UserService(db).delete(user_id, admin)
     return SuccessResponse(message=UserMessages.DELETED, data=None)

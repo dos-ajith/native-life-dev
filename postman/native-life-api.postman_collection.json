@@ -1503,7 +1503,7 @@
                 }
               ]
             },
-            "description": "Returns a paginated list of non-deleted posts. Each item includes the resolved author and its media list (same shape as 'Get post'), batched in a couple of extra queries rather than one per post. Each item also includes likes_count, comments_count, and shares_count, batched per page."
+            "description": "Returns a paginated list of non-deleted posts. Each item includes the resolved author and its media list (same shape as 'Get post'), batched in a couple of extra queries rather than one per post. Each item also includes likes_count, comments_count, and shares_count, batched per page. Auth optional: without a token (guest) only published posts are visible."
           }
         },
         {
@@ -1533,7 +1533,7 @@
                 }
               ]
             },
-            "description": "Retrieves a single post by slug, with the author (id, name, profile_image_url) resolved and its media list embedded, so a client can render a post without extra calls. Also includes likes_count, comments_count (all levels, not just top-level threads) and shares_count."
+            "description": "Retrieves a single post by slug, with the author (id, name, profile_image_url) resolved and its media list embedded, so a client can render a post without extra calls. Also includes likes_count, comments_count (all levels, not just top-level threads) and shares_count. Auth optional: without a token (guest) only published posts are visible."
           }
         },
         {
@@ -1684,7 +1684,7 @@
                 }
               ]
             },
-            "description": "Returns all images/videos attached to a post, ordered by sort_order. Each item has media_type (image or video); videos also carry a thumbnail_url."
+            "description": "Returns all images/videos attached to a post, ordered by sort_order. Each item has media_type (image or video); videos also carry a thumbnail_url. Auth optional: without a token (guest) only published posts are visible."
           }
         },
         {
@@ -1802,7 +1802,7 @@
                 }
               ]
             },
-            "description": "Returns a paginated list of top-level comments for a post, newest first. Each comment carries its full reply thread nested under `replies` (unpaginated, in chronological order, arbitrarily deep). `page`/`page_size`/`total`/`pages` apply to top-level threads only \u2014 replies are not counted or paginated separately."
+            "description": "Returns a paginated list of top-level comments for a post, newest first. Each comment carries its full reply thread nested under `replies` (unpaginated, in chronological order, arbitrarily deep). `page`/`page_size`/`total`/`pages` apply to top-level threads only \u2014 replies are not counted or paginated separately. Auth optional: without a token (guest) only published posts are visible."
           }
         },
         {
@@ -1941,7 +1941,7 @@
       ]
     },
     {
-      "name": "Users",
+      "name": "Register",
       "item": [
         {
           "name": "Register",

@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Annotated
@@ -20,12 +21,13 @@ from app.core.formatting_context import (
 )
 from app.core.jwt import decode_access_token
 from app.core.messages import AuthMessages
-from app.models.user import User, UserStatus, UserType
+from app.models.user import User, UserStatus
 from app.repositories.active_token_repository import ActiveTokenRepository
 from app.repositories.setting_repository import SettingRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.geography import ReverseGeocodeQuery
 from app.schemas.pagination import PaginationParams
+from app.services.authorization_service import guest_has_permission, has_permission
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 DbSessionDep = Annotated[Session, Depends(get_db)]
@@ -60,6 +62,18 @@ def get_token_claims(
 TokenClaimsDep = Annotated[TokenClaims, Depends(get_token_claims)]
 
 
+def get_optional_token_claims(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer_scheme)],
+    settings: SettingsDep,
+) -> TokenClaims | None:
+    if credentials is None:
+        return None
+    return get_token_claims(credentials, settings)
+
+
+OptionalTokenClaimsDep = Annotated[TokenClaims | None, Depends(get_optional_token_claims)]
+
+
 def get_current_user(claims: TokenClaimsDep, db: DbSessionDep) -> User:
     if not ActiveTokenRepository(db).is_active(claims.jti):
         raise AuthenticationError(AuthMessages.INVALID_TOKEN)
@@ -81,13 +95,37 @@ def get_current_active_user(user: CurrentUserDep) -> User:
 CurrentActiveUserDep = Annotated[User, Depends(get_current_active_user)]
 
 
-def get_current_admin_user(user: CurrentActiveUserDep) -> User:
-    if user.user_type != UserType.PRIVATE:
-        raise AuthorizationError(AuthMessages.ADMIN_REQUIRED)
-    return user
+def require_permission(permission: str) -> Callable[[User], User]:
+    def dependency(user: CurrentActiveUserDep) -> User:
+        if not has_permission(user, permission):
+            raise AuthorizationError(AuthMessages.PERMISSION_DENIED)
+        return user
+
+    return dependency
 
 
-CurrentAdminUserDep = Annotated[User, Depends(get_current_admin_user)]
+def get_optional_active_user(claims: OptionalTokenClaimsDep, db: DbSessionDep) -> User | None:
+    if claims is None:
+        return None
+    return get_current_active_user(get_current_user(claims, db))
+
+
+OptionalActiveUserDep = Annotated[User | None, Depends(get_optional_active_user)]
+
+
+def require_permission_or_guest(
+    permission: str,
+) -> Callable[[User | None, Session], User | None]:
+    def dependency(user: OptionalActiveUserDep, db: DbSessionDep) -> User | None:
+        if user is not None and has_permission(user, permission):
+            return user
+        if guest_has_permission(db, permission):
+            return user
+        if user is None:
+            raise AuthenticationError(AuthMessages.MISSING_TOKEN)
+        raise AuthorizationError(AuthMessages.PERMISSION_DENIED)
+
+    return dependency
 
 
 def get_pagination_params(

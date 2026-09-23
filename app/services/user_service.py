@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.activity_actions import ActivityAction
 from app.core.exceptions import BusinessRuleError, NotFoundError, ServiceUnavailableError
 from app.core.messages import UserMessages
+from app.core.permissions import RoleSlug
 from app.core.security import hash_password
 from app.core.storage import delete_media_file, save_profile_image
 from app.models.role import Role
@@ -17,8 +18,6 @@ from app.repositories.user_repository import UserRepository
 from app.schemas.pagination import PaginationParams
 from app.schemas.user import UserCreate, UserSelfUpdate, UserUpdate
 from app.services.activity_log_service import ActivityLogService
-
-DEFAULT_PUBLIC_ROLE_SLUG = "public-user"
 
 
 class UserService:
@@ -69,7 +68,7 @@ class UserService:
         image: UploadFile | None = None,
         upload_dir: str | None = None,
     ) -> User:
-        default_role = self._roles.get_by_slug(DEFAULT_PUBLIC_ROLE_SLUG)
+        default_role = self._roles.get_by_slug(RoleSlug.PUBLIC_AUTHORITY)
         if default_role is None:
             raise ServiceUnavailableError(UserMessages.DEFAULT_ROLE_MISSING)
         user = self._create(

@@ -11,6 +11,7 @@ from app.api.deps import (
     PaginationDep,
     SettingsDep,
 )
+from app.api.v1.posts.permissions import PostCreateDep, PostViewDep
 from app.core.messages import PostMessages
 from app.models.post import Post, PostStatus
 from app.models.post_media import PostMedia
@@ -46,7 +47,7 @@ def _with_media(post: Post, media: list[PostMedia], tags: list[Tag]) -> PostWith
 )
 def create_post(
     db: DbSessionDep,
-    current_user: CurrentActiveUserDep,
+    current_user: PostCreateDep,
     meta: ActivityRequestMetaDep,
     settings: SettingsDep,
     title: Annotated[str | None, Form()] = None,
@@ -88,18 +89,18 @@ def create_post(
 
 @router.get("", response_model=SuccessResponse[Page[PostDetailRead]])
 def list_posts(
-    db: DbSessionDep, _: CurrentActiveUserDep, params: PaginationDep
+    db: DbSessionDep, viewer: PostViewDep, params: PaginationDep
 ) -> SuccessResponse[Page[PostDetailRead]]:
-    items, total = PostService(db).list_with_details(params)
+    items, total = PostService(db).list_with_details(params, published_only=viewer is None)
     page = Page[PostDetailRead].create(items=items, total=total, params=params)
     return SuccessResponse(message=PostMessages.LIST_RETRIEVED, data=page)
 
 
 @router.get("/{slug}", response_model=SuccessResponse[PostDetailRead])
 def get_post(
-    slug: str, db: DbSessionDep, _: CurrentActiveUserDep
+    slug: str, db: DbSessionDep, viewer: PostViewDep
 ) -> SuccessResponse[PostDetailRead]:
-    detail = PostService(db).get_detail_by_slug(slug)
+    detail = PostService(db).get_detail_by_slug(slug, published_only=viewer is None)
     return SuccessResponse(message=PostMessages.RETRIEVED, data=detail)
 
 
@@ -157,9 +158,9 @@ def delete_post(
 
 @router.get("/{post_id}/media", response_model=SuccessResponse[list[PostMediaRead]])
 def list_post_media(
-    post_id: UUID, db: DbSessionDep, _: CurrentActiveUserDep
+    post_id: UUID, db: DbSessionDep, viewer: PostViewDep
 ) -> SuccessResponse[list[PostMediaRead]]:
-    media = PostMediaService(db).list_for_post(post_id)
+    media = PostMediaService(db).list_for_post(post_id, published_only=viewer is None)
     return SuccessResponse(
         message=PostMessages.MEDIA_RETRIEVED,
         data=[PostMediaRead.model_validate(item) for item in media],

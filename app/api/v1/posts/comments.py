@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, status
 
 from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaginationDep
+from app.api.v1.posts.permissions import PostCommentDep, PostViewDep
 from app.core.messages import PostCommentMessages
 from app.schemas.pagination import Page
 from app.schemas.post_comment import PostCommentCreate, PostCommentRead
@@ -21,7 +22,7 @@ def create_comment(
     post_id: UUID,
     payload: PostCommentCreate,
     db: DbSessionDep,
-    current_user: CurrentActiveUserDep,
+    current_user: PostCommentDep,
 ) -> SuccessResponse[PostCommentRead]:
     comment = PostCommentService(db).create(post_id, payload, current_user)
     return SuccessResponse(
@@ -31,9 +32,11 @@ def create_comment(
 
 @router.get("/{post_id}/comments", response_model=SuccessResponse[Page[PostCommentRead]])
 def list_comments(
-    post_id: UUID, db: DbSessionDep, _: CurrentActiveUserDep, params: PaginationDep
+    post_id: UUID, db: DbSessionDep, viewer: PostViewDep, params: PaginationDep
 ) -> SuccessResponse[Page[PostCommentRead]]:
-    items, total = PostCommentService(db).list_for_post(post_id, params)
+    items, total = PostCommentService(db).list_for_post(
+        post_id, params, published_only=viewer is None
+    )
     page = Page[PostCommentRead].create(items=items, total=total, params=params)
     return SuccessResponse(message=PostCommentMessages.LIST_RETRIEVED, data=page)
 

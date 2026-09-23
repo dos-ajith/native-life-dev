@@ -1,17 +1,19 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 
 from app.api.deps import (
-    CurrentAdminUserDep,
     DbSessionDep,
     PaginationDep,
     ProfileImageDep,
     SettingsDep,
+    require_permission,
 )
 from app.core.messages import PageMessages
+from app.core.permissions import PermissionName
 from app.models.page import PageStatus
+from app.models.user import User
 from app.schemas.page import PageCreate, PageRead, PageUpdate
 from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
@@ -19,13 +21,18 @@ from app.services.page_service import PageService
 
 router = APIRouter(prefix="/admin/pages", tags=["pages"])
 
+PageCreateDep = Annotated[User, Depends(require_permission(PermissionName.PAGE_CREATE))]
+PageViewDep = Annotated[User, Depends(require_permission(PermissionName.PAGE_VIEW))]
+PageUpdateDep = Annotated[User, Depends(require_permission(PermissionName.PAGE_UPDATE))]
+PageDeleteDep = Annotated[User, Depends(require_permission(PermissionName.PAGE_DELETE))]
+
 
 @router.post(
     "/create", response_model=SuccessResponse[PageRead], status_code=status.HTTP_201_CREATED
 )
 def create_page(
     db: DbSessionDep,
-    current_user: CurrentAdminUserDep,
+    current_user: PageCreateDep,
     settings: SettingsDep,
     title: Annotated[str, Form()],
     content: Annotated[str | None, Form()] = None,
@@ -41,7 +48,7 @@ def create_page(
 
 @router.get("", response_model=SuccessResponse[Page[PageRead]])
 def list_pages(
-    db: DbSessionDep, _: CurrentAdminUserDep, params: PaginationDep
+    db: DbSessionDep, _: PageViewDep, params: PaginationDep
 ) -> SuccessResponse[Page[PageRead]]:
     items, total = PageService(db).list(params)
     page = Page[PageRead].create(
@@ -51,14 +58,14 @@ def list_pages(
 
 
 @router.get("/edit/{page_id}", response_model=SuccessResponse[PageRead])
-def edit_page(page_id: UUID, db: DbSessionDep, _: CurrentAdminUserDep) -> SuccessResponse[PageRead]:
+def edit_page(page_id: UUID, db: DbSessionDep, _: PageViewDep) -> SuccessResponse[PageRead]:
     page = PageService(db).get(page_id)
     return SuccessResponse(message=PageMessages.RETRIEVED, data=PageRead.model_validate(page))
 
 
 @router.get("/slug/{slug}", response_model=SuccessResponse[PageRead])
 def get_page_by_slug(
-    slug: str, db: DbSessionDep, _: CurrentAdminUserDep
+    slug: str, db: DbSessionDep, _: PageViewDep
 ) -> SuccessResponse[PageRead]:
     page = PageService(db).get_by_slug(slug)
     return SuccessResponse(message=PageMessages.RETRIEVED, data=PageRead.model_validate(page))
@@ -68,7 +75,7 @@ def get_page_by_slug(
 def update_page(
     page_id: UUID,
     db: DbSessionDep,
-    current_user: CurrentAdminUserDep,
+    current_user: PageUpdateDep,
     settings: SettingsDep,
     title: Annotated[str | None, Form()] = None,
     content: Annotated[str | None, Form()] = None,
@@ -83,7 +90,7 @@ def update_page(
 
 
 @router.delete("/delete/{page_id}", response_model=SuccessResponse[None])
-def delete_page(page_id: UUID, db: DbSessionDep, _: CurrentAdminUserDep) -> SuccessResponse[None]:
+def delete_page(page_id: UUID, db: DbSessionDep, _: PageDeleteDep) -> SuccessResponse[None]:
     PageService(db).delete(page_id)
     return SuccessResponse(message=PageMessages.DELETED, data=None)
 
@@ -92,7 +99,7 @@ def delete_page(page_id: UUID, db: DbSessionDep, _: CurrentAdminUserDep) -> Succ
 def update_page_image(
     page_id: UUID,
     db: DbSessionDep,
-    _: CurrentAdminUserDep,
+    _: PageUpdateDep,
     settings: SettingsDep,
     image: ProfileImageDep,
 ) -> SuccessResponse[PageRead]:

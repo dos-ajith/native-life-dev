@@ -155,13 +155,17 @@ class PostRepository:
         ).all()
         return [(post, distance_meters) for post, distance_meters in rows]
 
-    def list(self, params: PaginationParams) -> tuple[list[Post], int]:
-        not_deleted = Post.deleted_at.is_(None)
-        total = self._db.scalar(select(func.count()).select_from(Post).where(not_deleted)) or 0
+    def list(
+        self, params: PaginationParams, status: PostStatus | None = None
+    ) -> tuple[list[Post], int]:
+        conditions: list[ColumnElement[bool]] = [Post.deleted_at.is_(None)]
+        if status is not None:
+            conditions.append(Post.status == status)
+        total = self._db.scalar(select(func.count()).select_from(Post).where(*conditions)) or 0
         offset = (params.page - 1) * params.page_size
         items = self._db.scalars(
             select(Post)
-            .where(not_deleted)
+            .where(*conditions)
             .order_by(Post.created_at.desc())
             .offset(offset)
             .limit(params.page_size)

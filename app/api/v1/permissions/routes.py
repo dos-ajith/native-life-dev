@@ -1,10 +1,12 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Form, status
+from fastapi import APIRouter, Depends, Form, status
 
-from app.api.deps import CurrentAdminUserDep, DbSessionDep, PaginationDep
+from app.api.deps import DbSessionDep, PaginationDep, require_permission
 from app.core.messages import PermissionMessages
+from app.core.permissions import PermissionName
+from app.models.user import User
 from app.schemas.pagination import Page
 from app.schemas.permission import PermissionCreate, PermissionRead, PermissionUpdate
 from app.schemas.response import SuccessResponse
@@ -12,13 +14,18 @@ from app.services.permission_service import PermissionService
 
 router = APIRouter(prefix="/admin/permissions", tags=["permissions"])
 
+PermissionCreateDep = Annotated[User, Depends(require_permission(PermissionName.PERMISSION_CREATE))]
+PermissionViewDep = Annotated[User, Depends(require_permission(PermissionName.PERMISSION_VIEW))]
+PermissionUpdateDep = Annotated[User, Depends(require_permission(PermissionName.PERMISSION_UPDATE))]
+PermissionDeleteDep = Annotated[User, Depends(require_permission(PermissionName.PERMISSION_DELETE))]
+
 
 @router.post(
     "/create", response_model=SuccessResponse[PermissionRead], status_code=status.HTTP_201_CREATED
 )
 def create_permission(
     db: DbSessionDep,
-    _: CurrentAdminUserDep,
+    _: PermissionCreateDep,
     name: Annotated[str, Form()],
     description: Annotated[str | None, Form()] = None,
 ) -> SuccessResponse[PermissionRead]:
@@ -31,7 +38,7 @@ def create_permission(
 
 @router.get("", response_model=SuccessResponse[Page[PermissionRead]])
 def list_permissions(
-    db: DbSessionDep, _: CurrentAdminUserDep, params: PaginationDep
+    db: DbSessionDep, _: PermissionViewDep, params: PaginationDep
 ) -> SuccessResponse[Page[PermissionRead]]:
     items, total = PermissionService(db).list(params)
     page = Page[PermissionRead].create(
@@ -42,7 +49,7 @@ def list_permissions(
 
 @router.get("/edit/{permission_id}", response_model=SuccessResponse[PermissionRead])
 def edit_permission(
-    permission_id: UUID, db: DbSessionDep, _: CurrentAdminUserDep
+    permission_id: UUID, db: DbSessionDep, _: PermissionViewDep
 ) -> SuccessResponse[PermissionRead]:
     permission = PermissionService(db).get(permission_id)
     return SuccessResponse(
@@ -54,7 +61,7 @@ def edit_permission(
 def update_permission(
     permission_id: UUID,
     db: DbSessionDep,
-    _: CurrentAdminUserDep,
+    _: PermissionUpdateDep,
     name: Annotated[str | None, Form()] = None,
     description: Annotated[str | None, Form()] = None,
 ) -> SuccessResponse[PermissionRead]:
@@ -67,7 +74,7 @@ def update_permission(
 
 @router.delete("/delete/{permission_id}", response_model=SuccessResponse[None])
 def delete_permission(
-    permission_id: UUID, db: DbSessionDep, _: CurrentAdminUserDep
+    permission_id: UUID, db: DbSessionDep, _: PermissionDeleteDep
 ) -> SuccessResponse[None]:
     PermissionService(db).delete(permission_id)
     return SuccessResponse(message=PermissionMessages.DELETED, data=None)

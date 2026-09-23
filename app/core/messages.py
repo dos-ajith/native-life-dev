@@ -6,7 +6,7 @@ class AuthMessages:
     ACCOUNT_INACTIVE = "Account is not active"
     MISSING_TOKEN = "Missing authentication token"
     INVALID_TOKEN = "Invalid or expired token"
-    ADMIN_REQUIRED = "Admin privileges required"
+    PERMISSION_DENIED = "You do not have permission to perform this action"
 
 
 class UserMessages:
