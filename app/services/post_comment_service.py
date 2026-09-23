@@ -23,7 +23,7 @@ class PostCommentService:
         self._activity_logs = ActivityLogService(db)
 
     def create(self, post_id: UUID, payload: PostCommentCreate, actor: User) -> PostComment:
-        post = self._posts.get(post_id)
+        post = self._posts.get_visible(post_id, actor)
         if payload.parent_id is not None:
             parent = self._comments.get_by_id(payload.parent_id)
             if parent is None or parent.post_id != post.id:
@@ -46,9 +46,9 @@ class PostCommentService:
         return comment
 
     def list_for_post(
-        self, post_id: UUID, params: PaginationParams, published_only: bool = False
+        self, post_id: UUID, params: PaginationParams, viewer: User | None
     ) -> tuple[list[PostCommentRead], int]:
-        self._posts.get_visible(post_id, published_only)
+        self._posts.get_visible(post_id, viewer)
         roots, total = self._comments.list_roots_by_post(post_id, params)
         if not roots:
             return [], total

@@ -34,9 +34,7 @@ def create_comment(
 def list_comments(
     post_id: UUID, db: DbSessionDep, viewer: PostViewDep, params: PaginationDep
 ) -> SuccessResponse[Page[PostCommentRead]]:
-    items, total = PostCommentService(db).list_for_post(
-        post_id, params, published_only=viewer is None
-    )
+    items, total = PostCommentService(db).list_for_post(post_id, params, viewer)
     page = Page[PostCommentRead].create(items=items, total=total, params=params)
     return SuccessResponse(message=PostCommentMessages.LIST_RETRIEVED, data=page)
 

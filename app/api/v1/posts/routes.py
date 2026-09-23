@@ -91,7 +91,7 @@ def create_post(
 def list_posts(
     db: DbSessionDep, viewer: PostViewDep, params: PaginationDep
 ) -> SuccessResponse[Page[PostDetailRead]]:
-    items, total = PostService(db).list_with_details(params, published_only=viewer is None)
+    items, total = PostService(db).list_with_details(params, viewer)
     page = Page[PostDetailRead].create(items=items, total=total, params=params)
     return SuccessResponse(message=PostMessages.LIST_RETRIEVED, data=page)
 
@@ -100,7 +100,7 @@ def list_posts(
 def get_post(
     slug: str, db: DbSessionDep, viewer: PostViewDep
 ) -> SuccessResponse[PostDetailRead]:
-    detail = PostService(db).get_detail_by_slug(slug, published_only=viewer is None)
+    detail = PostService(db).get_detail_by_slug(slug, viewer)
     return SuccessResponse(message=PostMessages.RETRIEVED, data=detail)
 
 
@@ -160,7 +160,7 @@ def delete_post(
 def list_post_media(
     post_id: UUID, db: DbSessionDep, viewer: PostViewDep
 ) -> SuccessResponse[list[PostMediaRead]]:
-    media = PostMediaService(db).list_for_post(post_id, published_only=viewer is None)
+    media = PostMediaService(db).list_for_post(post_id, viewer)
     return SuccessResponse(
         message=PostMessages.MEDIA_RETRIEVED,
         data=[PostMediaRead.model_validate(item) for item in media],

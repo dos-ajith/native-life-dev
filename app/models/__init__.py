@@ -21,6 +21,7 @@ from app.models.user_ai_settings import UserAISettings
 from app.models.user_content_preferred_district import user_content_preferred_districts
 from app.models.user_content_preferred_tag import user_content_preferred_tags
 from app.models.user_content_settings import UserContentSettings
+from app.models.user_follow import UserFollow
 from app.models.user_has_role import user_has_roles
 from app.models.user_notification_settings import UserNotificationSettings
 from app.models.user_privacy_settings import UserPrivacySettings
@@ -46,6 +47,7 @@ __all__ = [
     "User",
     "UserAISettings",
     "UserContentSettings",
+    "UserFollow",
     "UserNotificationSettings",
     "UserPrivacySettings",
     "UserSettings",

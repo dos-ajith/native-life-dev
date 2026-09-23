@@ -1644,7 +1644,7 @@
                     }
                   ]
                 },
-                "description": "Returns a paginated list of non-deleted posts. Each item includes the resolved author and its media list (same shape as 'Get post'), batched in a couple of extra queries rather than one per post. Each item also includes likes_count, comments_count, and shares_count, batched per page. Auth optional: without a token (guest) only published posts are visible."
+                "description": "Returns a paginated list of non-deleted posts. Each item includes the resolved author and its media list (same shape as 'Get post'), batched in a couple of extra queries rather than one per post. Each item also includes likes_count, comments_count, and shares_count, batched per page. Auth optional: guests and other users only see published posts; the owner also sees their own draft/scheduled posts, and users with post.update_any see all. Hidden posts return 404."
               }
             },
             {
@@ -1674,7 +1674,7 @@
                     }
                   ]
                 },
-                "description": "Retrieves a single post by slug, with the author (id, name, profile_image_url) resolved and its media list embedded, so a client can render a post without extra calls. Also includes likes_count, comments_count (all levels, not just top-level threads) and shares_count. Auth optional: without a token (guest) only published posts are visible."
+                "description": "Retrieves a single post by slug, with the author (id, name, profile_image_url) resolved and its media list embedded, so a client can render a post without extra calls. Also includes likes_count, comments_count (all levels, not just top-level threads) and shares_count. Auth optional: guests and other users only see published posts; the owner also sees their own draft/scheduled posts, and users with post.update_any see all. Hidden posts return 404."
               }
             },
             {
@@ -1825,7 +1825,7 @@
                     }
                   ]
                 },
-                "description": "Returns all images/videos attached to a post, ordered by sort_order. Each item has media_type (image or video); videos also carry a thumbnail_url. Auth optional: without a token (guest) only published posts are visible."
+                "description": "Returns all images/videos attached to a post, ordered by sort_order. Each item has media_type (image or video); videos also carry a thumbnail_url. Auth optional: guests and other users only see published posts; the owner also sees their own draft/scheduled posts, and users with post.update_any see all. Hidden posts return 404."
               }
             },
             {
@@ -1943,7 +1943,7 @@
                     }
                   ]
                 },
-                "description": "Returns a paginated list of top-level comments for a post, newest first. Each comment carries its full reply thread nested under `replies` (unpaginated, in chronological order, arbitrarily deep). `page`/`page_size`/`total`/`pages` apply to top-level threads only \u2014 replies are not counted or paginated separately. Auth optional: without a token (guest) only published posts are visible."
+                "description": "Returns a paginated list of top-level comments for a post, newest first. Each comment carries its full reply thread nested under `replies` (unpaginated, in chronological order, arbitrarily deep). `page`/`page_size`/`total`/`pages` apply to top-level threads only \u2014 replies are not counted or paginated separately. Auth optional: guests and other users only see published posts; the owner also sees their own draft/scheduled posts, and users with post.update_any see all. Hidden posts return 404."
               }
             },
             {
@@ -2112,6 +2112,221 @@
                   ]
                 },
                 "description": "Fetches a published page (About Us, Privacy Policy, ...) by slug for the mobile app. Draft and archived pages return 404. Auth optional: works without a token (guest)."
+              }
+            }
+          ]
+        },
+        {
+          "name": "User Follows",
+          "item": [
+            {
+              "name": "Follow user",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/:user_id/follow",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    ":user_id",
+                    "follow"
+                  ],
+                  "variable": [
+                    {
+                      "key": "user_id",
+                      "value": "",
+                      "description": "UUID of the target user"
+                    }
+                  ]
+                },
+                "description": "Follows the target user as the authenticated user. Cannot follow yourself or follow the same user twice (422). Unknown or deleted user returns 404."
+              }
+            },
+            {
+              "name": "Unfollow user",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/:user_id/follow",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    ":user_id",
+                    "follow"
+                  ],
+                  "variable": [
+                    {
+                      "key": "user_id",
+                      "value": "",
+                      "description": "UUID of the target user"
+                    }
+                  ]
+                },
+                "description": "Removes the authenticated user's follow of the target user. Returns 404 if not following."
+              }
+            },
+            {
+              "name": "Get follow status",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/:user_id/follow",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    ":user_id",
+                    "follow"
+                  ],
+                  "variable": [
+                    {
+                      "key": "user_id",
+                      "value": "",
+                      "description": "UUID of the target user"
+                    }
+                  ]
+                },
+                "description": "Returns `is_following` for the authenticated user -> target user. Always false for yourself."
+              }
+            },
+            {
+              "name": "List followers",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/:user_id/followers?page=1&page_size=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    ":user_id",
+                    "followers"
+                  ],
+                  "variable": [
+                    {
+                      "key": "user_id",
+                      "value": "",
+                      "description": "UUID of the target user"
+                    }
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Optional, default 1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20",
+                      "description": "Optional, default 20, max 100"
+                    }
+                  ]
+                },
+                "description": "Paginated users who follow the target user, newest first."
+              }
+            },
+            {
+              "name": "List following",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/:user_id/following?page=1&page_size=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    ":user_id",
+                    "following"
+                  ],
+                  "variable": [
+                    {
+                      "key": "user_id",
+                      "value": "",
+                      "description": "UUID of the target user"
+                    }
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Optional, default 1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20",
+                      "description": "Optional, default 20, max 100"
+                    }
+                  ]
+                },
+                "description": "Paginated users the target user follows, newest first."
+              }
+            },
+            {
+              "name": "Get follow counts",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/:user_id/follow-counts",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    ":user_id",
+                    "follow-counts"
+                  ],
+                  "variable": [
+                    {
+                      "key": "user_id",
+                      "value": "",
+                      "description": "UUID of the target user"
+                    }
+                  ]
+                },
+                "description": "Returns `followers_count` and `following_count` for the target user."
               }
             }
           ]

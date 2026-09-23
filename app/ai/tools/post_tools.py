@@ -3,9 +3,8 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.ai.tools.base import AITool, ToolContext
-from app.core.exceptions import AuthorizationError, NotFoundError
-from app.core.messages import AIMessages, PostMessages
-from app.models.post import PostStatus
+from app.core.exceptions import AuthorizationError
+from app.core.messages import AIMessages
 from app.models.user import UserType
 from app.schemas.ai import PostReferenceRead
 from app.schemas.pagination import PaginationParams
@@ -25,16 +24,15 @@ class GetPostArgs(BaseModel):
 class GetPostTool(AITool[GetPostArgs]):
     name = "get_post"
     description = (
-        "Retrieve a single published Native Life post by id, including its author, "
-        "a short content summary, primary image, and tags. Draft and scheduled posts "
-        "are not visible to this tool."
+        "Retrieve a single Native Life post by id, including its author, a short "
+        "content summary, primary image, and tags. Only posts the current user is "
+        "allowed to see are returned: published posts, plus the user's own drafts "
+        "and scheduled posts."
     )
     args_model = GetPostArgs
 
     def execute(self, context: ToolContext, arguments: GetPostArgs) -> PostReferenceRead:
-        detail = PostService(context.db).get_detail(arguments.post_id)
-        if detail.status != PostStatus.PUBLISHED:
-            raise NotFoundError(PostMessages.NOT_FOUND)
+        detail = PostService(context.db).get_detail(arguments.post_id, context.actor)
         return PostReferenceRead.from_detail(detail)
 
 
@@ -63,17 +61,17 @@ class SearchPostsResult(BaseModel):
 class SearchPostsTool(AITool[SearchPostsArgs]):
     name = "search_posts"
     description = (
-        "Search published Native Life posts by free-text query and/or exact tag "
-        "names. Returns up to 5 compact post references (id, title, summary, "
-        "author, image, tags), ranked by likes (most-liked first) — use get_post "
-        "for the full content of a specific result."
+        "Search Native Life posts the current user is allowed to see by free-text "
+        "query and/or exact tag names. Returns up to 5 compact post references (id, "
+        "title, summary, author, image, tags), ranked by likes (most-liked first) — "
+        "use get_post for the full content of a specific result."
     )
     args_model = SearchPostsArgs
 
     def execute(self, context: ToolContext, arguments: SearchPostsArgs) -> SearchPostsResult:
         params = PaginationParams(page=arguments.page, page_size=arguments.page_size)
         items, total = PostService(context.db).search_with_details(
-            params, arguments.tags, arguments.query, order_by_likes=True
+            params, context.actor, arguments.tags, arguments.query, order_by_likes=True
         )
         return SearchPostsResult(
             items=[PostReferenceRead.from_detail(item) for item in items], total=total
@@ -100,7 +98,9 @@ class GetPostCommentsTool(AITool[GetPostCommentsArgs]):
         self, context: ToolContext, arguments: GetPostCommentsArgs
     ) -> GetPostCommentsResult:
         params = PaginationParams(page=arguments.page, page_size=arguments.page_size)
-        items, total = PostCommentService(context.db).list_for_post(arguments.post_id, params)
+        items, total = PostCommentService(context.db).list_for_post(
+            arguments.post_id, params, context.actor
+        )
         return GetPostCommentsResult(items=items, total=total)
 
 
@@ -118,7 +118,7 @@ class GetPostTagsTool(AITool[GetPostTagsArgs]):
     args_model = GetPostTagsArgs
 
     def execute(self, context: ToolContext, arguments: GetPostTagsArgs) -> GetPostTagsResult:
-        tags = PostService(context.db).list_tags(arguments.post_id)
+        tags = PostService(context.db).list_visible_tags(arguments.post_id, context.actor)
         return GetPostTagsResult(items=[TagRead.model_validate(tag) for tag in tags])
 
 
@@ -137,8 +137,8 @@ class GetUserPostsTool(AITool[GetUserPostsArgs]):
     name = "get_user_posts"
     description = (
         "Retrieve up to 5 compact post references (id, title, summary, author, image, "
-        "tags) for the published posts authored by a specific user, ranked by likes "
-        "(most-liked first). Draft and scheduled posts are not visible to this tool."
+        "tags) for the posts authored by a specific user that the current user is "
+        "allowed to see, ranked by likes (most-liked first)."
     )
     args_model = GetUserPostsArgs
 
@@ -147,7 +147,7 @@ class GetUserPostsTool(AITool[GetUserPostsArgs]):
             raise AuthorizationError(AIMessages.USER_POSTS_FORBIDDEN)
         params = PaginationParams(page=arguments.page, page_size=arguments.page_size)
         items, total = PostService(context.db).list_by_user_with_details(
-            arguments.user_id, params, published_only=True, order_by_likes=True
+            arguments.user_id, params, context.actor, order_by_likes=True
         )
         return GetUserPostsResult(
             items=[PostReferenceRead.from_detail(item) for item in items], total=total

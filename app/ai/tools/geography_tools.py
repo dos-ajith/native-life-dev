@@ -81,9 +81,10 @@ class GetNearbyContentResult(BaseModel):
 class GetNearbyContentTool(AITool[GetNearbyContentArgs]):
     name = "get_nearby_content"
     description = (
-        "Find published Native Life posts within a radius (in meters, default 2000, "
-        "max 50000) of a given latitude/longitude. Returns up to 5 posts ordered by "
-        "distance, nearest first, each with its distance in meters."
+        "Find Native Life posts the current user is allowed to see within a radius "
+        "(in meters, default 2000, max 50000) of a given latitude/longitude. Returns "
+        "up to 5 posts ordered by distance, nearest first, each with its distance in "
+        "meters."
     )
     args_model = GetNearbyContentArgs
 
@@ -95,6 +96,7 @@ class GetNearbyContentTool(AITool[GetNearbyContentArgs]):
             arguments.longitude,
             arguments.radius_meters,
             _MAX_NEARBY_RESULTS,
+            context.actor,
         )
         return GetNearbyContentResult(
             items=[

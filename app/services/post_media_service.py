@@ -21,8 +21,8 @@ class PostMediaService:
         self._posts = PostService(db)
         self._activity_logs = ActivityLogService(db)
 
-    def list_for_post(self, post_id: UUID, published_only: bool = False) -> list[PostMedia]:
-        self._posts.get_visible(post_id, published_only)
+    def list_for_post(self, post_id: UUID, viewer: User | None) -> list[PostMedia]:
+        self._posts.get_visible(post_id, viewer)
         return self._media.list_by_post(post_id)
 
     def attach(

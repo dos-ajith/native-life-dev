@@ -16,7 +16,7 @@ from app.models.post_media import PostMedia
 from app.models.tag import Tag
 from app.models.user import User
 from app.repositories.post_media_repository import PostMediaRepository
-from app.repositories.post_repository import PostRepository
+from app.repositories.post_repository import PostRepository, PostVisibilityScope
 from app.repositories.tag_repository import TagRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.pagination import PaginationParams
@@ -96,25 +96,30 @@ class PostService:
             raise NotFoundError(PostMessages.NOT_FOUND)
         return post
 
-    def get_by_slug(self, slug: str) -> Post:
-        post = self._posts.get_by_slug(slug)
+    def _visibility_scope(self, viewer: User | None) -> PostVisibilityScope:
+        if viewer is None:
+            return PostVisibilityScope()
+        if has_permission(viewer, PermissionName.POST_UPDATE_ANY):
+            return PostVisibilityScope(include_unpublished=True)
+        return PostVisibilityScope(owner_id=viewer.id)
+
+    def get_visible(self, post_id: UUID, viewer: User | None) -> Post:
+        post = self._posts.get_visible_by_id(post_id, self._visibility_scope(viewer))
         if post is None:
             raise NotFoundError(PostMessages.NOT_FOUND)
         return post
 
-    def get_visible(self, post_id: UUID, published_only: bool) -> Post:
-        return self._ensure_visible(self.get(post_id), published_only)
-
-    def _ensure_visible(self, post: Post, published_only: bool) -> Post:
-        if published_only and post.status != PostStatus.PUBLISHED:
+    def get_visible_by_slug(self, slug: str, viewer: User | None) -> Post:
+        post = self._posts.get_visible_by_slug(slug, self._visibility_scope(viewer))
+        if post is None:
             raise NotFoundError(PostMessages.NOT_FOUND)
         return post
 
-    def get_detail(self, post_id: UUID) -> PostDetailRead:
-        return self._to_detail(self.get(post_id))
+    def get_detail(self, post_id: UUID, viewer: User | None) -> PostDetailRead:
+        return self._to_detail(self.get_visible(post_id, viewer))
 
-    def get_detail_by_slug(self, slug: str, published_only: bool = False) -> PostDetailRead:
-        return self._to_detail(self._ensure_visible(self.get_by_slug(slug), published_only))
+    def get_detail_by_slug(self, slug: str, viewer: User | None) -> PostDetailRead:
+        return self._to_detail(self.get_visible_by_slug(slug, viewer))
 
     def _to_detail(self, post: Post) -> PostDetailRead:
         author = self._users.get_by_id_including_deleted(post.user_id)
@@ -126,6 +131,9 @@ class PostService:
 
     def list_tags(self, post_id: UUID) -> list[Tag]:
         return self._tags.list_by_post(post_id)
+
+    def list_visible_tags(self, post_id: UUID, viewer: User | None) -> list[Tag]:
+        return self.list_tags(self.get_visible(post_id, viewer).id)
 
     def _to_details(
         self, posts: list[Post], total: int
@@ -150,49 +158,50 @@ class PostService:
         return items, total
 
     def list_with_details(
-        self, params: PaginationParams, published_only: bool = False
+        self, params: PaginationParams, viewer: User | None
     ) -> tuple[list[PostDetailRead], int]:
-        status = PostStatus.PUBLISHED if published_only else None
-        posts, total = self._posts.list(params, status)
+        posts, total = self._posts.list(params, self._visibility_scope(viewer))
         return self._to_details(posts, total)
 
     def list_by_user_with_details(
         self,
         user_id: UUID,
         params: PaginationParams,
-        published_only: bool = False,
+        viewer: User | None,
         order_by_likes: bool = False,
     ) -> tuple[list[PostDetailRead], int]:
-        status = PostStatus.PUBLISHED if published_only else None
-        posts, total = self._posts.list_by_user(user_id, params, status, order_by_likes)
+        scope = self._visibility_scope(viewer)
+        posts, total = self._posts.list_by_user(user_id, params, scope, order_by_likes)
         return self._to_details(posts, total)
 
     def search_with_details(
         self,
         params: PaginationParams,
+        viewer: User | None,
         tag_names: list[str] | None = None,
         query: str | None = None,
-        published_only: bool = True,
         order_by_likes: bool = False,
     ) -> tuple[list[PostDetailRead], int]:
         tag_slugs = [slugify(name) for name in tag_names] if tag_names else None
-        status = PostStatus.PUBLISHED if published_only else None
-        posts, total = self._posts.search(params, tag_slugs, query, status, order_by_likes)
+        scope = self._visibility_scope(viewer)
+        posts, total = self._posts.search(params, scope, tag_slugs, query, order_by_likes)
         return self._to_details(posts, total)
 
     def search_nearby_with_details(
-        self, latitude: float, longitude: float, radius_meters: int, limit: int
+        self,
+        latitude: float,
+        longitude: float,
+        radius_meters: int,
+        limit: int,
+        viewer: User | None,
     ) -> list[tuple[PostDetailRead, float]]:
         posts_with_distance = self._posts.search_nearby(
-            latitude, longitude, radius_meters, PostStatus.PUBLISHED, limit
+            latitude, longitude, radius_meters, self._visibility_scope(viewer), limit
         )
         posts = [post for post, _ in posts_with_distance]
         details, _ = self._to_details(posts, len(posts))
         distances = [distance for _, distance in posts_with_distance]
         return list(zip(details, distances, strict=True))
-
-    def list(self, params: PaginationParams) -> tuple[list[Post], int]:
-        return self._posts.list(params)
 
     def update(self, post_id: UUID, payload: PostUpdate, actor: User) -> Post:
         post = self.get(post_id)

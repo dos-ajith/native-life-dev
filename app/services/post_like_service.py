@@ -19,7 +19,7 @@ class PostLikeService:
         self._activity_logs = ActivityLogService(db)
 
     def like(self, post_id: UUID, actor: User) -> PostLike:
-        post = self._posts.get(post_id)
+        post = self._posts.get_visible(post_id, actor)
         if self._likes.get_by_post_and_user(post.id, actor.id) is not None:
             raise BusinessRuleError(PostLikeMessages.ALREADY_LIKED)
         like = self._likes.add(PostLike(post_id=post.id, user_id=actor.id))

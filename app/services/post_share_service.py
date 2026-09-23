@@ -17,7 +17,7 @@ class PostShareService:
         self._activity_logs = ActivityLogService(db)
 
     def share(self, post_id: UUID, actor: User, utm_source: str | None = None) -> PostShare:
-        post = self._posts.get(post_id)
+        post = self._posts.get_visible(post_id, actor)
         share = self._shares.add(
             PostShare(post_id=post.id, user_id=actor.id, utm_source=utm_source)
         )

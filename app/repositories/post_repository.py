@@ -1,4 +1,5 @@
 import re
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -14,6 +15,22 @@ from app.schemas.pagination import PaginationParams
 
 _MIN_SEARCH_TERM_LENGTH = 2
 _WHITESPACE = re.compile(r"\s+")
+
+
+@dataclass(frozen=True)
+class PostVisibilityScope:
+    include_unpublished: bool = False
+    owner_id: UUID | None = None
+
+
+def _visible_in(scope: PostVisibilityScope) -> ColumnElement[bool]:
+    not_deleted = Post.deleted_at.is_(None)
+    if scope.include_unpublished:
+        return not_deleted
+    published = Post.status == PostStatus.PUBLISHED
+    if scope.owner_id is None:
+        return not_deleted & published
+    return not_deleted & or_(published, Post.user_id == scope.owner_id)
 
 
 def _order_by_recency() -> tuple[ColumnElement[Any], ...]:
@@ -65,24 +82,20 @@ class PostRepository:
             select(Post).where(Post.id == post_id, Post.deleted_at.is_(None))
         )
 
-    def get_by_slug(self, slug: str) -> Post | None:
-        return self._db.scalar(
-            select(Post).where(Post.slug == slug, Post.deleted_at.is_(None))
-        )
+    def get_visible_by_id(self, post_id: UUID, scope: PostVisibilityScope) -> Post | None:
+        return self._db.scalar(select(Post).where(Post.id == post_id, _visible_in(scope)))
+
+    def get_visible_by_slug(self, slug: str, scope: PostVisibilityScope) -> Post | None:
+        return self._db.scalar(select(Post).where(Post.slug == slug, _visible_in(scope)))
 
     def list_by_user(
         self,
         user_id: UUID,
         params: PaginationParams,
-        status: PostStatus | None = None,
+        scope: PostVisibilityScope,
         order_by_likes: bool = False,
     ) -> tuple[list[Post], int]:
-        conditions: list[ColumnElement[bool]] = [
-            Post.deleted_at.is_(None),
-            Post.user_id == user_id,
-        ]
-        if status is not None:
-            conditions.append(Post.status == status)
+        conditions: list[ColumnElement[bool]] = [_visible_in(scope), Post.user_id == user_id]
         total = self._db.scalar(select(func.count()).select_from(Post).where(*conditions)) or 0
         offset = (params.page - 1) * params.page_size
         order = _order_by_likes() if order_by_likes else _order_by_recency()
@@ -94,14 +107,12 @@ class PostRepository:
     def search(
         self,
         params: PaginationParams,
+        scope: PostVisibilityScope,
         tag_slugs: list[str] | None = None,
         query: str | None = None,
-        status: PostStatus | None = None,
         order_by_likes: bool = False,
     ) -> tuple[list[Post], int]:
-        conditions: list[ColumnElement[bool]] = [Post.deleted_at.is_(None)]
-        if status is not None:
-            conditions.append(Post.status == status)
+        conditions: list[ColumnElement[bool]] = [_visible_in(scope)]
 
         match_filters: list[ColumnElement[bool]] = []
         relevance: ColumnElement[int] | None = None
@@ -137,7 +148,7 @@ class PostRepository:
         latitude: float,
         longitude: float,
         radius_meters: int,
-        status: PostStatus,
+        scope: PostVisibilityScope,
         limit: int,
     ) -> list[tuple[Post, float]]:
         point = cast(func.ST_SetSRID(func.ST_Point(longitude, latitude), 4326), Geography)
@@ -146,8 +157,7 @@ class PostRepository:
         rows = self._db.execute(
             select(Post, distance)
             .where(
-                Post.deleted_at.is_(None),
-                Post.status == status,
+                _visible_in(scope),
                 func.ST_DWithin(location, point, radius_meters),
             )
             .order_by(distance.asc(), Post.created_at.desc())
@@ -156,11 +166,9 @@ class PostRepository:
         return [(post, distance_meters) for post, distance_meters in rows]
 
     def list(
-        self, params: PaginationParams, status: PostStatus | None = None
+        self, params: PaginationParams, scope: PostVisibilityScope
     ) -> tuple[list[Post], int]:
-        conditions: list[ColumnElement[bool]] = [Post.deleted_at.is_(None)]
-        if status is not None:
-            conditions.append(Post.status == status)
+        conditions: list[ColumnElement[bool]] = [_visible_in(scope)]
         total = self._db.scalar(select(func.count()).select_from(Post).where(*conditions)) or 0
         offset = (params.page - 1) * params.page_size
         items = self._db.scalars(

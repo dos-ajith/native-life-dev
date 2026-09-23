@@ -27,6 +27,19 @@ class UserMessages:
     DEFAULT_ROLE_MISSING = "Default role is not configured"
 
 
+class UserFollowMessages:
+    FOLLOWED = "User followed"
+    UNFOLLOWED = "User unfollowed"
+    STATUS_RETRIEVED = "Follow status retrieved"
+    FOLLOWERS_RETRIEVED = "Followers retrieved"
+    FOLLOWING_RETRIEVED = "Following retrieved"
+    COUNTS_RETRIEVED = "Follow counts retrieved"
+    ALREADY_FOLLOWING = "You are already following this user"
+    NOT_FOLLOWING = "You are not following this user"
+    CANNOT_FOLLOW_SELF = "You cannot follow yourself"
+    CANNOT_UNFOLLOW_SELF = "You cannot unfollow yourself"
+
+
 class RoleMessages:
     CREATED = "Role created"
     RETRIEVED = "Role retrieved"
