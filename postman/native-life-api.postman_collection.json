@@ -2799,7 +2799,7 @@
                 "import"
               ]
             },
-            "description": "Admin only. Uploads a Survey of India Kerala Administrative Boundary Database ZIP, extracts KERALA_STATE_BDY/KERALA_DISTRICT_BDY/KERALA_SUBDISTRICT_BDY shapefiles, reprojects to EPSG:4326 and upserts gis_states/gis_districts/gis_taluks keyed by LGD code."
+            "description": "Admin only. Uploads a Survey of India Kerala ZIP: either the Administrative Boundary Database (explicit state, district and sub-district polygon layers, imported directly) or the Village Boundary Database (village polygons with STATE_LGD/DIST_LGD/SUBDIS_LGD, dissolved into state, district and taluk boundaries). The dataset type is auto-detected; explicit layers take precedence, legacy KERALA_*_BDY names are only a tie-breaker, and it fails with a detection report if nothing can be identified confidently. Response data.source_mode is direct_admin_boundaries or derived_from_village_boundaries. Reprojects to EPSG:4326 and upserts gis_states/gis_districts/gis_taluks keyed by LGD code."
           }
         }
       ]

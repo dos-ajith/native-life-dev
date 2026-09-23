@@ -18,10 +18,10 @@ GeographyImportDep = Annotated[User, Depends(require_permission(PermissionName.G
 @router.post("/import", response_model=SuccessResponse[GeographyImportSummary])
 def import_geography(
     db: DbSessionDep,
-    _: GeographyImportDep,
+    admin: GeographyImportDep,
     settings: SettingsDep,
     file: Annotated[UploadFile, File(...)],
 ) -> SuccessResponse[GeographyImportSummary]:
     max_upload_bytes = settings.gis_import_max_upload_mb * 1024 * 1024
-    summary = GeographyImportService(db).import_zip(file, max_upload_bytes)
+    summary = GeographyImportService(db).import_zip(file, max_upload_bytes, admin)
     return SuccessResponse(message=GeographyMessages.IMPORTED, data=summary)

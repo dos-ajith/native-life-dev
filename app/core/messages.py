@@ -175,9 +175,35 @@ class GeographyMessages:
     INVALID_ZIP = "Uploaded file is not a valid ZIP archive"
     UNSAFE_ZIP_ENTRY = "ZIP archive contains an unsafe file path"
     ZIP_TOO_LARGE_UNCOMPRESSED = "ZIP archive is too large when uncompressed"
-    MISSING_LAYER = "Required shapefile layer '{layer}' was not found in the archive"
+    NO_SHAPEFILES = "No shapefile layers were found in the archive"
+    LAYERS_NOT_IDENTIFIED = (
+        "Could not identify the {levels} layer(s) with sufficient confidence, and no "
+        "village layer can derive them. Detected layers: {report}"
+    )
+    AMBIGUOUS_LAYER = "Multiple layers qualify as the {level} layer ({layers}); refusing to guess"
+    LAYER_SUMMARY = (
+        "{name} ({geometry}, {count} records, CRS {crs}, fields: {fields}; "
+        "sample: {sample}) -> {reason}"
+    )
+    LAYER_SUMMARY_UNREADABLE = "{name} -> {reason}"
+    LAYER_REASON_UNREADABLE = "could not be read as a shapefile"
+    LAYER_REASON_NOT_POLYGON = "geometry type {geometry} is not polygonal"
+    LAYER_REASON_EMPTY = "contains no records"
+    LAYER_REASON_VILLAGE_SOURCE = (
+        "village-level layer ({fields}) that can derive state, district and taluk boundaries"
+    )
+    LAYER_REASON_VILLAGE_INCOMPLETE = (
+        "village-level layer ({fields}) that lacks {missing}, so boundaries cannot be derived"
+    )
+    LAYER_REASON_NO_ADMIN_FIELDS = "has no recognised administrative fields"
+    LAYER_REASON_INCOMPLETE_FIELDS = "looks like a {level} layer but lacks {fields}"
+    LAYER_REASON_CODES_NOT_UNIQUE = (
+        "{field} values are blank or repeated, so it is not one record per {level}"
+    )
+    LAYER_REASON_NAME_CONFLICT = "named as a {named_level} layer but its fields indicate {level}"
+    LAYER_REASON_CANDIDATE = "identified as {level} layer"
     MISSING_PRJ = "Layer '{layer}' is missing its .prj projection file"
-    MISSING_FIELD = "Layer '{layer}' is missing required field '{field}'"
+    INVALID_PRJ = "Layer '{layer}' has a .prj projection file that could not be parsed"
     NULL_REQUIRED_VALUE = "Layer '{layer}' has a blank value for required field '{field}'"
     INVALID_STATE_LGD = "State LGD code must be '{expected}', found '{actual}'"
     UNEXPECTED_STATE_RECORD_COUNT = "Expected exactly one state record, found {count}"
@@ -190,5 +216,14 @@ class GeographyMessages:
     DISTRICT_NOT_FOUND = "District not found"
     ORPHAN_TALUK_DISTRICT = "Taluk '{name}' references unknown district LGD code: {code}"
     INVALID_GEOMETRY = "Layer '{layer}' contains an invalid geometry for record {identifier}"
+    AMBIGUOUS_PARENT_CODE = (
+        "{level} LGD code {code} is assigned to more than one {parent_level}: {parents}"
+    )
+    AMBIGUOUS_NAME = "{level} LGD code {code} has no single most common name: {names}"
+    INVALID_DERIVED_GEOMETRY = "Derived {level} boundary for LGD code {code} is not a valid polygon"
+    GEOMETRY_OUT_OF_RANGE = (
+        "Layer '{layer}' record {identifier} falls outside EPSG:4326 bounds after "
+        "reprojection; check the layer's .prj file"
+    )
     LOCATION_RESOLVED = "Location resolved"
     LOCATION_NOT_FOUND = "No matching state, district, or taluk found for the given coordinates"

@@ -1,9 +1,17 @@
+from enum import StrEnum
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
 
+class GeographySourceMode(StrEnum):
+    DIRECT_ADMIN_BOUNDARY = "direct_admin_boundaries"
+    DERIVED_FROM_VILLAGE_BOUNDARY = "derived_from_village_boundaries"
+
+
 class GeographyImportSummary(BaseModel):
+    source_mode: GeographySourceMode
+    villages_processed: int | None
     state_count: int
     district_count: int
     taluk_count: int
