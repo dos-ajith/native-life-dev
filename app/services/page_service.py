@@ -47,6 +47,12 @@ class PageService:
             raise NotFoundError(PageMessages.NOT_FOUND)
         return page
 
+    def get_published_by_slug(self, slug: str) -> Page:
+        page = self.get_by_slug(slug)
+        if page.status != PageStatus.PUBLISHED:
+            raise NotFoundError(PageMessages.NOT_FOUND)
+        return page
+
     def list(self, params: PaginationParams) -> tuple[list[Page], int]:
         return self._pages.list(params)
 

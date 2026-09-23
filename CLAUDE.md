@@ -94,6 +94,12 @@ Router (app/api/v1/<module>/)   -- thin: HTTP in/out, calls a service, returns
   nullability, and foreign keys are the default for new tables. Don't add
   soft-delete, indexes, or check constraints unless there's a concrete reason
   — state the reason when adding one.
+- Every migration that changes the schema (new table, altered/dropped
+  column, new enum, index, constraint, FK) must update `docs/schema.dbml` in
+  the same change so it always matches the database at Alembic head. After
+  applying, verify against the live DB (tables, columns, enums, FKs with
+  delete actions, indexes). Note: the file is gitignored, so it won't show
+  in `git status`.
 
 ## API conventions
 

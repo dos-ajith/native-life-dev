@@ -2,7 +2,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from app.api.deps import CurrentActiveUserDep, DbSessionDep
+from app.api.deps import DbSessionDep
+from app.api.v1.posts.permissions import PostShareDep
 from app.core.messages import PostShareMessages
 from app.schemas.post_share import PostShareCreate
 from app.schemas.response import SuccessResponse
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/posts", tags=["post-shares"])
 def share_post(
     post_id: UUID,
     db: DbSessionDep,
-    current_user: CurrentActiveUserDep,
+    current_user: PostShareDep,
     payload: PostShareCreate | None = None,
 ) -> SuccessResponse[None]:
     utm_source = payload.utm_source if payload is not None else None

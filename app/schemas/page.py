@@ -25,6 +25,15 @@ class PageRead(BaseReadSchema):
     published_at: datetime | None
 
 
+class PublishedPageRead(BaseReadSchema):
+    title: str
+    slug: str
+    content: str | None
+    image_url: str | None
+    published_at: datetime | None
+    updated_at: datetime
+
+
 class PageCreate(BaseModel):
     title: PageTitle
     content: str | None = None

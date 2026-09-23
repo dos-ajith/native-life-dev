@@ -1,3 +1,4 @@
+import uuid
 from collections import defaultdict
 from datetime import UTC, datetime
 from typing import Any
@@ -9,16 +10,21 @@ from sqlalchemy.orm import Session
 from app.core.activity_actions import ActivityAction
 from app.core.exceptions import AuthorizationError, NotFoundError
 from app.core.messages import PostMessages
+from app.core.permissions import PermissionName
 from app.models.post import Post, PostStatus
 from app.models.post_media import PostMedia
-from app.models.user import User, UserType
+from app.models.tag import Tag
+from app.models.user import User
 from app.repositories.post_media_repository import PostMediaRepository
-from app.repositories.post_repository import PostRepository
+from app.repositories.post_repository import PostRepository, PostVisibilityScope
+from app.repositories.tag_repository import TagRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.pagination import PaginationParams
 from app.schemas.post import PostCreate, PostDetailRead, PostUpdate
 from app.services.activity_log_service import ActivityLogService
+from app.services.authorization_service import has_permission
 from app.services.geography_service import GeographyService
+from app.utils.slug import build_unique_slug, slugify
 
 
 def _build_location(latitude: float | None, longitude: float | None) -> Any | None:
@@ -32,6 +38,7 @@ class PostService:
         self._posts = PostRepository(db)
         self._users = UserRepository(db)
         self._media = PostMediaRepository(db)
+        self._tags = TagRepository(db)
         self._geography = GeographyService(db)
         self._activity_logs = ActivityLogService(db)
 
@@ -55,8 +62,11 @@ class PostService:
         ip_address: str | None = None,
         user_agent: str | None = None,
     ) -> Post:
+        post_id = uuid.uuid4()
         post = Post(
+            id=post_id,
             user_id=acting_user.id,
+            slug=build_unique_slug(payload.title, post_id),
             title=payload.title,
             content=payload.content,
             status=payload.status,
@@ -86,16 +96,48 @@ class PostService:
             raise NotFoundError(PostMessages.NOT_FOUND)
         return post
 
-    def get_detail(self, post_id: UUID) -> PostDetailRead:
-        post = self.get(post_id)
+    def _visibility_scope(self, viewer: User | None) -> PostVisibilityScope:
+        if viewer is None:
+            return PostVisibilityScope()
+        if has_permission(viewer, PermissionName.POST_UPDATE_ANY):
+            return PostVisibilityScope(include_unpublished=True)
+        return PostVisibilityScope(owner_id=viewer.id)
+
+    def get_visible(self, post_id: UUID, viewer: User | None) -> Post:
+        post = self._posts.get_visible_by_id(post_id, self._visibility_scope(viewer))
+        if post is None:
+            raise NotFoundError(PostMessages.NOT_FOUND)
+        return post
+
+    def get_visible_by_slug(self, slug: str, viewer: User | None) -> Post:
+        post = self._posts.get_visible_by_slug(slug, self._visibility_scope(viewer))
+        if post is None:
+            raise NotFoundError(PostMessages.NOT_FOUND)
+        return post
+
+    def get_detail(self, post_id: UUID, viewer: User | None) -> PostDetailRead:
+        return self._to_detail(self.get_visible(post_id, viewer))
+
+    def get_detail_by_slug(self, slug: str, viewer: User | None) -> PostDetailRead:
+        return self._to_detail(self.get_visible_by_slug(slug, viewer))
+
+    def _to_detail(self, post: Post) -> PostDetailRead:
         author = self._users.get_by_id_including_deleted(post.user_id)
         if author is None:
             raise NotFoundError(PostMessages.NOT_FOUND)
         media = self._media.list_by_post(post.id)
-        return PostDetailRead.from_post(post, author, media)
+        tags = self._tags.list_by_post(post.id)
+        return PostDetailRead.from_post(post, author, media, tags)
 
-    def list_with_details(self, params: PaginationParams) -> tuple[list[PostDetailRead], int]:
-        posts, total = self._posts.list(params)
+    def list_tags(self, post_id: UUID) -> list[Tag]:
+        return self._tags.list_by_post(post_id)
+
+    def list_visible_tags(self, post_id: UUID, viewer: User | None) -> list[Tag]:
+        return self.list_tags(self.get_visible(post_id, viewer).id)
+
+    def _to_details(
+        self, posts: list[Post], total: int
+    ) -> tuple[list[PostDetailRead], int]:
         if not posts:
             return [], total
         author_ids = list({post.user_id for post in posts})
@@ -106,20 +148,66 @@ class PostService:
         media_by_post: dict[UUID, list[PostMedia]] = defaultdict(list)
         for media_item in self._media.list_by_posts(post_ids):
             media_by_post[media_item.post_id].append(media_item)
+        tags_by_post: dict[UUID, list[Tag]] = self._tags.list_by_posts(post_ids)
         items = [
-            PostDetailRead.from_post(post, authors[post.user_id], media_by_post[post.id])
+            PostDetailRead.from_post(
+                post, authors[post.user_id], media_by_post[post.id], tags_by_post[post.id]
+            )
             for post in posts
         ]
         return items, total
 
-    def list(self, params: PaginationParams) -> tuple[list[Post], int]:
-        return self._posts.list(params)
+    def list_with_details(
+        self, params: PaginationParams, viewer: User | None
+    ) -> tuple[list[PostDetailRead], int]:
+        posts, total = self._posts.list(params, self._visibility_scope(viewer))
+        return self._to_details(posts, total)
+
+    def list_by_user_with_details(
+        self,
+        user_id: UUID,
+        params: PaginationParams,
+        viewer: User | None,
+        order_by_likes: bool = False,
+    ) -> tuple[list[PostDetailRead], int]:
+        scope = self._visibility_scope(viewer)
+        posts, total = self._posts.list_by_user(user_id, params, scope, order_by_likes)
+        return self._to_details(posts, total)
+
+    def search_with_details(
+        self,
+        params: PaginationParams,
+        viewer: User | None,
+        tag_names: list[str] | None = None,
+        query: str | None = None,
+        order_by_likes: bool = False,
+    ) -> tuple[list[PostDetailRead], int]:
+        tag_slugs = [slugify(name) for name in tag_names] if tag_names else None
+        scope = self._visibility_scope(viewer)
+        posts, total = self._posts.search(params, scope, tag_slugs, query, order_by_likes)
+        return self._to_details(posts, total)
+
+    def search_nearby_with_details(
+        self,
+        latitude: float,
+        longitude: float,
+        radius_meters: int,
+        limit: int,
+        viewer: User | None,
+    ) -> list[tuple[PostDetailRead, float]]:
+        posts_with_distance = self._posts.search_nearby(
+            latitude, longitude, radius_meters, self._visibility_scope(viewer), limit
+        )
+        posts = [post for post, _ in posts_with_distance]
+        details, _ = self._to_details(posts, len(posts))
+        distances = [distance for _, distance in posts_with_distance]
+        return list(zip(details, distances, strict=True))
 
     def update(self, post_id: UUID, payload: PostUpdate, actor: User) -> Post:
         post = self.get(post_id)
-        self.ensure_can_modify(post, actor)
+        self.ensure_can_modify(post, actor, PermissionName.POST_UPDATE_ANY)
         data: dict[str, Any] = payload.model_dump(
-            exclude={"latitude", "longitude", "location_name"}, exclude_none=True
+            exclude={"latitude", "longitude", "location_name", "tags"}, exclude_none=True
         )
         new_status = data.get("status")
         if new_status == PostStatus.PUBLISHED and post.status != PostStatus.PUBLISHED:
@@ -135,18 +223,21 @@ class PostService:
         elif payload.location_name is not None:
             post.location_name = payload.location_name
         saved = self._posts.save(post)
+        updated_fields = list(data.keys())
+        if payload.tags is not None:
+            updated_fields.append("tags")
         self._activity_logs.log(
             actor=actor,
             action=ActivityAction.POST_UPDATED,
             entity_type="post",
             entity_id=post.id,
-            metadata={"updated_fields": list(data.keys())},
+            metadata={"updated_fields": updated_fields},
         )
         return saved
 
     def delete(self, post_id: UUID, actor: User) -> None:
         post = self.get(post_id)
-        self.ensure_can_modify(post, actor)
+        self.ensure_can_modify(post, actor, PermissionName.POST_DELETE_ANY)
         self._posts.soft_delete(post)
         self._activity_logs.log(
             actor=actor,
@@ -155,8 +246,8 @@ class PostService:
             entity_id=post.id,
         )
 
-    def ensure_can_modify(self, post: Post, actor: User) -> None:
-        if post.user_id != actor.id and actor.user_type != UserType.PRIVATE:
+    def ensure_can_modify(self, post: Post, actor: User, override_permission: str) -> None:
+        if post.user_id != actor.id and not has_permission(actor, override_permission):
             raise AuthorizationError(PostMessages.NOT_OWNER)
 
     def increment_likes_count(self, post_id: UUID) -> None:

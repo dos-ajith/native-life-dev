@@ -39,7 +39,12 @@ pattern, Model ≈ Eloquent Model, Alembic ≈ Laravel Migrations.
 ```
 app/
     core/         # config, database, security, logging, exceptions (cross-module)
-    api/v1/       # versioned routers, grouped by module (auth/, users/, admin/)
+    api/v1/       # versioned routers, grouped by module (auth/, users/, admin/, ai/, posts/, ...)
+    ai/           # centralized AI integration layer (see "AI integration" below)
+        client.py     # provider-specific SDK calls (OpenAI Responses / Groq Chat Completions)
+        service.py    # orchestrates the client + tool registry + activity logging
+        exceptions.py # AI-specific AppError subclasses
+        tools/        # read-only tool definitions, calling existing services only
     models/       # SQLAlchemy ORM models
     schemas/      # Pydantic request/response schemas
     repositories/ # database query logic
@@ -51,6 +56,36 @@ tests/
     integration/  # hits a real (test) database
 scripts/          # one-off dev/ops scripts
 ```
+
+### AI integration
+
+The AI layer never touches the database directly. A request flows:
+
+```
+Router (app/api/v1/ai/routes.py)
+    -> AIService (app/ai/service.py)
+        -> AIClient (app/ai/client.py)            -- talks to the provider SDK
+        -> AIToolRegistry (app/ai/tools/registry.py)
+            -> AITool (app/ai/tools/post_tools.py) -- validates args, calls...
+                -> existing domain Service (PostService, PostCommentService, ...)
+                    -> Repository -> PostgreSQL
+```
+
+Tools are read-only for now (`get_post`, `search_posts`, `get_post_comments`,
+`get_post_tags`, `get_user_posts`). Every tool call still goes through normal
+authorization — the AI is never trusted as an authorization authority.
+
+The provider is swappable via `AI_PROVIDER` in `.env` without touching any
+other layer:
+
+- `openai` (default) — OpenAI's Responses API, via `OPENAI_API_KEY`.
+- `groq` — Groq's OpenAI-compatible Chat Completions API, via `GROQ_API_KEY`.
+  Handy for local/dev testing without OpenAI credits (Groq has a free tier).
+  Set `AI_MODEL` to a Groq-hosted model (e.g. `llama-3.3-70b-versatile`) when
+  using this provider.
+
+If neither key is configured for the selected provider, `/api/v1/ai/ask`
+returns a 503 rather than the app failing to start.
 
 ## Local setup
 
@@ -100,6 +135,11 @@ with `python -c "import secrets; print(secrets.token_urlsafe(64))"`).
 | `JWT_ALGORITHM` | JWT signing algorithm (default `HS256`) |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifetime |
 | `CORS_ORIGINS` | JSON array of allowed origins for the admin panel |
+| `AI_PROVIDER` | `openai` or `groq` — see "AI integration" above |
+| `AI_MODEL` | Model name for the selected provider |
+| `OPENAI_API_KEY` | Required when `AI_PROVIDER=openai`; leave unset to disable AI |
+| `GROQ_API_KEY` | Required when `AI_PROVIDER=groq`; leave unset to disable AI |
+| `GROQ_BASE_URL` | Groq's OpenAI-compatible base URL (default is correct as-is) |
 
 ### 4. Run the app
 

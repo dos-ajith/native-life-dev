@@ -11,9 +11,11 @@ from app.api.deps import (
     PaginationDep,
     SettingsDep,
 )
+from app.api.v1.posts.permissions import PostCreateDep, PostViewDep
 from app.core.messages import PostMessages
 from app.models.post import Post, PostStatus
 from app.models.post_media import PostMedia
+from app.models.tag import Tag
 from app.schemas.pagination import Page
 from app.schemas.post import (
     PostCreate,
@@ -24,16 +26,19 @@ from app.schemas.post import (
     PostWithMediaRead,
 )
 from app.schemas.response import SuccessResponse
+from app.schemas.tag import TagRead
 from app.services.post_media_service import PostMediaService
 from app.services.post_service import PostService
+from app.services.tag_service import TagService
 
 router = APIRouter(prefix="/posts", tags=["posts"])
 
 
-def _with_media(post: Post, media: list[PostMedia]) -> PostWithMediaRead:
+def _with_media(post: Post, media: list[PostMedia], tags: list[Tag]) -> PostWithMediaRead:
     return PostWithMediaRead(
         post=PostRead.model_validate(post),
         media=[PostMediaRead.model_validate(item) for item in media],
+        tags=[TagRead.model_validate(item) for item in tags],
     )
 
 
@@ -42,7 +47,7 @@ def _with_media(post: Post, media: list[PostMedia]) -> PostWithMediaRead:
 )
 def create_post(
     db: DbSessionDep,
-    current_user: CurrentActiveUserDep,
+    current_user: PostCreateDep,
     meta: ActivityRequestMetaDep,
     settings: SettingsDep,
     title: Annotated[str | None, Form()] = None,
@@ -52,6 +57,7 @@ def create_post(
     latitude: Annotated[float | None, Form()] = None,
     longitude: Annotated[float | None, Form()] = None,
     location_name: Annotated[str | None, Form()] = None,
+    tags: Annotated[list[str] | None, Form()] = None,
     images: Annotated[list[UploadFile] | None, File()] = None,
     videos: Annotated[list[UploadFile] | None, File()] = None,
     video_thumbnails: Annotated[list[UploadFile] | None, File()] = None,
@@ -64,6 +70,7 @@ def create_post(
         latitude=latitude,
         longitude=longitude,
         location_name=location_name,
+        tags=tags,
     )
     post = PostService(db).create(payload, current_user, meta.ip_address, meta.user_agent)
     media = PostMediaService(db).attach(
@@ -74,23 +81,26 @@ def create_post(
         settings.upload_dir,
         current_user,
     )
-    return SuccessResponse(message=PostMessages.CREATED, data=_with_media(post, media))
+    post_tags = (
+        TagService(db).set_post_tags(post.id, payload.tags, current_user) if payload.tags else []
+    )
+    return SuccessResponse(message=PostMessages.CREATED, data=_with_media(post, media, post_tags))
 
 
 @router.get("", response_model=SuccessResponse[Page[PostDetailRead]])
 def list_posts(
-    db: DbSessionDep, _: CurrentActiveUserDep, params: PaginationDep
+    db: DbSessionDep, viewer: PostViewDep, params: PaginationDep
 ) -> SuccessResponse[Page[PostDetailRead]]:
-    items, total = PostService(db).list_with_details(params)
+    items, total = PostService(db).list_with_details(params, viewer)
     page = Page[PostDetailRead].create(items=items, total=total, params=params)
     return SuccessResponse(message=PostMessages.LIST_RETRIEVED, data=page)
 
 
-@router.get("/{post_id}", response_model=SuccessResponse[PostDetailRead])
+@router.get("/{slug}", response_model=SuccessResponse[PostDetailRead])
 def get_post(
-    post_id: UUID, db: DbSessionDep, _: CurrentActiveUserDep
+    slug: str, db: DbSessionDep, viewer: PostViewDep
 ) -> SuccessResponse[PostDetailRead]:
-    detail = PostService(db).get_detail(post_id)
+    detail = PostService(db).get_detail_by_slug(slug, viewer)
     return SuccessResponse(message=PostMessages.RETRIEVED, data=detail)
 
 
@@ -107,6 +117,7 @@ def update_post(
     latitude: Annotated[float | None, Form()] = None,
     longitude: Annotated[float | None, Form()] = None,
     location_name: Annotated[str | None, Form()] = None,
+    tags: Annotated[list[str] | None, Form()] = None,
     images: Annotated[list[UploadFile] | None, File()] = None,
     videos: Annotated[list[UploadFile] | None, File()] = None,
     video_thumbnails: Annotated[list[UploadFile] | None, File()] = None,
@@ -119,6 +130,7 @@ def update_post(
         latitude=latitude,
         longitude=longitude,
         location_name=location_name,
+        tags=tags,
     )
     post = PostService(db).update(post_id, payload, current_user)
     media = PostMediaService(db).attach(
@@ -129,7 +141,11 @@ def update_post(
         settings.upload_dir,
         current_user,
     )
-    return SuccessResponse(message=PostMessages.UPDATED, data=_with_media(post, media))
+    if payload.tags is not None:
+        post_tags = TagService(db).set_post_tags(post.id, payload.tags, current_user)
+    else:
+        post_tags = PostService(db).list_tags(post.id)
+    return SuccessResponse(message=PostMessages.UPDATED, data=_with_media(post, media, post_tags))
 
 
 @router.delete("/{post_id}", response_model=SuccessResponse[None])
@@ -142,9 +158,9 @@ def delete_post(
 
 @router.get("/{post_id}/media", response_model=SuccessResponse[list[PostMediaRead]])
 def list_post_media(
-    post_id: UUID, db: DbSessionDep, _: CurrentActiveUserDep
+    post_id: UUID, db: DbSessionDep, viewer: PostViewDep
 ) -> SuccessResponse[list[PostMediaRead]]:
-    media = PostMediaService(db).list_for_post(post_id)
+    media = PostMediaService(db).list_for_post(post_id, viewer)
     return SuccessResponse(
         message=PostMessages.MEDIA_RETRIEVED,
         data=[PostMediaRead.model_validate(item) for item in media],

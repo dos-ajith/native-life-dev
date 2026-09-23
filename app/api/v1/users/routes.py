@@ -34,9 +34,9 @@ def register_user(
     payload = UserCreate(
         first_name=first_name, last_name=last_name, email=email, phone=phone, password=password
     )
-    user = UserService(db).register(payload, meta.ip_address, meta.user_agent)
-    if image is not None:
-        user = UserService(db).update_image(user, image, settings.upload_dir)
+    user = UserService(db).register(
+        payload, meta.ip_address, meta.user_agent, image=image, upload_dir=settings.upload_dir
+    )
     return SuccessResponse(message=UserMessages.REGISTERED, data=UserRead.model_validate(user))
 
 

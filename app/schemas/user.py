@@ -62,3 +62,12 @@ class UserSelfUpdate(BaseModel):
     first_name: Name | None = None
     last_name: Name | None = None
     phone: Phone | None = None
+
+
+class UserSummaryRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    first_name: str
+    last_name: str
+    profile_image_url: str | None

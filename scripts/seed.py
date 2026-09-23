@@ -1,5 +1,6 @@
 from app.core.config import get_settings
 from app.core.database import SessionLocal
+from app.core.permissions import PermissionName
 from app.core.security import hash_password
 from app.models.permission import Permission
 from app.models.role import Role
@@ -13,8 +14,28 @@ from app.utils.slug import slugify
 
 DEFAULT_USER_PASSWORD = "Password123!"
 
-PERMISSION_NAMES = ("user.view", "user.create", "user.update", "user.delete")
-FULL_PERMISSIONS_ROLE_SLUG = "super-admin"
+ALL_PERMISSION_NAMES = tuple(
+    value for key, value in vars(PermissionName).items() if key.isupper()
+)
+
+READER_PERMISSIONS = (PermissionName.POST_VIEW, PermissionName.PAGE_READ)
+POST_ENGAGER_PERMISSIONS = (
+    *READER_PERMISSIONS,
+    PermissionName.POST_LIKE,
+    PermissionName.POST_COMMENT,
+    PermissionName.POST_SHARE,
+)
+POST_AUTHOR_PERMISSIONS = (*POST_ENGAGER_PERMISSIONS, PermissionName.POST_CREATE)
+
+ROLE_PERMISSIONS: dict[str, tuple[str, ...]] = {
+    "Super Admin": ALL_PERMISSION_NAMES,
+    "Native Admin": ALL_PERMISSION_NAMES,
+    "Public Authority": POST_AUTHOR_PERMISSIONS,
+    "Business Profile": POST_AUTHOR_PERMISSIONS,
+    "Promoter": POST_AUTHOR_PERMISSIONS,
+    "Delivery Team Member": POST_ENGAGER_PERMISSIONS,
+    "Public User": READER_PERMISSIONS,
+}
 
 ROLE_USERS = {
     "Super Admin": ("dev@nativelife.com", UserType.PRIVATE),
@@ -22,7 +43,6 @@ ROLE_USERS = {
     "Public Authority": ("public.authority@nativelife.com", UserType.PUBLIC),
     "Business Profile": ("business.profile@nativelife.com", UserType.PUBLIC),
     "Promoter": ("promoter@nativelife.com", UserType.PUBLIC),
-    "Public User": ("public.user@nativelife.com", UserType.PUBLIC),
     "Delivery Team Member": ("delivery.team.member@nativelife.com", UserType.PRIVATE),
 }
 
@@ -33,6 +53,7 @@ DEFAULT_SETTINGS = {
     "app_site_motto": "Live Native. Live Free.",
     "app_date_format": "DD-MM-YYYY",
     "app_time_format": "hh:mm A",
+    "ai_allowed_languages": "all",
 }
 
 
@@ -50,24 +71,26 @@ def seed_roles_and_permissions() -> None:
         permissions = PermissionRepository(db)
         roles = RoleRepository(db)
 
-        seeded_permissions = [
-            _get_or_create_permission(permissions, name) for name in PERMISSION_NAMES
-        ]
+        seeded_permissions = {
+            name: _get_or_create_permission(permissions, name) for name in ALL_PERMISSION_NAMES
+        }
 
-        for name in ROLE_USERS:
+        for name, permission_names in ROLE_PERMISSIONS.items():
             slug = slugify(name)
-            if roles.get_by_slug(slug) is None:
-                roles.add(Role(name=name, slug=slug, permissions=[]))
+            role = roles.get_by_slug(slug)
+            if role is None:
+                role = roles.add(Role(name=name, slug=slug, permissions=[]))
                 print(f"Seeded role: {name}")
 
-        full_role = roles.get_by_slug(FULL_PERMISSIONS_ROLE_SLUG)
-        if full_role is not None:
-            full_role.permissions = seeded_permissions
-            roles.save(full_role)
-            print(
-                f"Assigned {len(seeded_permissions)} permissions to role: "
-                f"{full_role.name}"
-            )
+            missing = [
+                seeded_permissions[permission_name]
+                for permission_name in permission_names
+                if seeded_permissions[permission_name] not in role.permissions
+            ]
+            if missing:
+                role.permissions.extend(missing)
+                roles.save(role)
+                print(f"Assigned {len(missing)} permissions to role: {name}")
     finally:
         db.close()
 

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.activity_actions import ActivityAction
 from app.core.exceptions import BusinessRuleError, NotFoundError, ServiceUnavailableError
 from app.core.messages import UserMessages
+from app.core.permissions import RoleSlug
 from app.core.security import hash_password
 from app.core.storage import delete_media_file, save_profile_image
 from app.models.role import Role
@@ -17,8 +18,6 @@ from app.repositories.user_repository import UserRepository
 from app.schemas.pagination import PaginationParams
 from app.schemas.user import UserCreate, UserSelfUpdate, UserUpdate
 from app.services.activity_log_service import ActivityLogService
-
-DEFAULT_PUBLIC_ROLE_SLUG = "public-user"
 
 
 class UserService:
@@ -33,26 +32,52 @@ class UserService:
         acting_user: User,
         ip_address: str | None = None,
         user_agent: str | None = None,
+        image: UploadFile | None = None,
+        upload_dir: str | None = None,
+        role_ids: list[UUID] | None = None,
     ) -> User:
-        user = self._create(payload, UserType.PRIVATE, created_by=acting_user.id)
+        roles = self._resolve_roles(role_ids) if role_ids else []
+        user = self._create(
+            payload,
+            UserType.PRIVATE,
+            roles=roles,
+            created_by=acting_user.id,
+            image=image,
+            upload_dir=upload_dir,
+        )
         self._activity_logs.log(
             actor=acting_user,
             action=ActivityAction.USER_CREATED,
             entity_type="user",
             entity_id=user.id,
-            metadata={"email": user.email, "user_type": user.user_type.value},
+            metadata={
+                "email": user.email,
+                "user_type": user.user_type.value,
+                "role_ids": [str(role.id) for role in roles],
+            },
             ip_address=ip_address,
             user_agent=user_agent,
         )
         return user
 
     def register(
-        self, payload: UserCreate, ip_address: str | None = None, user_agent: str | None = None
+        self,
+        payload: UserCreate,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        image: UploadFile | None = None,
+        upload_dir: str | None = None,
     ) -> User:
-        default_role = self._roles.get_by_slug(DEFAULT_PUBLIC_ROLE_SLUG)
+        default_role = self._roles.get_by_slug(RoleSlug.PUBLIC_AUTHORITY)
         if default_role is None:
             raise ServiceUnavailableError(UserMessages.DEFAULT_ROLE_MISSING)
-        user = self._create(payload, UserType.PUBLIC, roles=[default_role])
+        user = self._create(
+            payload,
+            UserType.PUBLIC,
+            roles=[default_role],
+            image=image,
+            upload_dir=upload_dir,
+        )
         self._activity_logs.log(
             actor=user,
             action=ActivityAction.USER_CREATED,
@@ -70,11 +95,17 @@ class UserService:
         user_type: UserType,
         roles: list[Role] | None = None,
         created_by: UUID | None = None,
+        image: UploadFile | None = None,
+        upload_dir: str | None = None,
     ) -> User:
         if self._users.get_by_email(payload.email) is not None:
             raise BusinessRuleError(UserMessages.EMAIL_TAKEN)
         if payload.phone is not None and self._users.get_by_phone(payload.phone) is not None:
             raise BusinessRuleError(UserMessages.PHONE_TAKEN)
+        profile_image_url = None
+        if image is not None:
+            assert upload_dir is not None
+            profile_image_url = save_profile_image(image, upload_dir)
         user = User(
             first_name=payload.first_name,
             last_name=payload.last_name,
@@ -85,6 +116,7 @@ class UserService:
             user_type=user_type,
             roles=roles or [],
             created_by=created_by,
+            profile_image_url=profile_image_url,
         )
         return self._users.add(user)
 
@@ -94,13 +126,17 @@ class UserService:
             raise NotFoundError(UserMessages.NOT_FOUND)
         return user
 
-    def assign_roles(self, user_id: UUID, role_ids: list[UUID], actor: User) -> User:
-        user = self.get(user_id)
+    def _resolve_roles(self, role_ids: list[UUID]) -> list[Role]:
         roles = self._roles.get_by_ids(role_ids)
         missing_ids = set(role_ids) - {role.id for role in roles}
         if missing_ids:
             names = ", ".join(str(role_id) for role_id in missing_ids)
             raise BusinessRuleError(UserMessages.UNKNOWN_ROLE_IDS.format(ids=names))
+        return roles
+
+    def assign_roles(self, user_id: UUID, role_ids: list[UUID], actor: User) -> User:
+        user = self.get(user_id)
+        roles = self._resolve_roles(role_ids)
         previous_role_ids = {role.id for role in user.roles}
         new_role_ids = {role.id for role in roles}
         added_roles = [role for role in roles if role.id not in previous_role_ids]
