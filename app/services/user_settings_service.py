@@ -11,6 +11,7 @@ from app.models.user_content_settings import UserContentSettings
 from app.models.user_notification_settings import UserNotificationSettings
 from app.models.user_privacy_settings import UserPrivacySettings
 from app.models.user_settings import UserSettings
+from app.models.user_settings_enums import ProfileVisibility
 from app.repositories.gis_district_repository import GisDistrictRepository
 from app.repositories.tag_repository import TagRepository
 from app.repositories.user_ai_settings_repository import UserAISettingsRepository
@@ -37,10 +38,12 @@ from app.schemas.user_settings import (
     UserSettingsUpdate,
 )
 from app.services.activity_log_service import ActivityLogService
+from app.services.user_follow_service import UserFollowService
 
 
 class UserSettingsService:
     def __init__(self, db: Session) -> None:
+        self._db = db
         self._settings = UserSettingsRepository(db)
         self._ai_settings = UserAISettingsRepository(db)
         self._notification_settings = UserNotificationSettingsRepository(db)
@@ -156,6 +159,7 @@ class UserSettingsService:
 
     def update_privacy(self, user: User, payload: PrivacySettingsUpdate) -> PrivacySettingsRead:
         settings = self._get_or_create_privacy(user)
+        previous_visibility = settings.profile_visibility
         data = payload.model_dump(exclude_none=True)
         for field, value in data.items():
             setattr(settings, field, value)
@@ -168,6 +172,11 @@ class UserSettingsService:
                 entity_id=saved.id,
                 metadata={"changed_fields": list(data.keys())},
             )
+        if (
+            previous_visibility == ProfileVisibility.PRIVATE
+            and saved.profile_visibility == ProfileVisibility.PUBLIC
+        ):
+            UserFollowService(self._db).accept_all_pending(user)
         return PrivacySettingsRead.model_validate(saved)
 
     def update_content(self, user: User, payload: ContentSettingsUpdate) -> ContentSettingsRead:

@@ -11,3 +11,8 @@ class VisibilityLevel(enum.StrEnum):
     PUBLIC = "public"
     FOLLOWERS = "followers"
     PRIVATE = "private"
+
+
+class ProfileVisibility(enum.StrEnum):
+    PUBLIC = "public"
+    PRIVATE = "private"

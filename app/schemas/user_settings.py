@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import AfterValidator, BaseModel, ConfigDict
 
-from app.models.user_settings_enums import AIResponseStyle, VisibilityLevel
+from app.models.user_settings_enums import AIResponseStyle, ProfileVisibility, VisibilityLevel
 from app.schemas.base import BaseReadSchema
 from app.schemas.geography import GisDistrictRead
 from app.schemas.tag import TagRead
@@ -93,7 +93,7 @@ class NotificationSettingsUpdate(BaseModel):
 
 class PrivacySettingsRead(BaseReadSchema):
     id: UUID
-    profile_visibility: VisibilityLevel
+    profile_visibility: ProfileVisibility
     location_visibility: VisibilityLevel
     activity_visibility: VisibilityLevel
     allow_messages: bool
@@ -105,7 +105,7 @@ class PrivacySettingsRead(BaseReadSchema):
 class PrivacySettingsUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    profile_visibility: VisibilityLevel | None = None
+    profile_visibility: ProfileVisibility | None = None
     location_visibility: VisibilityLevel | None = None
     activity_visibility: VisibilityLevel | None = None
     allow_messages: bool | None = None

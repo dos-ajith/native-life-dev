@@ -12,6 +12,8 @@ from app.models.base import Base, UUIDPrimaryKeyMixin
 
 class NotificationType(enum.StrEnum):
     USER_FOLLOWED = "user_followed"
+    FOLLOW_REQUESTED = "follow_requested"
+    FOLLOW_REQUEST_ACCEPTED = "follow_request_accepted"
     POST_LIKED = "post_liked"
     POST_COMMENTED = "post_commented"
 

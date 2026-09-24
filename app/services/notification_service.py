@@ -37,6 +37,26 @@ class NotificationService:
             is_enabled=lambda settings: settings.followers,
         )
 
+    def notify_follow_requested(self, requester: User, target_id: UUID) -> None:
+        self._create_if_enabled(
+            recipient_id=target_id,
+            actor_id=requester.id,
+            type_=NotificationType.FOLLOW_REQUESTED,
+            entity_type="user",
+            entity_id=requester.id,
+            is_enabled=lambda settings: settings.followers,
+        )
+
+    def notify_follow_request_accepted(self, target: User, requester_id: UUID) -> None:
+        self._create_if_enabled(
+            recipient_id=requester_id,
+            actor_id=target.id,
+            type_=NotificationType.FOLLOW_REQUEST_ACCEPTED,
+            entity_type="user",
+            entity_id=target.id,
+            is_enabled=lambda settings: settings.followers,
+        )
+
     def notify_post_liked(self, post: Post, actor: User) -> None:
         self._create_if_enabled(
             recipient_id=post.user_id,

@@ -2147,7 +2147,7 @@
                     }
                   ]
                 },
-                "description": "Follows the target user as the authenticated user. Cannot follow yourself or follow the same user twice (422). Unknown or deleted user returns 404."
+                "description": "Follows the target user as the authenticated user. If the target's profile_visibility is public, creates an accepted follow immediately (`data.is_following=true`). If private, creates a pending follow request instead (`data.is_requested=true`); the target must accept it via /follow/accept. Cannot follow yourself or follow/request the same user twice (422). Unknown or deleted user returns 404."
               }
             },
             {
@@ -2178,7 +2178,7 @@
                     }
                   ]
                 },
-                "description": "Removes the authenticated user's follow of the target user. Returns 404 if not following."
+                "description": "Removes the authenticated user's relationship with the target user: unfollows if accepted, or cancels the pending request if one exists. Returns 404 if neither following nor requesting."
               }
             },
             {
@@ -2209,7 +2209,106 @@
                     }
                   ]
                 },
-                "description": "Returns `is_following` for the authenticated user -> target user. Always false for yourself."
+                "description": "Returns `is_following` and `is_requested` for the authenticated user -> target user. Both false for yourself."
+              }
+            },
+            {
+              "name": "List incoming follow requests",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/follow-requests?page=1&page_size=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "follow-requests"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Optional, default 1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20",
+                      "description": "Optional, default 20, max 100"
+                    }
+                  ]
+                },
+                "description": "Paginated users who have a pending follow request addressed to the authenticated user, newest first."
+              }
+            },
+            {
+              "name": "Accept follow request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/:user_id/follow/accept",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    ":user_id",
+                    "follow",
+                    "accept"
+                  ],
+                  "variable": [
+                    {
+                      "key": "user_id",
+                      "value": "",
+                      "description": "UUID of the requesting user"
+                    }
+                  ]
+                },
+                "description": "Accepts the pending follow request from :user_id, addressed to the authenticated user. Creates the accepted follow and notifies the requester. 404 if no such pending request exists (also returned if the request belongs to someone else)."
+              }
+            },
+            {
+              "name": "Decline follow request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/:user_id/follow/decline",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    ":user_id",
+                    "follow",
+                    "decline"
+                  ],
+                  "variable": [
+                    {
+                      "key": "user_id",
+                      "value": "",
+                      "description": "UUID of the requesting user"
+                    }
+                  ]
+                },
+                "description": "Declines the pending follow request from :user_id, addressed to the authenticated user. No relationship is created and no notification is sent. 404 if no such pending request exists (also returned if the request belongs to someone else)."
               }
             },
             {
@@ -2678,7 +2777,7 @@
                     "privacy"
                   ]
                 },
-                "description": "**Body** (all optional)\n- `profile_visibility`, `location_visibility`, `activity_visibility` (`public` | `followers` | `private`)\n- `allow_messages`, `allow_mentions` (bool)"
+                "description": "**Body** (all optional)\n- `profile_visibility` (`public` | `private`) — controls whether new follows on this user require approval\n- `location_visibility`, `activity_visibility` (`public` | `followers` | `private`)\n- `allow_messages`, `allow_mentions` (bool)"
               }
             },
             {
