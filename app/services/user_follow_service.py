@@ -10,6 +10,7 @@ from app.repositories.user_follow_repository import UserFollowRepository
 from app.schemas.pagination import PaginationParams
 from app.schemas.user_follow import FollowCountsRead
 from app.services.activity_log_service import ActivityLogService
+from app.services.notification_service import NotificationService
 from app.services.user_service import UserService
 
 
@@ -18,6 +19,7 @@ class UserFollowService:
         self._follows = UserFollowRepository(db)
         self._users = UserService(db)
         self._activity_logs = ActivityLogService(db)
+        self._notifications = NotificationService(db)
 
     def follow(self, target_id: UUID, actor: User) -> None:
         if target_id == actor.id:
@@ -31,6 +33,7 @@ class UserFollowService:
             entity_type="user",
             entity_id=target.id,
         )
+        self._notifications.notify_user_followed(follower=actor, followed_id=target.id)
 
     def unfollow(self, target_id: UUID, actor: User) -> None:
         if target_id == actor.id:

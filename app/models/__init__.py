@@ -4,6 +4,7 @@ from app.models.base import Base
 from app.models.gis_district import GisDistrict
 from app.models.gis_state import GisState
 from app.models.gis_taluk import GisTaluk
+from app.models.notification import Notification
 from app.models.page import Page
 from app.models.permission import Permission
 from app.models.post import Post
@@ -34,6 +35,7 @@ __all__ = [
     "GisDistrict",
     "GisState",
     "GisTaluk",
+    "Notification",
     "Page",
     "Permission",
     "Post",

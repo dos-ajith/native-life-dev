@@ -2332,6 +2332,131 @@
           ]
         },
         {
+          "name": "Notifications",
+          "item": [
+            {
+              "name": "List my notifications",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/notifications?page=1&page_size=20&unread_only=false",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "notifications"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Optional, default 1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20",
+                      "description": "Optional, default 20, max 100"
+                    },
+                    {
+                      "key": "unread_only",
+                      "value": "false",
+                      "description": "Optional, default false. When true, only unread notifications are returned."
+                    }
+                  ]
+                },
+                "description": "Paginated notifications for the authenticated user, newest first."
+              }
+            },
+            {
+              "name": "Get unread notification count",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/notifications/unread-count",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "notifications",
+                    "unread-count"
+                  ]
+                },
+                "description": "Returns the authenticated user's unread notification count."
+              }
+            },
+            {
+              "name": "Mark notification read",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/notifications/:notification_id/read",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "notifications",
+                    ":notification_id",
+                    "read"
+                  ],
+                  "variable": [
+                    {
+                      "key": "notification_id",
+                      "value": "",
+                      "description": "UUID of the notification"
+                    }
+                  ]
+                },
+                "description": "Marks a single notification belonging to the authenticated user as read. Idempotent. Returns 404 if it does not belong to the caller."
+              }
+            },
+            {
+              "name": "Mark all notifications read",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/notifications/read-all",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "notifications",
+                    "read-all"
+                  ]
+                },
+                "description": "Marks all of the authenticated user's unread notifications as read."
+              }
+            }
+          ]
+        },
+        {
           "name": "User Settings",
           "item": [
             {

@@ -124,6 +124,14 @@ class PostShareMessages:
     SHARED = "Post shared"
 
 
+class NotificationMessages:
+    LIST_RETRIEVED = "Notifications retrieved"
+    UNREAD_COUNT_RETRIEVED = "Unread notification count retrieved"
+    MARKED_READ = "Notification marked as read"
+    ALL_MARKED_READ = "All notifications marked as read"
+    NOT_FOUND = "Notification not found"
+
+
 class AIMessages:
     RESPONSE_GENERATED = "AI response generated"
     PROMPT_REQUIRED = "A prompt is required"

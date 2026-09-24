@@ -6,6 +6,7 @@ from app.api.v1.admin import routes as admin_routes
 from app.api.v1.ai import routes as ai_routes
 from app.api.v1.auth import routes as auth_routes
 from app.api.v1.geography import routes as geography_routes
+from app.api.v1.notifications import routes as notification_routes
 from app.api.v1.pages import mobile as mobile_page_routes
 from app.api.v1.pages import routes as page_routes
 from app.api.v1.permissions import routes as permission_routes
@@ -32,6 +33,7 @@ api_router.include_router(setting_routes.router)
 api_router.include_router(user_settings_routes.router)
 api_router.include_router(user_routes.router)
 api_router.include_router(user_follow_routes.router)
+api_router.include_router(notification_routes.router)
 api_router.include_router(page_routes.router)
 api_router.include_router(mobile_page_routes.router)
 api_router.include_router(post_routes.router)
