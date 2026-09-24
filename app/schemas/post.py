@@ -8,6 +8,7 @@ from app.models.post import PostStatus
 from app.models.post_media import PostMediaType
 from app.schemas.base import BaseReadSchema
 from app.schemas.tag import TagName, TagRead
+from app.schemas.validators import NonBlankStr
 
 if TYPE_CHECKING:
     from app.models.post import Post
@@ -17,6 +18,9 @@ if TYPE_CHECKING:
 
 Latitude = Annotated[float, Field(ge=-90, le=90)]
 Longitude = Annotated[float, Field(ge=-180, le=180)]
+PostTitle = Annotated[NonBlankStr, Field(max_length=255)]
+PostContent = NonBlankStr
+PostLocationName = Annotated[NonBlankStr, Field(max_length=500)]
 
 
 class PostRead(BaseReadSchema):
@@ -37,13 +41,13 @@ class PostRead(BaseReadSchema):
 
 
 class PostCreate(BaseModel):
-    title: str | None = None
-    content: str | None = None
+    title: PostTitle | None = None
+    content: PostContent | None = None
     status: PostStatus = PostStatus.DRAFT
     scheduled_at: datetime | None = None
     latitude: Latitude | None = None
     longitude: Longitude | None = None
-    location_name: str | None = None
+    location_name: PostLocationName | None = None
     tags: list[TagName] | None = None
 
     @model_validator(mode="after")
@@ -56,13 +60,13 @@ class PostCreate(BaseModel):
 
 
 class PostUpdate(BaseModel):
-    title: str | None = None
-    content: str | None = None
+    title: PostTitle | None = None
+    content: PostContent | None = None
     status: PostStatus | None = None
     scheduled_at: datetime | None = None
     latitude: Latitude | None = None
     longitude: Longitude | None = None
-    location_name: str | None = None
+    location_name: PostLocationName | None = None
     tags: list[TagName] | None = None
 
     @model_validator(mode="after")
