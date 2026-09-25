@@ -105,6 +105,7 @@ class PostMessages:
     MEDIA_REMOVED = "Post media removed"
     MEDIA_NOT_FOUND = "Post media not found"
     VIDEO_THUMBNAIL_REQUIRED = "Each video must include a matching thumbnail image"
+    DUPLICATE_CONTENT = "You already have a post with this exact content"
 
 
 class TagMessages:

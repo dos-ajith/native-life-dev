@@ -24,6 +24,13 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         Index("ix_posts_status", "status"),
         Index("ix_posts_deleted_at", "deleted_at"),
         Index("ix_posts_published_by", "published_by"),
+        Index(
+            "ix_posts_user_id_title_active",
+            "user_id",
+            "title",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL AND title IS NOT NULL"),
+        ),
     )
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))

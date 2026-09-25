@@ -90,6 +90,30 @@ class PostRepository:
     def get_visible_by_slug(self, slug: str, scope: PostVisibilityScope) -> Post | None:
         return self._db.scalar(select(Post).where(Post.slug == slug, _visible_in(scope)))
 
+    def exists_with_title(
+        self, user_id: UUID, title: str, exclude_post_id: UUID | None = None
+    ) -> bool:
+        conditions: list[ColumnElement[bool]] = [
+            Post.user_id == user_id,
+            Post.deleted_at.is_(None),
+            Post.title == title,
+        ]
+        if exclude_post_id is not None:
+            conditions.append(Post.id != exclude_post_id)
+        return bool(self._db.scalar(select(exists().where(*conditions))))
+
+    def exists_with_content(
+        self, user_id: UUID, content: str, exclude_post_id: UUID | None = None
+    ) -> bool:
+        conditions: list[ColumnElement[bool]] = [
+            Post.user_id == user_id,
+            Post.deleted_at.is_(None),
+            Post.content == content,
+        ]
+        if exclude_post_id is not None:
+            conditions.append(Post.id != exclude_post_id)
+        return bool(self._db.scalar(select(exists().where(*conditions))))
+
     def list_by_user(
         self,
         user_id: UUID,

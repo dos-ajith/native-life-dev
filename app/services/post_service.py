@@ -8,7 +8,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.activity_actions import ActivityAction
-from app.core.exceptions import AuthorizationError, NotFoundError
+from app.core.exceptions import AuthorizationError, BusinessRuleError, NotFoundError
 from app.core.messages import PostMessages
 from app.core.permissions import PermissionName
 from app.models.post import Post, PostStatus
@@ -57,6 +57,22 @@ class PostService:
             return None
         return self._geography.format_location_name(taluk)
 
+    def _ensure_not_duplicate(
+        self,
+        user_id: UUID,
+        title: str | None,
+        content: str | None,
+        exclude_post_id: UUID | None = None,
+    ) -> None:
+        if title is not None:
+            is_duplicate = self._posts.exists_with_title(user_id, title, exclude_post_id)
+        elif content is not None:
+            is_duplicate = self._posts.exists_with_content(user_id, content, exclude_post_id)
+        else:
+            is_duplicate = False
+        if is_duplicate:
+            raise BusinessRuleError(PostMessages.DUPLICATE_CONTENT)
+
     def create(
         self,
         payload: PostCreate,
@@ -64,6 +80,7 @@ class PostService:
         ip_address: str | None = None,
         user_agent: str | None = None,
     ) -> Post:
+        self._ensure_not_duplicate(acting_user.id, payload.title, payload.content)
         post_id = uuid.uuid4()
         post = Post(
             id=post_id,
@@ -239,6 +256,8 @@ class PostService:
             post.published_by = actor.id
         for field, value in data.items():
             setattr(post, field, value)
+        if "title" in data or "content" in data:
+            self._ensure_not_duplicate(post.user_id, post.title, post.content, post.id)
         if payload.latitude is not None and payload.longitude is not None:
             post.location = _build_location(payload.latitude, payload.longitude)
             post.location_name = self._resolve_location_name(
