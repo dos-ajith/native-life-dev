@@ -9,6 +9,7 @@ from app.models.post_like import PostLike
 from app.models.user import User
 from app.repositories.post_like_repository import PostLikeRepository
 from app.services.activity_log_service import ActivityLogService
+from app.services.notification_service import NotificationService
 from app.services.post_service import PostService
 
 
@@ -17,6 +18,7 @@ class PostLikeService:
         self._likes = PostLikeRepository(db)
         self._posts = PostService(db)
         self._activity_logs = ActivityLogService(db)
+        self._notifications = NotificationService(db)
 
     def like(self, post_id: UUID, actor: User) -> PostLike:
         post = self._posts.get_visible(post_id, actor)
@@ -30,6 +32,7 @@ class PostLikeService:
             entity_type="post",
             entity_id=post.id,
         )
+        self._notifications.notify_post_liked(post=post, actor=actor)
         return like
 
     def unlike(self, post_id: UUID, actor: User) -> None:

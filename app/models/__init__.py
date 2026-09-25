@@ -1,9 +1,12 @@
 from app.models.active_token import ActiveToken
 from app.models.activity_log import ActivityLog
 from app.models.base import Base
+from app.models.collection import Collection
+from app.models.collection_post import CollectionPost
 from app.models.gis_district import GisDistrict
 from app.models.gis_state import GisState
 from app.models.gis_taluk import GisTaluk
+from app.models.notification import Notification
 from app.models.page import Page
 from app.models.permission import Permission
 from app.models.post import Post
@@ -14,6 +17,7 @@ from app.models.post_share import PostShare
 from app.models.post_tag import post_tags
 from app.models.role import Role
 from app.models.role_has_permission import role_has_permissions
+from app.models.saved_post import SavedPost
 from app.models.setting import Setting
 from app.models.tag import Tag
 from app.models.user import User
@@ -31,9 +35,12 @@ __all__ = [
     "ActiveToken",
     "ActivityLog",
     "Base",
+    "Collection",
+    "CollectionPost",
     "GisDistrict",
     "GisState",
     "GisTaluk",
+    "Notification",
     "Page",
     "Permission",
     "Post",
@@ -42,6 +49,7 @@ __all__ = [
     "PostMedia",
     "PostShare",
     "Role",
+    "SavedPost",
     "Setting",
     "Tag",
     "User",

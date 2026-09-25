@@ -23,6 +23,23 @@ class UserFollowRepository:
         self._db.commit()
         return created_id is not None
 
+    def bulk_create(self, following_id: UUID, follower_ids: list[UUID]) -> list[UUID]:
+        if not follower_ids:
+            return []
+        created_ids = self._db.scalars(
+            insert(UserFollow)
+            .values(
+                [
+                    {"follower_id": follower_id, "following_id": following_id}
+                    for follower_id in follower_ids
+                ]
+            )
+            .on_conflict_do_nothing(constraint="uq_user_follows_follower_id_following_id")
+            .returning(UserFollow.follower_id)
+        ).all()
+        self._db.commit()
+        return list(created_ids)
+
     def delete(self, follower_id: UUID, following_id: UUID) -> bool:
         deleted_id = self._db.scalar(
             delete(UserFollow)

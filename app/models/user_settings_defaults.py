@@ -1,4 +1,4 @@
-from app.models.user_settings_enums import AIResponseStyle, VisibilityLevel
+from app.models.user_settings_enums import AIResponseStyle, ProfileVisibility, VisibilityLevel
 
 
 class UserSettingsDefaults:
@@ -20,7 +20,7 @@ class UserSettingsDefaults:
     AI_UPDATES = True
     SYSTEM_UPDATES = True
 
-    PROFILE_VISIBILITY = VisibilityLevel.PUBLIC
+    PROFILE_VISIBILITY = ProfileVisibility.PUBLIC
     LOCATION_VISIBILITY = VisibilityLevel.FOLLOWERS
     ACTIVITY_VISIBILITY = VisibilityLevel.PUBLIC
     ALLOW_MESSAGES = True

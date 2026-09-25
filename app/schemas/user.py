@@ -5,11 +5,11 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.user import UserStatus, UserType
 from app.schemas.role import RoleSummary, RoleWithPermissions
-from app.schemas.validators import NonBlankStr
+from app.schemas.validators import NameStr
 
 PHONE_PATTERN = r"^\+?[0-9]{7,15}$"
 
-Name = Annotated[NonBlankStr, Field(max_length=100)]
+Name = Annotated[NameStr, Field(max_length=100)]
 Email = Annotated[EmailStr, Field(max_length=255)]
 Phone = Annotated[str, Field(max_length=30, pattern=PHONE_PATTERN)]
 Password = Annotated[str, Field(min_length=8, max_length=128)]

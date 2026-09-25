@@ -13,3 +13,4 @@ PostCreateDep = Annotated[User, Depends(require_permission(PermissionName.POST_C
 PostLikeDep = Annotated[User, Depends(require_permission(PermissionName.POST_LIKE))]
 PostCommentDep = Annotated[User, Depends(require_permission(PermissionName.POST_COMMENT))]
 PostShareDep = Annotated[User, Depends(require_permission(PermissionName.POST_SHARE))]
+PostSaveDep = Annotated[User, Depends(require_permission(PermissionName.POST_SAVE))]

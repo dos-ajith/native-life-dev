@@ -13,6 +13,7 @@ from app.schemas.pagination import PaginationParams
 from app.schemas.post_comment import PostCommentCreate, PostCommentRead
 from app.services.activity_log_service import ActivityLogService
 from app.services.authorization_service import has_permission
+from app.services.notification_service import NotificationService
 from app.services.post_service import PostService
 
 
@@ -21,6 +22,7 @@ class PostCommentService:
         self._comments = PostCommentRepository(db)
         self._posts = PostService(db)
         self._activity_logs = ActivityLogService(db)
+        self._notifications = NotificationService(db)
 
     def create(self, post_id: UUID, payload: PostCommentCreate, actor: User) -> PostComment:
         post = self._posts.get_visible(post_id, actor)
@@ -43,6 +45,7 @@ class PostCommentService:
             entity_id=comment.id,
             metadata={"post_id": str(post.id)},
         )
+        self._notifications.notify_post_commented(post=post, actor=actor, comment_id=comment.id)
         return comment
 
     def list_for_post(

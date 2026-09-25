@@ -4,7 +4,7 @@ class AuthMessages:
     LOGGED_OUT = "Logged out"
     INVALID_CREDENTIALS = "Invalid email or password"
     ACCOUNT_INACTIVE = "Account is not active"
-    MISSING_TOKEN = "Missing authentication token"
+    MISSING_TOKEN = "Please login to proceed"
     INVALID_TOKEN = "Invalid or expired token"
     PERMISSION_DENIED = "You do not have permission to perform this action"
 
@@ -30,12 +30,19 @@ class UserMessages:
 class UserFollowMessages:
     FOLLOWED = "User followed"
     UNFOLLOWED = "User unfollowed"
+    REQUESTED = "Follow request sent"
+    REQUEST_CANCELLED = "Follow request cancelled"
+    REQUEST_ACCEPTED = "Follow request accepted"
+    REQUEST_DECLINED = "Follow request declined"
+    INCOMING_REQUESTS_RETRIEVED = "Follow requests retrieved"
     STATUS_RETRIEVED = "Follow status retrieved"
     FOLLOWERS_RETRIEVED = "Followers retrieved"
     FOLLOWING_RETRIEVED = "Following retrieved"
     COUNTS_RETRIEVED = "Follow counts retrieved"
     ALREADY_FOLLOWING = "You are already following this user"
-    NOT_FOLLOWING = "You are not following this user"
+    ALREADY_REQUESTED = "You have already requested to follow this user"
+    NOT_FOLLOWING_OR_REQUESTED = "You are not following or requesting to follow this user"
+    REQUEST_NOT_FOUND = "Follow request not found"
     CANNOT_FOLLOW_SELF = "You cannot follow yourself"
     CANNOT_UNFOLLOW_SELF = "You cannot unfollow yourself"
 
@@ -124,6 +131,37 @@ class PostShareMessages:
     SHARED = "Post shared"
 
 
+class SavedPostMessages:
+    SAVED = "Post saved"
+    UNSAVED = "Post unsaved"
+    ALREADY_SAVED = "You have already saved this post"
+    NOT_FOUND = "Saved post not found"
+    LIST_RETRIEVED = "Saved posts retrieved"
+
+
+class CollectionMessages:
+    CREATED = "Collection created"
+    RETRIEVED = "Collection retrieved"
+    LIST_RETRIEVED = "Collections retrieved"
+    UPDATED = "Collection updated"
+    DELETED = "Collection deleted"
+    NOT_FOUND = "Collection not found"
+    POSTS_RETRIEVED = "Collection posts retrieved"
+    POST_ADDED = "Post added to collection"
+    POST_REMOVED = "Post removed from collection"
+    POST_NOT_SAVED = "Save this post before adding it to a collection"
+    POST_ALREADY_IN_COLLECTION = "This post is already in the collection"
+    POST_NOT_IN_COLLECTION = "This post is not in the collection"
+
+
+class NotificationMessages:
+    LIST_RETRIEVED = "Notifications retrieved"
+    UNREAD_COUNT_RETRIEVED = "Unread notification count retrieved"
+    MARKED_READ = "Notification marked as read"
+    ALL_MARKED_READ = "All notifications marked as read"
+    NOT_FOUND = "Notification not found"
+
+
 class AIMessages:
     RESPONSE_GENERATED = "AI response generated"
     PROMPT_REQUIRED = "A prompt is required"
@@ -153,6 +191,11 @@ class UserSettingsMessages:
     CONTENT_UPDATED = "Content settings updated"
     UNKNOWN_TAG_IDS = "Unknown category id(s): {ids}"
     UNKNOWN_DISTRICT_IDS = "Unknown location id(s): {ids}"
+
+
+class ValidationMessages:
+    INVALID_JSON_BODY = "Request body must be valid JSON"
+    FIELD_REQUIRED = "This field is required"
 
 
 class HealthMessages:
@@ -227,3 +270,4 @@ class GeographyMessages:
     )
     LOCATION_RESOLVED = "Location resolved"
     LOCATION_NOT_FOUND = "No matching state, district, or taluk found for the given coordinates"
+    LOCATION_ADDRESS_RESOLVED = "Address resolved"

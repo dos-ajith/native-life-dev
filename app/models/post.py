@@ -49,6 +49,7 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     likes_count: Mapped[int] = mapped_column(Integer(), server_default=text("0"), default=0)
     comments_count: Mapped[int] = mapped_column(Integer(), server_default=text("0"), default=0)
     shares_count: Mapped[int] = mapped_column(Integer(), server_default=text("0"), default=0)
+    saved_count: Mapped[int] = mapped_column(Integer(), server_default=text("0"), default=0)
     deleted_at: Mapped[datetime | None] = mapped_column(default=None)
 
     @property

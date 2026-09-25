@@ -8,8 +8,10 @@ from geoalchemy2 import Geography
 from sqlalchemy import ColumnElement, case, cast, exists, func, or_, select, update
 from sqlalchemy.orm import InstrumentedAttribute, Session
 
+from app.models.collection_post import CollectionPost
 from app.models.post import Post, PostStatus
 from app.models.post_tag import post_tags
+from app.models.saved_post import SavedPost
 from app.models.tag import Tag
 from app.schemas.pagination import PaginationParams
 
@@ -165,6 +167,59 @@ class PostRepository:
         ).all()
         return [(post, distance_meters) for post, distance_meters in rows]
 
+    def list_saved_by_user(
+        self, user_id: UUID, params: PaginationParams, scope: PostVisibilityScope
+    ) -> tuple[list[Post], int]:
+        conditions: list[ColumnElement[bool]] = [_visible_in(scope), SavedPost.user_id == user_id]
+        total = (
+            self._db.scalar(
+                select(func.count())
+                .select_from(Post)
+                .join(SavedPost, SavedPost.post_id == Post.id)
+                .where(*conditions)
+            )
+            or 0
+        )
+        offset = (params.page - 1) * params.page_size
+        items = self._db.scalars(
+            select(Post)
+            .join(SavedPost, SavedPost.post_id == Post.id)
+            .where(*conditions)
+            .order_by(SavedPost.created_at.desc(), SavedPost.id.desc())
+            .offset(offset)
+            .limit(params.page_size)
+        ).all()
+        return list(items), total
+
+    def list_by_collection(
+        self, collection_id: UUID, params: PaginationParams, scope: PostVisibilityScope
+    ) -> tuple[list[Post], int]:
+        conditions: list[ColumnElement[bool]] = [
+            _visible_in(scope),
+            CollectionPost.collection_id == collection_id,
+        ]
+        total = (
+            self._db.scalar(
+                select(func.count())
+                .select_from(Post)
+                .join(SavedPost, SavedPost.post_id == Post.id)
+                .join(CollectionPost, CollectionPost.saved_post_id == SavedPost.id)
+                .where(*conditions)
+            )
+            or 0
+        )
+        offset = (params.page - 1) * params.page_size
+        items = self._db.scalars(
+            select(Post)
+            .join(SavedPost, SavedPost.post_id == Post.id)
+            .join(CollectionPost, CollectionPost.saved_post_id == SavedPost.id)
+            .where(*conditions)
+            .order_by(CollectionPost.created_at.desc(), CollectionPost.id.desc())
+            .offset(offset)
+            .limit(params.page_size)
+        ).all()
+        return list(items), total
+
     def list(
         self, params: PaginationParams, scope: PostVisibilityScope
     ) -> tuple[list[Post], int]:
@@ -209,6 +264,12 @@ class PostRepository:
 
     def increment_shares(self, post_id: UUID) -> None:
         self._adjust_count(post_id, Post.shares_count, 1)
+
+    def increment_saved(self, post_id: UUID) -> None:
+        self._adjust_count(post_id, Post.saved_count, 1)
+
+    def decrement_saved(self, post_id: UUID) -> None:
+        self._adjust_count(post_id, Post.saved_count, -1)
 
     def _adjust_count(
         self, post_id: UUID, column: InstrumentedAttribute[int], delta: int

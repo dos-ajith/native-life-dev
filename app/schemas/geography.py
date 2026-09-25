@@ -55,3 +55,7 @@ class ReverseGeocodeResult(BaseModel):
     state: GisStateRead
     district: GisDistrictRead
     taluk: GisTalukRead
+
+
+class ReverseGeocodeAddressResult(BaseModel):
+    location_name: str

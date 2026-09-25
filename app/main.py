@@ -1,10 +1,10 @@
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping, Sequence
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
 from fastapi import Depends, FastAPI, Request
-from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -17,6 +17,7 @@ from app.core.config import get_settings
 from app.core.database import engine
 from app.core.exceptions import AppError
 from app.core.logging import RequestLoggingMiddleware, setup_logging
+from app.core.messages import ValidationMessages
 
 settings = get_settings()
 setup_logging(settings)
@@ -60,13 +61,47 @@ async def app_error_handler(_request: Request, exc: AppError) -> JSONResponse:
     )
 
 
-def _validation_error_response(errors: object) -> JSONResponse:
+_VALIDATION_LOC_PREFIXES = {"body", "query", "path", "header", "cookie"}
+_VALUE_ERROR_PREFIX = "Value error, "
+_JSON_DECODE_ERROR_TYPES = {"json_invalid", "json_type"}
+
+
+def _validation_field_name(loc: Sequence[int | str]) -> str | None:
+    parts = [str(segment) for segment in loc if str(segment) not in _VALIDATION_LOC_PREFIXES]
+    return ".".join(parts) if parts else None
+
+
+def _validation_message(msg: str) -> str:
+    return msg.removeprefix(_VALUE_ERROR_PREFIX)
+
+
+def _combine_field_and_message(field: str | None, message: str) -> str:
+    return f"{field}: {message}" if field else message
+
+
+def _format_validation_error(error: Mapping[str, Any]) -> dict[str, str | None]:
+    if error.get("type") in _JSON_DECODE_ERROR_TYPES:
+        return {"field": None, "message": ValidationMessages.INVALID_JSON_BODY}
+    field = _validation_field_name(error["loc"])
+    message = (
+        ValidationMessages.FIELD_REQUIRED
+        if error.get("type") == "missing"
+        else _validation_message(error["msg"])
+    )
+    return {
+        "field": field,
+        "message": _combine_field_and_message(field, message),
+    }
+
+
+def _validation_error_response(errors: Sequence[Mapping[str, Any]]) -> JSONResponse:
+    formatted_errors = [_format_validation_error(error) for error in errors]
     return JSONResponse(
         status_code=422,
         content={
             "success": False,
             "message": "Validation failed",
-            "errors": jsonable_encoder(errors),
+            "errors": formatted_errors,
         },
     )
 

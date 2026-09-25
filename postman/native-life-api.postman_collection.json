@@ -91,7 +91,7 @@
                 "login"
               ]
             },
-            "description": "Authenticates with email and password, returns a JWT access token.\n\n**Body**\n- `email` (string, required) \u2014 registered account email\n- `password` (string, required)"
+            "description": "Authenticates with email and password, returns a JWT access token.\n\n**Body**\n- `email` (string, required) — registered account email\n- `password` (string, required)"
           }
         },
         {
@@ -223,7 +223,7 @@
                     "create"
                   ]
                 },
-                "description": "Creates a new user account (admin only), as multipart/form-data so the profile image can be uploaded in the same request.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) \u2014 must be unique among active (non-deleted) users\n- `phone` (string, optional) \u2014 must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) \u2014 hashed server-side, never stored in plaintext\n- `role_ids` (repeated field, optional) \u2014 one value per role UUID to assign on creation. Omit entirely to create the user with no roles.\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update user image'."
+                "description": "Creates a new user account (admin only), as multipart/form-data so the profile image can be uploaded in the same request.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) — must be unique among active (non-deleted) users\n- `phone` (string, optional) — must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) — hashed server-side, never stored in plaintext\n- `role_ids` (repeated field, optional) — one value per role UUID to assign on creation. Omit entirely to create the user with no roles.\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update user image'."
               }
             },
             {
@@ -348,7 +348,7 @@
                     }
                   ]
                 },
-                "description": "Updates a user's details (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `first_name` (string, optional)\n- `last_name` (string, optional)\n- `email` (string, optional) \u2014 must stay unique among active (non-deleted) users\n- `phone` (string, optional) \u2014 must stay unique among active (non-deleted) users\n- `status` (enum, optional) \u2014 one of: active, inactive, suspended, pending_verification\n- `user_type` (enum, optional) \u2014 one of: public, private (private = admin access)\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB"
+                "description": "Updates a user's details (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `first_name` (string, optional)\n- `last_name` (string, optional)\n- `email` (string, optional) — must stay unique among active (non-deleted) users\n- `phone` (string, optional) — must stay unique among active (non-deleted) users\n- `status` (enum, optional) — one of: active, inactive, suspended, pending_verification\n- `user_type` (enum, optional) — one of: public, private (private = admin access)\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB"
               }
             },
             {
@@ -436,7 +436,7 @@
                     }
                   ]
                 },
-                "description": "Replaces the full set of roles assigned to a user (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `role_ids` (repeated field, one value per UUID) \u2014 replaces existing roles entirely, not additive. Send the key multiple times for multiple roles; omit it to clear all roles."
+                "description": "Replaces the full set of roles assigned to a user (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `role_ids` (repeated field, one value per UUID) — replaces existing roles entirely, not additive. Send the key multiple times for multiple roles; omit it to clear all roles."
               }
             },
             {
@@ -512,7 +512,7 @@
                     "create"
                   ]
                 },
-                "description": "Creates a new role (admin only), as multipart/form-data. A url-safe `slug` is auto-generated from `name` (e.g. 'Public User' -> 'public-user') and returned in the response; it cannot be set directly and never changes afterward, even if `name` is later updated.\n\n**Body (form-data)**\n- `name` (string, required) \u2014 must be unique\n- `description` (string, optional)"
+                "description": "Creates a new role (admin only), as multipart/form-data. A url-safe `slug` is auto-generated from `name` (e.g. 'Public User' -> 'public-user') and returned in the response; it cannot be set directly and never changes afterward, even if `name` is later updated.\n\n**Body (form-data)**\n- `name` (string, required) — must be unique\n- `description` (string, optional)"
               }
             },
             {
@@ -626,7 +626,7 @@
                     }
                   ]
                 },
-                "description": "Updates a role's name/description (admin only), as multipart/form-data. Only the fields you include are changed. `slug` is immutable and does not change even if `name` does.\n\n**Body (form-data)**\n- `name` (string, optional) \u2014 must stay unique\n- `description` (string, optional)"
+                "description": "Updates a role's name/description (admin only), as multipart/form-data. Only the fields you include are changed. `slug` is immutable and does not change even if `name` does.\n\n**Body (form-data)**\n- `name` (string, optional) — must stay unique\n- `description` (string, optional)"
               }
             },
             {
@@ -670,7 +670,7 @@
                     }
                   ]
                 },
-                "description": "Replaces the full set of permissions assigned to a role (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `permission_ids` (repeated field, one value per UUID) \u2014 replaces existing permissions entirely, not additive. Send the key multiple times for multiple permissions; omit it to clear all permissions."
+                "description": "Replaces the full set of permissions assigned to a role (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `permission_ids` (repeated field, one value per UUID) — replaces existing permissions entirely, not additive. Send the key multiple times for multiple permissions; omit it to clear all permissions."
               }
             },
             {
@@ -746,7 +746,7 @@
                     "create"
                   ]
                 },
-                "description": "Creates a new permission (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `name` (string, required) \u2014 must be unique\n- `description` (string, optional)"
+                "description": "Creates a new permission (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `name` (string, required) — must be unique\n- `description` (string, optional)"
               }
             },
             {
@@ -855,7 +855,7 @@
                     }
                   ]
                 },
-                "description": "Updates a permission's name/description (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `name` (string, optional) \u2014 must stay unique\n- `description` (string, optional)"
+                "description": "Updates a permission's name/description (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `name` (string, optional) — must stay unique\n- `description` (string, optional)"
               }
             },
             {
@@ -942,7 +942,7 @@
                     "create"
                   ]
                 },
-                "description": "Creates a new content page (admin only), as multipart/form-data so the featured image can be uploaded in the same request. A url-safe `slug` is auto-generated from `title` and returned in the response; it cannot be set directly and never changes afterward, even if `title` is later updated. `created_by`/`updated_by` are set to the authenticated admin, not from the body.\n\n**Body (form-data)**\n- `title` (string, required) \u2014 slug must be unique\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) \u2014 one of: draft, published, archived. `published_at` is set automatically the first time status becomes `published`.\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Leave empty to create without an image; it can be added later via 'Update page image'."
+                "description": "Creates a new content page (admin only), as multipart/form-data so the featured image can be uploaded in the same request. A url-safe `slug` is auto-generated from `title` and returned in the response; it cannot be set directly and never changes afterward, even if `title` is later updated. `created_by`/`updated_by` are set to the authenticated admin, not from the body.\n\n**Body (form-data)**\n- `title` (string, required) — slug must be unique\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) — one of: draft, published, archived. `published_at` is set automatically the first time status becomes `published`.\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB. Leave empty to create without an image; it can be added later via 'Update page image'."
               }
             },
             {
@@ -1094,7 +1094,7 @@
                     }
                   ]
                 },
-                "description": "Updates a page's title/content/status (admin only), as multipart/form-data. Only the fields you include are changed. `slug` is immutable and does not change even if `title` does. `updated_by` is set to the authenticated admin; `published_at` is set automatically the first time status becomes `published`.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional) \u2014 one of: draft, published, archived\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set via 'Update page image'."
+                "description": "Updates a page's title/content/status (admin only), as multipart/form-data. Only the fields you include are changed. `slug` is immutable and does not change even if `title` does. `updated_by` is set to the authenticated admin; `published_at` is set automatically the first time status becomes `published`.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional) — one of: draft, published, archived\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB. Can also be set via 'Update page image'."
               }
             },
             {
@@ -1214,7 +1214,7 @@
                     "create"
                   ]
                 },
-                "description": "Creates a new key-value app setting (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `key` (string, required) \u2014 must be unique, e.g. app_name\n- `value` (string, optional) \u2014 stored as text; app decides how to interpret it"
+                "description": "Creates a new key-value app setting (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `key` (string, required) — must be unique, e.g. app_name\n- `value` (string, optional) — stored as text; app decides how to interpret it"
               }
             },
             {
@@ -1355,7 +1355,7 @@
                     }
                   ]
                 },
-                "description": "Updates a setting's key or value (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `key` (string, optional) \u2014 must stay unique\n- `value` (string, optional)"
+                "description": "Updates a setting's key or value (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `key` (string, optional) — must stay unique\n- `value` (string, optional)"
               }
             },
             {
@@ -1451,7 +1451,7 @@
                     "register"
                   ]
                 },
-                "description": "Self-registers a new customer account (public), as multipart/form-data so the profile image can be uploaded in the same request.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) \u2014 must be unique among active (non-deleted) users\n- `phone` (string, optional) \u2014 must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) \u2014 hashed server-side, never stored in plaintext\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update my profile image'."
+                "description": "Self-registers a new customer account (public), as multipart/form-data so the profile image can be uploaded in the same request.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) — must be unique among active (non-deleted) users\n- `phone` (string, optional) — must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) — hashed server-side, never stored in plaintext\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update my profile image'."
               }
             },
             {
@@ -1490,7 +1490,7 @@
                     "me"
                   ]
                 },
-                "description": "Updates the authenticated user's own profile, as multipart/form-data. Only the fields you include are changed. Email cannot be changed through this endpoint.\n\n**Body (form-data)**\n- `first_name` (string, optional)\n- `last_name` (string, optional)\n- `phone` (string, optional) \u2014 must stay unique among active (non-deleted) users\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set via 'Update my profile image'."
+                "description": "Updates the authenticated user's own profile, as multipart/form-data. Only the fields you include are changed. Email cannot be changed through this endpoint.\n\n**Body (form-data)**\n- `first_name` (string, optional)\n- `last_name` (string, optional)\n- `phone` (string, optional) — must stay unique among active (non-deleted) users\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB. Can also be set via 'Update my profile image'."
               }
             },
             {
@@ -1552,7 +1552,7 @@
                     "posts"
                   ]
                 },
-                "description": "Creates a post owned by the authenticated user, as multipart/form-data so images and/or videos can be attached in the same request \u2014 there is no separate 'add media' endpoint. `user_id` is always taken from the authenticated user, never from the body.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) \u2014 one of: draft, scheduled, published. `published_at`/`published_by` are set automatically the first time status becomes `published` (`published_by` is whoever made this call, which may be an admin publishing on the owner's behalf).\n- `scheduled_at` (datetime, required when status is `scheduled`)\n- `latitude` / `longitude` (float, optional, provide both together) \u2014 WGS84 coordinates of where the post was created; stored as a PostGIS point.\n- `location_name` (string, optional) \u2014 human-readable place name. If omitted and latitude/longitude are given, it's auto-filled via reverse geocoding (taluk, district, state) against imported geography data; left null if nothing matches. Provide it explicitly to override or to set a place name without geocoding.\n- `tags` (string[], optional, repeat the `tags` key for each tag) \u2014 tag names, e.g. `Kerala`, `Travel`. Resolved against a normalized, case-insensitive slug (`Kerala` -> `kerala`), reusing an existing tag or creating a new one as needed. Client never sends tag IDs.\n- `images` (file[], optional) \u2014 JPEG/PNG/WebP, max 5MB each\n- `videos` (file[], optional) \u2014 MP4/MOV/WebM, max 100MB each\n- `video_thumbnails` (file[], required if `videos` is set) \u2014 one cover image per video, matched by position",
+                "description": "Creates a post owned by the authenticated user, as multipart/form-data so images and/or videos can be attached in the same request — there is no separate 'add media' endpoint. `user_id` is always taken from the authenticated user, never from the body.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) — one of: draft, scheduled, published. `published_at`/`published_by` are set automatically the first time status becomes `published` (`published_by` is whoever made this call, which may be an admin publishing on the owner's behalf).\n- `scheduled_at` (datetime, required when status is `scheduled`)\n- `latitude` / `longitude` (float, optional, provide both together) — WGS84 coordinates of where the post was created; stored as a PostGIS point.\n- `location_name` (string, optional) — human-readable place name. If omitted and latitude/longitude are given, it's auto-filled via reverse geocoding (taluk, district, state) against imported geography data; left null if nothing matches. Provide it explicitly to override or to set a place name without geocoding.\n- `tags` (string[], optional, repeat the `tags` key for each tag) — tag names, e.g. `Kerala`, `Travel`. Resolved against a normalized, case-insensitive slug (`Kerala` -> `kerala`), reusing an existing tag or creating a new one as needed. Client never sends tag IDs.\n- `images` (file[], optional) — JPEG/PNG/WebP, max 5MB each\n- `videos` (file[], optional) — MP4/MOV/WebM, max 100MB each\n- `video_thumbnails` (file[], required if `videos` is set) — one cover image per video, matched by position",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
@@ -1704,7 +1704,7 @@
                     }
                   ]
                 },
-                "description": "Updates a post, as multipart/form-data. Only the owner (or an admin) may update it. Only the fields included are changed. Any images/videos included are appended to the post's existing media (this endpoint never removes media, use 'Delete post media' for that).\n\n**Body (form-data)** \u2014 same optional fields as Create post (including `latitude`/`longitude`, which re-run the reverse-geocode fallback for `location_name` unless you also pass `location_name` explicitly). Publishing here (status becomes `published`) also sets `published_by` to whoever made this call. `title` and `location_name` can also be changed independently of media/coordinates. `tags`, if included at all (even as an empty value), replaces the post's entire tag set; omit the key to leave existing tags untouched.",
+                "description": "Updates a post, as multipart/form-data. Only the owner (or an admin) may update it. Only the fields included are changed. Any images/videos included are appended to the post's existing media (this endpoint never removes media, use 'Delete post media' for that).\n\n**Body (form-data)** — same optional fields as Create post (including `latitude`/`longitude`, which re-run the reverse-geocode fallback for `location_name` unless you also pass `location_name` explicitly). Publishing here (status becomes `published`) also sets `published_by` to whoever made this call. `title` and `location_name` can also be changed independently of media/coordinates. `tags`, if included at all (even as an empty value), replaces the post's entire tag set; omit the key to leave existing tags untouched.",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
@@ -1893,7 +1893,7 @@
                     }
                   ]
                 },
-                "description": "Adds a comment to a post. Pass parent_id to reply to an existing comment on the same post.\n\n**Body (json)**\n- content (string, required)\n- parent_id (UUID, optional) \u2014 id of the comment being replied to",
+                "description": "Adds a comment to a post. Pass parent_id to reply to an existing comment on the same post.\n\n**Body (json)**\n- content (string, required)\n- parent_id (UUID, optional) — id of the comment being replied to",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"content\": \"Nice post!\",\n  \"parent_id\": null\n}",
@@ -1943,7 +1943,7 @@
                     }
                   ]
                 },
-                "description": "Returns a paginated list of top-level comments for a post, newest first. Each comment carries its full reply thread nested under `replies` (unpaginated, in chronological order, arbitrarily deep). `page`/`page_size`/`total`/`pages` apply to top-level threads only \u2014 replies are not counted or paginated separately. Auth optional: guests and other users only see published posts; the owner also sees their own draft/scheduled posts, and users with post.update_any see all. Hidden posts return 404."
+                "description": "Returns a paginated list of top-level comments for a post, newest first. Each comment carries its full reply thread nested under `replies` (unpaginated, in chronological order, arbitrarily deep). `page`/`page_size`/`total`/`pages` apply to top-level threads only — replies are not counted or paginated separately. Auth optional: guests and other users only see published posts; the owner also sees their own draft/scheduled posts, and users with post.update_any see all. Hidden posts return 404."
               }
             },
             {
@@ -2067,7 +2067,7 @@
                     }
                   ]
                 },
-                "description": "Records that the authenticated user shared a post. A user may share the same post more than once (each share is a separate record), unlike likes.\n\n**Body (json, optional)**\n- `utm_source` (string, optional) \u2014 where the share came from (e.g. whatsapp, facebook, copy_link), for attribution. Omit the body entirely if not tracking this.",
+                "description": "Records that the authenticated user shared a post. A user may share the same post more than once (each share is a separate record), unlike likes.\n\n**Body (json, optional)**\n- `utm_source` (string, optional) — where the share came from (e.g. whatsapp, facebook, copy_link), for attribution. Omit the body entirely if not tracking this.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"utm_source\": \"whatsapp\"\n}",
@@ -2077,6 +2077,400 @@
                     }
                   }
                 }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Saved Posts",
+          "item": [
+            {
+              "name": "Save post",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/posts/:post_id/save",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "posts",
+                    ":post_id",
+                    "save"
+                  ],
+                  "variable": [
+                    {
+                      "key": "post_id",
+                      "value": "",
+                      "description": "UUID of the post"
+                    }
+                  ]
+                },
+                "description": "Saves the post for the authenticated user. Requires the post to be visible to the user. Saving the same post twice returns 422. Unknown or invisible post returns 404."
+              }
+            },
+            {
+              "name": "Unsave post",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/posts/:post_id/save",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "posts",
+                    ":post_id",
+                    "save"
+                  ],
+                  "variable": [
+                    {
+                      "key": "post_id",
+                      "value": "",
+                      "description": "UUID of the post"
+                    }
+                  ]
+                },
+                "description": "Removes the authenticated user's saved-post relationship with the post, and removes it from any collections it was added to. Returns 404 if the post was not saved."
+              }
+            },
+            {
+              "name": "List saved posts",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/saved-posts?page=1&page_size=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "saved-posts"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Optional, default 1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20",
+                      "description": "Optional, default 20, max 100"
+                    }
+                  ]
+                },
+                "description": "Paginated list of the authenticated user's saved posts, newest saved first, using the normal post response shape. Posts that are no longer visible to the user (deleted, unpublished, etc.) are excluded."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Collections",
+          "item": [
+            {
+              "name": "Create collection",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/collections",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "collections"
+                  ]
+                },
+                "description": "Creates a new collection owned by the authenticated user.\n\n**Body**\n- `name` (string, required, max 100 chars)\n- `description` (string, optional, max 500 chars)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Kerala Food\",\n  \"description\": \"Food places and posts I want to try\"\n}"
+                }
+              }
+            },
+            {
+              "name": "List collections",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/collections?page=1&page_size=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "collections"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Optional, default 1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20",
+                      "description": "Optional, default 20, max 100"
+                    }
+                  ]
+                },
+                "description": "Paginated list of the authenticated user's own collections, each including its post_count, newest first."
+              }
+            },
+            {
+              "name": "Get collection",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/collections/:collection_id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "collections",
+                    ":collection_id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "collection_id",
+                      "value": "",
+                      "description": "UUID of the collection"
+                    }
+                  ]
+                },
+                "description": "Returns a single collection owned by the authenticated user. Returns 404 if it does not exist or belongs to another user."
+              }
+            },
+            {
+              "name": "Update collection",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/collections/:collection_id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "collections",
+                    ":collection_id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "collection_id",
+                      "value": "",
+                      "description": "UUID of the collection"
+                    }
+                  ]
+                },
+                "description": "Renames/updates a collection owned by the authenticated user. Both fields are optional; only the provided fields are changed.\n\n**Body**\n- `name` (string, optional, max 100 chars)\n- `description` (string, optional, max 500 chars)",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Favorites\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Delete collection",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/collections/:collection_id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "collections",
+                    ":collection_id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "collection_id",
+                      "value": "",
+                      "description": "UUID of the collection"
+                    }
+                  ]
+                },
+                "description": "Deletes a collection owned by the authenticated user. Only the collection and its post memberships are removed; the underlying saved posts are not affected."
+              }
+            },
+            {
+              "name": "List posts in collection",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/collections/:collection_id/posts?page=1&page_size=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "collections",
+                    ":collection_id",
+                    "posts"
+                  ],
+                  "variable": [
+                    {
+                      "key": "collection_id",
+                      "value": "",
+                      "description": "UUID of the collection"
+                    }
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Optional, default 1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20",
+                      "description": "Optional, default 20, max 100"
+                    }
+                  ]
+                },
+                "description": "Paginated posts that belong to the collection, using the normal post response shape, with the same visibility rules as the saved-posts list."
+              }
+            },
+            {
+              "name": "Add post to collection",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/collections/:collection_id/posts/:post_id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "collections",
+                    ":collection_id",
+                    "posts",
+                    ":post_id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "collection_id",
+                      "value": "",
+                      "description": "UUID of the collection"
+                    },
+                    {
+                      "key": "post_id",
+                      "value": "",
+                      "description": "UUID of the post"
+                    }
+                  ]
+                },
+                "description": "Adds a post to the collection. The post must already be saved by the authenticated user (422 if not) and visible to them (404 if not). Adding the same post twice returns 422."
+              }
+            },
+            {
+              "name": "Remove post from collection",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/collections/:collection_id/posts/:post_id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "collections",
+                    ":collection_id",
+                    "posts",
+                    ":post_id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "collection_id",
+                      "value": "",
+                      "description": "UUID of the collection"
+                    },
+                    {
+                      "key": "post_id",
+                      "value": "",
+                      "description": "UUID of the post"
+                    }
+                  ]
+                },
+                "description": "Removes a post from the collection. Does not unsave the post. Returns 404 if the post is not currently in the collection."
               }
             }
           ]
@@ -2147,7 +2541,7 @@
                     }
                   ]
                 },
-                "description": "Follows the target user as the authenticated user. Cannot follow yourself or follow the same user twice (422). Unknown or deleted user returns 404."
+                "description": "Follows the target user as the authenticated user. If the target's profile_visibility is public, creates an accepted follow immediately (`data.is_following=true`). If private, creates a pending follow request instead (`data.is_requested=true`); the target must accept it via /follow/accept. Cannot follow yourself or follow/request the same user twice (422). Unknown or deleted user returns 404."
               }
             },
             {
@@ -2178,7 +2572,7 @@
                     }
                   ]
                 },
-                "description": "Removes the authenticated user's follow of the target user. Returns 404 if not following."
+                "description": "Removes the authenticated user's relationship with the target user: unfollows if accepted, or cancels the pending request if one exists. Returns 404 if neither following nor requesting."
               }
             },
             {
@@ -2209,7 +2603,106 @@
                     }
                   ]
                 },
-                "description": "Returns `is_following` for the authenticated user -> target user. Always false for yourself."
+                "description": "Returns `is_following` and `is_requested` for the authenticated user -> target user. Both false for yourself."
+              }
+            },
+            {
+              "name": "List incoming follow requests",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/follow-requests?page=1&page_size=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "follow-requests"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Optional, default 1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20",
+                      "description": "Optional, default 20, max 100"
+                    }
+                  ]
+                },
+                "description": "Paginated users who have a pending follow request addressed to the authenticated user, newest first."
+              }
+            },
+            {
+              "name": "Accept follow request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/:user_id/follow/accept",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    ":user_id",
+                    "follow",
+                    "accept"
+                  ],
+                  "variable": [
+                    {
+                      "key": "user_id",
+                      "value": "",
+                      "description": "UUID of the requesting user"
+                    }
+                  ]
+                },
+                "description": "Accepts the pending follow request from :user_id, addressed to the authenticated user. Creates the accepted follow and notifies the requester. 404 if no such pending request exists (also returned if the request belongs to someone else)."
+              }
+            },
+            {
+              "name": "Decline follow request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/:user_id/follow/decline",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    ":user_id",
+                    "follow",
+                    "decline"
+                  ],
+                  "variable": [
+                    {
+                      "key": "user_id",
+                      "value": "",
+                      "description": "UUID of the requesting user"
+                    }
+                  ]
+                },
+                "description": "Declines the pending follow request from :user_id, addressed to the authenticated user. No relationship is created and no notification is sent. 404 if no such pending request exists (also returned if the request belongs to someone else)."
               }
             },
             {
@@ -2332,6 +2825,131 @@
           ]
         },
         {
+          "name": "Notifications",
+          "item": [
+            {
+              "name": "List my notifications",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/notifications?page=1&page_size=20&unread_only=false",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "notifications"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Optional, default 1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20",
+                      "description": "Optional, default 20, max 100"
+                    },
+                    {
+                      "key": "unread_only",
+                      "value": "false",
+                      "description": "Optional, default false. When true, only unread notifications are returned."
+                    }
+                  ]
+                },
+                "description": "Paginated notifications for the authenticated user, newest first."
+              }
+            },
+            {
+              "name": "Get unread notification count",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/notifications/unread-count",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "notifications",
+                    "unread-count"
+                  ]
+                },
+                "description": "Returns the authenticated user's unread notification count."
+              }
+            },
+            {
+              "name": "Mark notification read",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/notifications/:notification_id/read",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "notifications",
+                    ":notification_id",
+                    "read"
+                  ],
+                  "variable": [
+                    {
+                      "key": "notification_id",
+                      "value": "",
+                      "description": "UUID of the notification"
+                    }
+                  ]
+                },
+                "description": "Marks a single notification belonging to the authenticated user as read. Idempotent. Returns 404 if it does not belong to the caller."
+              }
+            },
+            {
+              "name": "Mark all notifications read",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/notifications/read-all",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "notifications",
+                    "read-all"
+                  ]
+                },
+                "description": "Marks all of the authenticated user's unread notifications as read."
+              }
+            }
+          ]
+        },
+        {
           "name": "User Settings",
           "item": [
             {
@@ -2441,7 +3059,7 @@
                     "ai"
                   ]
                 },
-                "description": "**Body** (all optional)\n- `ai_enabled` (bool)\n- `personalization_enabled` (bool)\n- `preferred_language` (string) \u2014 e.g. `en`, `ml`, `ta`, `hi`; not restricted to a fixed list\n- `response_style` (`concise` | `balanced` | `detailed`)"
+                "description": "**Body** (all optional)\n- `ai_enabled` (bool)\n- `personalization_enabled` (bool)\n- `preferred_language` (string) — e.g. `en`, `ml`, `ta`, `hi`; not restricted to a fixed list\n- `response_style` (`concise` | `balanced` | `detailed`)"
               }
             },
             {
@@ -2497,7 +3115,7 @@
                     "notifications"
                   ]
                 },
-                "description": "**Body** (all optional booleans)\n- `push_enabled`, `email_enabled` \u2014 channels\n- `post_activity`, `comments`, `likes`, `mentions`, `followers`, `messages`, `ai_updates`, `system_updates` \u2014 notification types"
+                "description": "**Body** (all optional booleans)\n- `push_enabled`, `email_enabled` — channels\n- `post_activity`, `comments`, `likes`, `mentions`, `followers`, `messages`, `ai_updates`, `system_updates` — notification types"
               }
             },
             {
@@ -2553,7 +3171,7 @@
                     "privacy"
                   ]
                 },
-                "description": "**Body** (all optional)\n- `profile_visibility`, `location_visibility`, `activity_visibility` (`public` | `followers` | `private`)\n- `allow_messages`, `allow_mentions` (bool)"
+                "description": "**Body** (all optional)\n- `profile_visibility` (`public` | `private`) — controls whether new follows on this user require approval\n- `location_visibility`, `activity_visibility` (`public` | `followers` | `private`)\n- `allow_messages`, `allow_mentions` (bool)"
               }
             },
             {
@@ -2609,7 +3227,7 @@
                     "content"
                   ]
                 },
-                "description": "**Body** (all optional)\n- `preferred_category_ids` (UUID[]) \u2014 existing tag ids; replaces the full set\n- `preferred_location_ids` (UUID[]) \u2014 existing GIS district ids; replaces the full set\n- `language_filter` (string, nullable) \u2014 restrict feed content to one language\n- `hide_sensitive_content` (bool)\n- `personalized_feed` (bool)"
+                "description": "**Body** (all optional)\n- `preferred_category_ids` (UUID[]) — existing tag ids; replaces the full set\n- `preferred_location_ids` (UUID[]) — existing GIS district ids; replaces the full set\n- `language_filter` (string, nullable) — restrict feed content to one language\n- `hide_sensitive_content` (bool)\n- `personalized_feed` (bool)"
               }
             }
           ]
@@ -2758,6 +3376,42 @@
                   ]
                 },
                 "description": "Authenticated. Resolves the state, district, and taluk containing the given coordinates via PostGIS spatial lookup. 404 if no boundary matches."
+              }
+            },
+            {
+              "name": "Reverse geocode address",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/geography/reverse/address?latitude=8.5241&longitude=76.9366",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "geography",
+                    "reverse",
+                    "address"
+                  ],
+                  "query": [
+                    {
+                      "key": "latitude",
+                      "value": "8.5241",
+                      "description": "GPS latitude, between -90 and 90"
+                    },
+                    {
+                      "key": "longitude",
+                      "value": "76.9366",
+                      "description": "GPS longitude, between -180 and 180"
+                    }
+                  ]
+                },
+                "description": "Authenticated. Resolves the coordinates to a single formatted location name (taluk, district, state) in the same format used to auto-fill a post's location_name. 404 if no boundary matches."
               }
             }
           ]
