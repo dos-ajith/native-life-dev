@@ -42,5 +42,8 @@ class GeographyService:
             raise NotFoundError(GeographyMessages.LOCATION_NOT_FOUND)
         return taluk
 
+    def format_location_name(self, taluk: GisTaluk) -> str:
+        return f"{taluk.name}, {taluk.district.name}, {taluk.district.state.name}"
+
     def search_districts(self, query: str, limit: int) -> list[GisDistrict]:
         return self._districts.search_by_name(query, limit)

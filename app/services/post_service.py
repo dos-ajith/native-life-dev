@@ -53,7 +53,7 @@ class PostService:
             taluk = self._geography.reverse_geocode(latitude, longitude)
         except NotFoundError:
             return None
-        return f"{taluk.name}, {taluk.district.name}, {taluk.district.state.name}"
+        return self._geography.format_location_name(taluk)
 
     def create(
         self,

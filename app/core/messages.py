@@ -4,7 +4,7 @@ class AuthMessages:
     LOGGED_OUT = "Logged out"
     INVALID_CREDENTIALS = "Invalid email or password"
     ACCOUNT_INACTIVE = "Account is not active"
-    MISSING_TOKEN = "Missing authentication token"
+    MISSING_TOKEN = "Please login to proceed"
     INVALID_TOKEN = "Invalid or expired token"
     PERMISSION_DENIED = "You do not have permission to perform this action"
 
@@ -170,6 +170,11 @@ class UserSettingsMessages:
     UNKNOWN_DISTRICT_IDS = "Unknown location id(s): {ids}"
 
 
+class ValidationMessages:
+    INVALID_JSON_BODY = "Request body must be valid JSON"
+    FIELD_REQUIRED = "This field is required"
+
+
 class HealthMessages:
     SERVICE_HEALTHY = "Service is healthy"
     DATABASE_HEALTHY = "Database is healthy"
@@ -242,3 +247,4 @@ class GeographyMessages:
     )
     LOCATION_RESOLVED = "Location resolved"
     LOCATION_NOT_FOUND = "No matching state, district, or taluk found for the given coordinates"
+    LOCATION_ADDRESS_RESOLVED = "Address resolved"

@@ -8,6 +8,7 @@ from app.schemas.geography import (
     GisDistrictRead,
     GisStateRead,
     GisTalukRead,
+    ReverseGeocodeAddressResult,
     ReverseGeocodeResult,
 )
 from app.schemas.pagination import Page
@@ -61,3 +62,13 @@ def reverse_geocode(
         taluk=GisTalukRead.model_validate(taluk),
     )
     return SuccessResponse(message=GeographyMessages.LOCATION_RESOLVED, data=result)
+
+
+@router.get("/reverse/address", response_model=SuccessResponse[ReverseGeocodeAddressResult])
+def reverse_geocode_address(
+    db: DbSessionDep, _: CurrentActiveUserDep, params: ReverseGeocodeQueryDep
+) -> SuccessResponse[ReverseGeocodeAddressResult]:
+    service = GeographyService(db)
+    taluk = service.reverse_geocode(params.latitude, params.longitude)
+    result = ReverseGeocodeAddressResult(location_name=service.format_location_name(taluk))
+    return SuccessResponse(message=GeographyMessages.LOCATION_ADDRESS_RESOLVED, data=result)

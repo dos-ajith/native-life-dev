@@ -2983,6 +2983,42 @@
                 },
                 "description": "Authenticated. Resolves the state, district, and taluk containing the given coordinates via PostGIS spatial lookup. 404 if no boundary matches."
               }
+            },
+            {
+              "name": "Reverse geocode address",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/geography/reverse/address?latitude=8.5241&longitude=76.9366",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "geography",
+                    "reverse",
+                    "address"
+                  ],
+                  "query": [
+                    {
+                      "key": "latitude",
+                      "value": "8.5241",
+                      "description": "GPS latitude, between -90 and 90"
+                    },
+                    {
+                      "key": "longitude",
+                      "value": "76.9366",
+                      "description": "GPS longitude, between -180 and 180"
+                    }
+                  ]
+                },
+                "description": "Authenticated. Resolves the coordinates to a single formatted location name (taluk, district, state) in the same format used to auto-fill a post's location_name. 404 if no boundary matches."
+              }
             }
           ]
         }
