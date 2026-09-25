@@ -40,5 +40,6 @@ class PermissionName:
     POST_LIKE = "post.like"
     POST_COMMENT = "post.comment"
     POST_SHARE = "post.share"
+    POST_SAVE = "post.save"
 
     COMMENT_DELETE_ANY = "comment.delete_any"

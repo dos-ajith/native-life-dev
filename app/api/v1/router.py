@@ -5,6 +5,7 @@ from app.api.v1.admin import geography as admin_geography_routes
 from app.api.v1.admin import routes as admin_routes
 from app.api.v1.ai import routes as ai_routes
 from app.api.v1.auth import routes as auth_routes
+from app.api.v1.collections import routes as collection_routes
 from app.api.v1.geography import routes as geography_routes
 from app.api.v1.notifications import routes as notification_routes
 from app.api.v1.pages import mobile as mobile_page_routes
@@ -13,6 +14,7 @@ from app.api.v1.permissions import routes as permission_routes
 from app.api.v1.posts import comments as post_comment_routes
 from app.api.v1.posts import likes as post_like_routes
 from app.api.v1.posts import routes as post_routes
+from app.api.v1.posts import saves as post_save_routes
 from app.api.v1.posts import shares as post_share_routes
 from app.api.v1.roles import routes as role_routes
 from app.api.v1.settings import routes as setting_routes
@@ -40,4 +42,7 @@ api_router.include_router(mobile_page_routes.router)
 api_router.include_router(post_routes.router)
 api_router.include_router(post_comment_routes.router)
 api_router.include_router(post_like_routes.router)
+api_router.include_router(post_save_routes.router)
+api_router.include_router(post_save_routes.me_router)
 api_router.include_router(post_share_routes.router)
+api_router.include_router(collection_routes.me_router)

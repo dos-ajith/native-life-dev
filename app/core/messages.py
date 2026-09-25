@@ -131,6 +131,29 @@ class PostShareMessages:
     SHARED = "Post shared"
 
 
+class SavedPostMessages:
+    SAVED = "Post saved"
+    UNSAVED = "Post unsaved"
+    ALREADY_SAVED = "You have already saved this post"
+    NOT_FOUND = "Saved post not found"
+    LIST_RETRIEVED = "Saved posts retrieved"
+
+
+class CollectionMessages:
+    CREATED = "Collection created"
+    RETRIEVED = "Collection retrieved"
+    LIST_RETRIEVED = "Collections retrieved"
+    UPDATED = "Collection updated"
+    DELETED = "Collection deleted"
+    NOT_FOUND = "Collection not found"
+    POSTS_RETRIEVED = "Collection posts retrieved"
+    POST_ADDED = "Post added to collection"
+    POST_REMOVED = "Post removed from collection"
+    POST_NOT_SAVED = "Save this post before adding it to a collection"
+    POST_ALREADY_IN_COLLECTION = "This post is already in the collection"
+    POST_NOT_IN_COLLECTION = "This post is not in the collection"
+
+
 class NotificationMessages:
     LIST_RETRIEVED = "Notifications retrieved"
     UNREAD_COUNT_RETRIEVED = "Unread notification count retrieved"

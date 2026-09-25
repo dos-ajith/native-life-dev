@@ -24,6 +24,7 @@ POST_ENGAGER_PERMISSIONS = (
     PermissionName.POST_LIKE,
     PermissionName.POST_COMMENT,
     PermissionName.POST_SHARE,
+    PermissionName.POST_SAVE,
 )
 POST_AUTHOR_PERMISSIONS = (*POST_ENGAGER_PERMISSIONS, PermissionName.POST_CREATE)
 

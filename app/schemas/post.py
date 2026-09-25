@@ -129,6 +129,7 @@ class PostDetailRead(BaseReadSchema):
     likes_count: int
     comments_count: int
     shares_count: int
+    is_saved: bool = False
 
     @classmethod
     def from_post(
@@ -137,6 +138,7 @@ class PostDetailRead(BaseReadSchema):
         author: "User",
         media: list["PostMedia"],
         tags: list["Tag"],
+        is_saved: bool = False,
     ) -> "PostDetailRead":
         return cls(
             id=post.id,
@@ -158,4 +160,5 @@ class PostDetailRead(BaseReadSchema):
             likes_count=post.likes_count,
             comments_count=post.comments_count,
             shares_count=post.shares_count,
+            is_saved=is_saved,
         )
