@@ -265,6 +265,12 @@ class PostRepository:
     def increment_shares(self, post_id: UUID) -> None:
         self._adjust_count(post_id, Post.shares_count, 1)
 
+    def increment_saved(self, post_id: UUID) -> None:
+        self._adjust_count(post_id, Post.saved_count, 1)
+
+    def decrement_saved(self, post_id: UUID) -> None:
+        self._adjust_count(post_id, Post.saved_count, -1)
+
     def _adjust_count(
         self, post_id: UUID, column: InstrumentedAttribute[int], delta: int
     ) -> None:

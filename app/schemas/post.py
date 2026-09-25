@@ -129,6 +129,7 @@ class PostDetailRead(BaseReadSchema):
     likes_count: int
     comments_count: int
     shares_count: int
+    saved_count: int
     is_saved: bool = False
 
     @classmethod
@@ -160,5 +161,6 @@ class PostDetailRead(BaseReadSchema):
             likes_count=post.likes_count,
             comments_count=post.comments_count,
             shares_count=post.shares_count,
+            saved_count=post.saved_count,
             is_saved=is_saved,
         )

@@ -288,3 +288,9 @@ class PostService:
 
     def increment_shares_count(self, post_id: UUID) -> None:
         self._posts.increment_shares(post_id)
+
+    def increment_saved_count(self, post_id: UUID) -> None:
+        self._posts.increment_saved(post_id)
+
+    def decrement_saved_count(self, post_id: UUID) -> None:
+        self._posts.decrement_saved(post_id)
