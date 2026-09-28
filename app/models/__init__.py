@@ -3,6 +3,7 @@ from app.models.activity_log import ActivityLog
 from app.models.base import Base
 from app.models.collection import Collection
 from app.models.collection_post import CollectionPost
+from app.models.email_verification_otp import EmailVerificationOtp
 from app.models.gis_district import GisDistrict
 from app.models.gis_state import GisState
 from app.models.gis_taluk import GisTaluk
@@ -37,6 +38,7 @@ __all__ = [
     "Base",
     "Collection",
     "CollectionPost",
+    "EmailVerificationOtp",
     "GisDistrict",
     "GisState",
     "GisTaluk",

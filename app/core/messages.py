@@ -7,6 +7,13 @@ class AuthMessages:
     MISSING_TOKEN = "Please login to proceed"
     INVALID_TOKEN = "Invalid or expired token"
     PERMISSION_DENIED = "You do not have permission to perform this action"
+    EMAIL_VERIFIED = "Email verified successfully"
+    EMAIL_ALREADY_VERIFIED = "Email is already verified"
+    INVALID_OR_EXPIRED_OTP = "Invalid or expired verification code"
+    OTP_MAX_ATTEMPTS_EXCEEDED = "Too many incorrect attempts. Request a new verification code."
+    VERIFICATION_CODE_SENT = (
+        "If this email is registered and not yet verified, a verification code has been sent"
+    )
 
 
 class UserMessages:

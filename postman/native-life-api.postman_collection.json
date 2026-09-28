@@ -95,6 +95,60 @@
           }
         },
         {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"dev@nativelife.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/verify-email",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "verify-email"
+              ]
+            },
+            "description": "Verifies a registered account's email using the OTP sent after registration.\n\n**Body**\n- `email` (string, required)\n- `otp` (string, required) — 4-8 digit verification code"
+          }
+        },
+        {
+          "name": "Resend Email Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"dev@nativelife.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/resend-email-verification",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "resend-email-verification"
+              ]
+            },
+            "description": "Requests a new email verification OTP. Always returns a generic success message, regardless of whether the account exists or is already verified, to avoid account enumeration.\n\n**Body**\n- `email` (string, required)"
+          }
+        },
+        {
           "name": "Me",
           "request": {
             "method": "GET",

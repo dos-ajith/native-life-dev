@@ -6,6 +6,7 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.activity_actions import ActivityAction
+from app.core.config import Settings
 from app.core.exceptions import BusinessRuleError, NotFoundError, ServiceUnavailableError
 from app.core.messages import UserMessages
 from app.core.permissions import RoleSlug
@@ -18,10 +19,12 @@ from app.repositories.user_repository import UserRepository
 from app.schemas.pagination import PaginationParams
 from app.schemas.user import UserCreate, UserSelfUpdate, UserUpdate
 from app.services.activity_log_service import ActivityLogService
+from app.services.email_verification_service import EmailVerificationService
 
 
 class UserService:
     def __init__(self, db: Session) -> None:
+        self._db = db
         self._users = UserRepository(db)
         self._roles = RoleRepository(db)
         self._activity_logs = ActivityLogService(db)
@@ -63,6 +66,7 @@ class UserService:
     def register(
         self,
         payload: UserCreate,
+        settings: Settings,
         ip_address: str | None = None,
         user_agent: str | None = None,
         image: UploadFile | None = None,
@@ -87,6 +91,7 @@ class UserService:
             ip_address=ip_address,
             user_agent=user_agent,
         )
+        EmailVerificationService(self._db, settings).issue_for_registration(user)
         return user
 
     def _create(

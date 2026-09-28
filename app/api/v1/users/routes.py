@@ -35,7 +35,12 @@ def register_user(
         first_name=first_name, last_name=last_name, email=email, phone=phone, password=password
     )
     user = UserService(db).register(
-        payload, meta.ip_address, meta.user_agent, image=image, upload_dir=settings.upload_dir
+        payload,
+        settings,
+        meta.ip_address,
+        meta.user_agent,
+        image=image,
+        upload_dir=settings.upload_dir,
     )
     return SuccessResponse(message=UserMessages.REGISTERED, data=UserRead.model_validate(user))
 

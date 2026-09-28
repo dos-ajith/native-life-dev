@@ -66,6 +66,7 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         ),
         default=UserType.PUBLIC,
     )
+    email_verified_at: Mapped[datetime | None] = mapped_column(default=None)
     deleted_at: Mapped[datetime | None] = mapped_column(default=None)
     created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
 

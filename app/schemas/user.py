@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -25,6 +26,7 @@ class UserRead(BaseModel):
     phone: str | None
     profile_image_url: str | None
     status: UserStatus
+    email_verified_at: datetime | None
     roles: list[RoleSummary]
 
 
@@ -38,6 +40,7 @@ class AuthenticatedUserRead(BaseModel):
     phone: str | None
     profile_image_url: str | None
     status: UserStatus
+    email_verified_at: datetime | None
     roles: list[RoleWithPermissions]
 
 
