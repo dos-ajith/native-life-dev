@@ -8,7 +8,7 @@ from app.models.post import PostStatus
 from app.models.post_media import PostMediaType
 from app.schemas.base import BaseReadSchema
 from app.schemas.tag import TagName, TagRead
-from app.schemas.validators import NonBlankStr
+from app.schemas.validators import AlphanumericStr, NonBlankStr
 
 if TYPE_CHECKING:
     from app.models.post import Post
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 Latitude = Annotated[float, Field(ge=-90, le=90)]
 Longitude = Annotated[float, Field(ge=-180, le=180)]
-PostTitle = Annotated[NonBlankStr, Field(max_length=255)]
+PostTitle = Annotated[AlphanumericStr, Field(max_length=255)]
 PostContent = NonBlankStr
 PostLocationName = Annotated[NonBlankStr, Field(max_length=500)]
 
