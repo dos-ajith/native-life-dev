@@ -4,9 +4,9 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.permission import PermissionRead, PermissionSummary
-from app.schemas.validators import NonBlankStr
+from app.schemas.validators import NameStr
 
-RoleName = Annotated[NonBlankStr, Field(max_length=100)]
+RoleName = Annotated[NameStr, Field(max_length=100)]
 RoleDescription = Annotated[str, Field(max_length=255)]
 
 

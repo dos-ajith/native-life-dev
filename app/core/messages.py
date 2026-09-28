@@ -197,6 +197,10 @@ class UserSettingsMessages:
 class ValidationMessages:
     INVALID_JSON_BODY = "Request body must be valid JSON"
     FIELD_REQUIRED = "This field is required"
+    NAME_BLANK = "must not be blank"
+    NAME_CONTAINS_NUMBERS = "must not contain numbers"
+    NAME_MISSING_LETTER = "must contain at least one letter"
+    NAME_NUMERIC_ONLY = "must not be numbers only"
 
 
 class HealthMessages:
