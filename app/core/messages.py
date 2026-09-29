@@ -4,6 +4,7 @@ class AuthMessages:
     LOGGED_OUT = "Logged out"
     INVALID_CREDENTIALS = "Invalid email or password"
     ACCOUNT_INACTIVE = "Account is not active"
+    EMAIL_NOT_VERIFIED = "Please verify your email before logging in"
     MISSING_TOKEN = "Please login to proceed"
     INVALID_TOKEN = "Invalid or expired token"
     PERMISSION_DENIED = "You do not have permission to perform this action"

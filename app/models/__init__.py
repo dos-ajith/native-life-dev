@@ -3,6 +3,7 @@ from app.models.activity_log import ActivityLog
 from app.models.base import Base
 from app.models.collection import Collection
 from app.models.collection_post import CollectionPost
+from app.models.email import Email
 from app.models.email_verification_otp import EmailVerificationOtp
 from app.models.gis_district import GisDistrict
 from app.models.gis_state import GisState
@@ -27,6 +28,7 @@ from app.models.user_content_preferred_district import user_content_preferred_di
 from app.models.user_content_preferred_tag import user_content_preferred_tags
 from app.models.user_content_settings import UserContentSettings
 from app.models.user_follow import UserFollow
+from app.models.user_follow_request import UserFollowRequest
 from app.models.user_has_role import user_has_roles
 from app.models.user_notification_settings import UserNotificationSettings
 from app.models.user_privacy_settings import UserPrivacySettings
@@ -38,6 +40,7 @@ __all__ = [
     "Base",
     "Collection",
     "CollectionPost",
+    "Email",
     "EmailVerificationOtp",
     "GisDistrict",
     "GisState",
@@ -58,6 +61,7 @@ __all__ = [
     "UserAISettings",
     "UserContentSettings",
     "UserFollow",
+    "UserFollowRequest",
     "UserNotificationSettings",
     "UserPrivacySettings",
     "UserSettings",

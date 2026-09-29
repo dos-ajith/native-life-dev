@@ -7,7 +7,7 @@ from app.core.exceptions import AuthenticationError
 from app.core.jwt import create_access_token
 from app.core.messages import AuthMessages
 from app.core.security import verify_password
-from app.models.user import User, UserStatus
+from app.models.user import User, UserStatus, UserType
 from app.repositories.active_token_repository import ActiveTokenRepository
 from app.repositories.user_repository import UserRepository
 
@@ -22,6 +22,8 @@ class AuthService:
         user = self._users.get_by_email(email)
         if user is None or not verify_password(password, user.password_hash):
             raise AuthenticationError(AuthMessages.INVALID_CREDENTIALS)
+        if user.user_type == UserType.PUBLIC and user.email_verified_at is None:
+            raise AuthenticationError(AuthMessages.EMAIL_NOT_VERIFIED)
         if user.status != UserStatus.ACTIVE:
             raise AuthenticationError(AuthMessages.ACCOUNT_INACTIVE)
         issued = create_access_token(user.id, self._settings)

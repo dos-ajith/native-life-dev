@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     otp_max_attempts: int = 5
     otp_resend_cooldown_seconds: int = 60
 
+    mandrill_enabled: bool = False
+
     smtp_host: str | None = None
     smtp_port: int = 587
     smtp_username: str | None = None

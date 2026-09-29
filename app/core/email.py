@@ -1,48 +1,90 @@
 import logging
 import smtplib
-from email.message import EmailMessage
+from dataclasses import dataclass
+from email.message import EmailMessage as MimeMessage
+from email.utils import make_msgid
+from functools import lru_cache
+from typing import Protocol
 
-from app.core.config import Settings
-from app.core.email_templates import render_verification_otp_email
+from app.core.config import Settings, get_settings
 
 logger = logging.getLogger(__name__)
 
 
-def send_email(
-    to_email: str, subject: str, text_body: str, settings: Settings, html_body: str | None = None
-) -> None:
-    if not settings.smtp_host or not settings.mail_from_email:
-        logger.error("Email not sent to %s: SMTP is not configured", to_email)
-        return
-
-    message = EmailMessage()
-    message["Subject"] = subject
-    message["From"] = f"{settings.app_name} <{settings.mail_from_email}>"
-    message["To"] = to_email
-    message.set_content(text_body)
-    if html_body is not None:
-        message.add_alternative(html_body, subtype="html")
-
-    try:
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as server:
-            if settings.smtp_use_tls:
-                server.starttls()
-            if settings.smtp_username and settings.smtp_password:
-                server.login(settings.smtp_username, settings.smtp_password)
-            server.send_message(message)
-    except (smtplib.SMTPException, OSError):
-        logger.exception("Failed to send email to %s", to_email)
+@dataclass(frozen=True)
+class OutgoingEmail:
+    to_email: str
+    from_email: str | None
+    subject: str
+    text_body: str
+    html_body: str | None = None
 
 
-def send_email_verification_otp(
-    to_email: str, otp: str, expire_minutes: int, settings: Settings
-) -> None:
-    content = render_verification_otp_email(
-        app_name=settings.app_name,
-        otp=otp,
-        expire_minutes=expire_minutes,
-        support_url=settings.support_url,
-        privacy_policy_url=settings.privacy_policy_url,
-        terms_of_service_url=settings.terms_of_service_url,
-    )
-    send_email(to_email, content.subject, content.text_body, settings, html_body=content.html_body)
+@dataclass(frozen=True)
+class EmailSendResult:
+    success: bool
+    provider_message_id: str | None = None
+    error_code: str | None = None
+    error_message: str | None = None
+
+
+class EmailProvider(Protocol):
+    name: str
+
+    def send(self, message: OutgoingEmail) -> EmailSendResult: ...
+
+
+class SmtpEmailProvider:
+    name: str = "smtp"
+
+    def __init__(self, settings: Settings) -> None:
+        self._settings = settings
+
+    def send(self, message: OutgoingEmail) -> EmailSendResult:
+        if not self._settings.smtp_host or not message.from_email:
+            logger.error("Email not sent to %s: SMTP is not configured", message.to_email)
+            return EmailSendResult(
+                success=False,
+                error_code="smtp_not_configured",
+                error_message="SMTP host or from-address is not configured",
+            )
+
+        message_id = make_msgid()
+        mime_message = MimeMessage()
+        mime_message["Message-Id"] = message_id
+        mime_message["Subject"] = message.subject
+        mime_message["From"] = f"{self._settings.app_name} <{message.from_email}>"
+        mime_message["To"] = message.to_email
+        mime_message.set_content(message.text_body)
+        if message.html_body is not None:
+            mime_message.add_alternative(message.html_body, subtype="html")
+
+        try:
+            with smtplib.SMTP(
+                self._settings.smtp_host, self._settings.smtp_port, timeout=10
+            ) as server:
+                if self._settings.smtp_use_tls:
+                    server.starttls()
+                if self._settings.smtp_username and self._settings.smtp_password:
+                    server.login(self._settings.smtp_username, self._settings.smtp_password)
+                refused = server.send_message(mime_message)
+        except (smtplib.SMTPException, OSError) as exc:
+            logger.exception("Failed to send email to %s", message.to_email)
+            return EmailSendResult(
+                success=False, error_code=type(exc).__name__, error_message=str(exc)
+            )
+
+        if refused:
+            logger.error("Recipients refused for %s: %s", message.to_email, refused)
+            return EmailSendResult(
+                success=False,
+                error_code="recipient_refused",
+                error_message=f"Refused for: {', '.join(refused)}",
+            )
+
+        return EmailSendResult(success=True, provider_message_id=message_id)
+
+
+@lru_cache
+def get_email_provider() -> EmailProvider:
+    return SmtpEmailProvider(get_settings())

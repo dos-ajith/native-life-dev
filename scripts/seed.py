@@ -10,6 +10,7 @@ from app.repositories.permission_repository import PermissionRepository
 from app.repositories.role_repository import RoleRepository
 from app.repositories.setting_repository import SettingRepository
 from app.repositories.user_repository import UserRepository
+from app.services.email_service import MANDRILL_ENABLED_SETTING_KEY
 from app.utils.slug import slugify
 
 DEFAULT_USER_PASSWORD = "Password123!"
@@ -149,6 +150,11 @@ def seed_settings() -> None:
         for key, value in DEFAULT_SETTINGS.items():
             _get_or_create_setting(settings, key, value)
         _get_or_create_setting(settings, "app_timezone", get_settings().default_timezone)
+        _get_or_create_setting(
+            settings,
+            MANDRILL_ENABLED_SETTING_KEY,
+            "true" if get_settings().mandrill_enabled else "false",
+        )
     finally:
         db.close()
 
