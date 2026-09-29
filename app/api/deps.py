@@ -115,11 +115,11 @@ OptionalActiveUserDep = Annotated[User | None, Depends(get_optional_active_user)
 
 def require_permission_or_guest(
     permission: str,
-) -> Callable[[User | None, Session], User | None]:
-    def dependency(user: OptionalActiveUserDep, db: DbSessionDep) -> User | None:
+) -> Callable[[User | None], User | None]:
+    def dependency(user: OptionalActiveUserDep) -> User | None:
         if user is not None and has_permission(user, permission):
             return user
-        if guest_has_permission(db, permission):
+        if guest_has_permission(permission):
             return user
         if user is None:
             raise AuthenticationError(AuthMessages.MISSING_TOKEN)

@@ -72,7 +72,7 @@ class UserService:
         image: UploadFile | None = None,
         upload_dir: str | None = None,
     ) -> User:
-        default_role = self._roles.get_by_slug(RoleSlug.PUBLIC_AUTHORITY)
+        default_role = self._roles.get_by_slug(RoleSlug.PUBLIC_USER)
         if default_role is None:
             raise ServiceUnavailableError(UserMessages.DEFAULT_ROLE_MISSING)
         user = self._create(

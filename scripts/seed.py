@@ -36,7 +36,7 @@ ROLE_PERMISSIONS: dict[str, tuple[str, ...]] = {
     "Business Profile": POST_AUTHOR_PERMISSIONS,
     "Promoter": POST_AUTHOR_PERMISSIONS,
     "Delivery Team Member": POST_ENGAGER_PERMISSIONS,
-    "Public User": READER_PERMISSIONS,
+    "Public User": POST_AUTHOR_PERMISSIONS,
 }
 
 ROLE_USERS = {

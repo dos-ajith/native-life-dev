@@ -1,7 +1,6 @@
 class RoleSlug:
     SUPER_ADMIN = "super-admin"
-    PUBLIC_AUTHORITY = "public-authority"
-    GUEST = "public-user"
+    PUBLIC_USER = "public-user"
 
 
 class PermissionName:
@@ -43,3 +42,6 @@ class PermissionName:
     POST_SAVE = "post.save"
 
     COMMENT_DELETE_ANY = "comment.delete_any"
+
+
+GUEST_PERMISSIONS = frozenset({PermissionName.POST_VIEW, PermissionName.PAGE_READ})
