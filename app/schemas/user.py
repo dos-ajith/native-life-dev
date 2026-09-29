@@ -44,6 +44,10 @@ class AuthenticatedUserRead(BaseModel):
     roles: list[RoleWithPermissions]
 
 
+class UserRegistrationResult(BaseModel):
+    email: EmailStr
+
+
 class UserCreate(BaseModel):
     first_name: Name
     last_name: Name

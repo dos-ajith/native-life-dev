@@ -1505,7 +1505,7 @@
                     "register"
                   ]
                 },
-                "description": "Self-registers a new customer account (public), as multipart/form-data so the profile image can be uploaded in the same request.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) — must be unique among active (non-deleted) users\n- `phone` (string, optional) — must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) — hashed server-side, never stored in plaintext\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update my profile image'."
+                "description": "Self-registers a new customer account (public), as multipart/form-data so the profile image can be uploaded in the same request. Does not log the user in or return their profile — an OTP is emailed for verification; after verifying via 'Verify Email', the user logs in separately via 'Login'.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) — must be unique among active (non-deleted) users\n- `phone` (string, optional) — must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) — hashed server-side, never stored in plaintext\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update my profile image'."
               }
             },
             {

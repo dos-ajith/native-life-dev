@@ -11,14 +11,16 @@ from app.api.deps import (
 )
 from app.core.messages import UserMessages
 from app.schemas.response import SuccessResponse
-from app.schemas.user import UserCreate, UserRead, UserSelfUpdate
+from app.schemas.user import UserCreate, UserRead, UserRegistrationResult, UserSelfUpdate
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.post(
-    "/register", response_model=SuccessResponse[UserRead], status_code=status.HTTP_201_CREATED
+    "/register",
+    response_model=SuccessResponse[UserRegistrationResult],
+    status_code=status.HTTP_201_CREATED,
 )
 def register_user(
     db: DbSessionDep,
@@ -30,7 +32,7 @@ def register_user(
     password: Annotated[str, Form()],
     phone: Annotated[str | None, Form()] = None,
     image: Annotated[UploadFile | None, File()] = None,
-) -> SuccessResponse[UserRead]:
+) -> SuccessResponse[UserRegistrationResult]:
     payload = UserCreate(
         first_name=first_name, last_name=last_name, email=email, phone=phone, password=password
     )
@@ -42,7 +44,9 @@ def register_user(
         image=image,
         upload_dir=settings.upload_dir,
     )
-    return SuccessResponse(message=UserMessages.REGISTERED, data=UserRead.model_validate(user))
+    return SuccessResponse(
+        message=UserMessages.REGISTERED, data=UserRegistrationResult(email=user.email)
+    )
 
 
 @router.patch("/me", response_model=SuccessResponse[UserRead])

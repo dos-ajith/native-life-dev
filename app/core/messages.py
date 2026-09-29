@@ -18,7 +18,7 @@ class AuthMessages:
 
 
 class UserMessages:
-    REGISTERED = "Registration successful"
+    REGISTERED = "Registration successful. Please check your email for the verification code."
     CREATED = "User created"
     RETRIEVED = "User retrieved"
     LIST_RETRIEVED = "Users retrieved"
