@@ -222,6 +222,24 @@ class StorageMessages:
     IMAGE_TOO_LARGE = "Image must be 5MB or smaller"
     INVALID_VIDEO_TYPE = "Video must be MP4, MOV, or WebM"
     VIDEO_TOO_LARGE = "Video must be 100MB or smaller"
+    INVALID_DOCUMENT_TYPE = "Document must be a JPEG, PNG, WebP, or PDF file"
+    DOCUMENT_TOO_LARGE = "Document must be 10MB or smaller"
+
+
+class RoleUpgradeRequestMessages:
+    SUBMITTED = "Role upgrade request submitted"
+    RETRIEVED = "Role upgrade request retrieved"
+    LIST_RETRIEVED = "Role upgrade requests retrieved"
+    DOCUMENT_ADDED = "Document added to role upgrade request"
+    APPROVED = "Role upgrade request approved"
+    REJECTED = "Role upgrade request rejected"
+    NOT_FOUND = "Role upgrade request not found"
+    DOCUMENT_NOT_FOUND = "Document not found"
+    UNKNOWN_ROLE = "Requested role does not exist"
+    RESTRICTED_ROLE = "This role cannot be requested through self-service upgrade"
+    ALREADY_HAS_ROLE = "You already have the requested role"
+    DUPLICATE_PENDING_REQUEST = "You already have a pending request for this role"
+    REQUEST_NOT_PENDING = "This request has already been reviewed"
 
 
 class GeographyMessages:

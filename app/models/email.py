@@ -12,6 +12,8 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 class EmailType(enum.StrEnum):
     EMAIL_VERIFICATION = "email_verification"
+    ROLE_UPGRADE_APPROVED = "role_upgrade_approved"
+    ROLE_UPGRADE_REJECTED = "role_upgrade_rejected"
 
 
 class EmailStatus(enum.StrEnum):

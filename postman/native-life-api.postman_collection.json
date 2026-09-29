@@ -91,7 +91,7 @@
                 "login"
               ]
             },
-            "description": "Authenticates with email and password, returns a JWT access token.\n\n**Body**\n- `email` (string, required) — registered account email\n- `password` (string, required)"
+            "description": "Authenticates with email and password, returns a JWT access token.\n\n**Body**\n- `email` (string, required) \u2014 registered account email\n- `password` (string, required)"
           }
         },
         {
@@ -118,7 +118,7 @@
                 "verify-email"
               ]
             },
-            "description": "Verifies a registered account's email using the OTP sent after registration.\n\n**Body**\n- `email` (string, required)\n- `otp` (string, required) — 4-8 digit verification code"
+            "description": "Verifies a registered account's email using the OTP sent after registration.\n\n**Body**\n- `email` (string, required)\n- `otp` (string, required) \u2014 4-8 digit verification code"
           }
         },
         {
@@ -277,7 +277,7 @@
                     "create"
                   ]
                 },
-                "description": "Creates a new user account (admin only), as multipart/form-data so the profile image can be uploaded in the same request.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) — must be unique among active (non-deleted) users\n- `phone` (string, optional) — must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) — hashed server-side, never stored in plaintext\n- `role_ids` (repeated field, optional) — one value per role UUID to assign on creation. Omit entirely to create the user with no roles.\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update user image'."
+                "description": "Creates a new user account (admin only), as multipart/form-data so the profile image can be uploaded in the same request.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) \u2014 must be unique among active (non-deleted) users\n- `phone` (string, optional) \u2014 must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) \u2014 hashed server-side, never stored in plaintext\n- `role_ids` (repeated field, optional) \u2014 one value per role UUID to assign on creation. Omit entirely to create the user with no roles.\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update user image'."
               }
             },
             {
@@ -402,7 +402,7 @@
                     }
                   ]
                 },
-                "description": "Updates a user's details (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `first_name` (string, optional)\n- `last_name` (string, optional)\n- `email` (string, optional) — must stay unique among active (non-deleted) users\n- `phone` (string, optional) — must stay unique among active (non-deleted) users\n- `status` (enum, optional) — one of: active, inactive, suspended, pending_verification\n- `user_type` (enum, optional) — one of: public, private (private = admin access)\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB"
+                "description": "Updates a user's details (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `first_name` (string, optional)\n- `last_name` (string, optional)\n- `email` (string, optional) \u2014 must stay unique among active (non-deleted) users\n- `phone` (string, optional) \u2014 must stay unique among active (non-deleted) users\n- `status` (enum, optional) \u2014 one of: active, inactive, suspended, pending_verification\n- `user_type` (enum, optional) \u2014 one of: public, private (private = admin access)\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB"
               }
             },
             {
@@ -490,7 +490,7 @@
                     }
                   ]
                 },
-                "description": "Replaces the full set of roles assigned to a user (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `role_ids` (repeated field, one value per UUID) — replaces existing roles entirely, not additive. Send the key multiple times for multiple roles; omit it to clear all roles."
+                "description": "Replaces the full set of roles assigned to a user (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `role_ids` (repeated field, one value per UUID) \u2014 replaces existing roles entirely, not additive. Send the key multiple times for multiple roles; omit it to clear all roles."
               }
             },
             {
@@ -566,7 +566,7 @@
                     "create"
                   ]
                 },
-                "description": "Creates a new role (admin only), as multipart/form-data. A url-safe `slug` is auto-generated from `name` (e.g. 'Public User' -> 'public-user') and returned in the response; it cannot be set directly and never changes afterward, even if `name` is later updated.\n\n**Body (form-data)**\n- `name` (string, required) — must be unique\n- `description` (string, optional)"
+                "description": "Creates a new role (admin only), as multipart/form-data. A url-safe `slug` is auto-generated from `name` (e.g. 'Public User' -> 'public-user') and returned in the response; it cannot be set directly and never changes afterward, even if `name` is later updated.\n\n**Body (form-data)**\n- `name` (string, required) \u2014 must be unique\n- `description` (string, optional)"
               }
             },
             {
@@ -680,7 +680,7 @@
                     }
                   ]
                 },
-                "description": "Updates a role's name/description (admin only), as multipart/form-data. Only the fields you include are changed. `slug` is immutable and does not change even if `name` does.\n\n**Body (form-data)**\n- `name` (string, optional) — must stay unique\n- `description` (string, optional)"
+                "description": "Updates a role's name/description (admin only), as multipart/form-data. Only the fields you include are changed. `slug` is immutable and does not change even if `name` does.\n\n**Body (form-data)**\n- `name` (string, optional) \u2014 must stay unique\n- `description` (string, optional)"
               }
             },
             {
@@ -724,7 +724,7 @@
                     }
                   ]
                 },
-                "description": "Replaces the full set of permissions assigned to a role (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `permission_ids` (repeated field, one value per UUID) — replaces existing permissions entirely, not additive. Send the key multiple times for multiple permissions; omit it to clear all permissions."
+                "description": "Replaces the full set of permissions assigned to a role (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `permission_ids` (repeated field, one value per UUID) \u2014 replaces existing permissions entirely, not additive. Send the key multiple times for multiple permissions; omit it to clear all permissions."
               }
             },
             {
@@ -800,7 +800,7 @@
                     "create"
                   ]
                 },
-                "description": "Creates a new permission (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `name` (string, required) — must be unique\n- `description` (string, optional)"
+                "description": "Creates a new permission (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `name` (string, required) \u2014 must be unique\n- `description` (string, optional)"
               }
             },
             {
@@ -909,7 +909,7 @@
                     }
                   ]
                 },
-                "description": "Updates a permission's name/description (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `name` (string, optional) — must stay unique\n- `description` (string, optional)"
+                "description": "Updates a permission's name/description (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `name` (string, optional) \u2014 must stay unique\n- `description` (string, optional)"
               }
             },
             {
@@ -996,7 +996,7 @@
                     "create"
                   ]
                 },
-                "description": "Creates a new content page (admin only), as multipart/form-data so the featured image can be uploaded in the same request. A url-safe `slug` is auto-generated from `title` and returned in the response; it cannot be set directly and never changes afterward, even if `title` is later updated. `created_by`/`updated_by` are set to the authenticated admin, not from the body.\n\n**Body (form-data)**\n- `title` (string, required) — slug must be unique\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) — one of: draft, published, archived. `published_at` is set automatically the first time status becomes `published`.\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB. Leave empty to create without an image; it can be added later via 'Update page image'."
+                "description": "Creates a new content page (admin only), as multipart/form-data so the featured image can be uploaded in the same request. A url-safe `slug` is auto-generated from `title` and returned in the response; it cannot be set directly and never changes afterward, even if `title` is later updated. `created_by`/`updated_by` are set to the authenticated admin, not from the body.\n\n**Body (form-data)**\n- `title` (string, required) \u2014 slug must be unique\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) \u2014 one of: draft, published, archived. `published_at` is set automatically the first time status becomes `published`.\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Leave empty to create without an image; it can be added later via 'Update page image'."
               }
             },
             {
@@ -1148,7 +1148,7 @@
                     }
                   ]
                 },
-                "description": "Updates a page's title/content/status (admin only), as multipart/form-data. Only the fields you include are changed. `slug` is immutable and does not change even if `title` does. `updated_by` is set to the authenticated admin; `published_at` is set automatically the first time status becomes `published`.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional) — one of: draft, published, archived\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB. Can also be set via 'Update page image'."
+                "description": "Updates a page's title/content/status (admin only), as multipart/form-data. Only the fields you include are changed. `slug` is immutable and does not change even if `title` does. `updated_by` is set to the authenticated admin; `published_at` is set automatically the first time status becomes `published`.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional) \u2014 one of: draft, published, archived\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set via 'Update page image'."
               }
             },
             {
@@ -1268,7 +1268,7 @@
                     "create"
                   ]
                 },
-                "description": "Creates a new key-value app setting (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `key` (string, required) — must be unique, e.g. app_name\n- `value` (string, optional) — stored as text; app decides how to interpret it"
+                "description": "Creates a new key-value app setting (admin only), as multipart/form-data.\n\n**Body (form-data)**\n- `key` (string, required) \u2014 must be unique, e.g. app_name\n- `value` (string, optional) \u2014 stored as text; app decides how to interpret it"
               }
             },
             {
@@ -1409,7 +1409,7 @@
                     }
                   ]
                 },
-                "description": "Updates a setting's key or value (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `key` (string, optional) — must stay unique\n- `value` (string, optional)"
+                "description": "Updates a setting's key or value (admin only), as multipart/form-data. Only the fields you include are changed.\n\n**Body (form-data)**\n- `key` (string, optional) \u2014 must stay unique\n- `value` (string, optional)"
               }
             },
             {
@@ -1442,6 +1442,161 @@
                   ]
                 },
                 "description": "Deletes a setting (admin only)."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Role Upgrade Requests",
+          "item": [
+            {
+              "name": "List pending role upgrade requests",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/role-upgrade-requests?page=1&page_size=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "role-upgrade-requests"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Lists pending role upgrade requests awaiting admin review."
+              }
+            },
+            {
+              "name": "Get role upgrade request",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/role-upgrade-requests/:request_id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "role-upgrade-requests",
+                    ":request_id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "request_id",
+                      "value": "",
+                      "description": "UUID of the request"
+                    }
+                  ]
+                },
+                "description": "Retrieves any role upgrade request by id, including its submitted documents metadata (admin only)."
+              }
+            },
+            {
+              "name": "Approve role upgrade request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "review_note",
+                      "value": "",
+                      "type": "text",
+                      "description": "Optional note recorded with the approval"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/role-upgrade-requests/:request_id/approve",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "role-upgrade-requests",
+                    ":request_id",
+                    "approve"
+                  ],
+                  "variable": [
+                    {
+                      "key": "request_id",
+                      "value": "",
+                      "description": "UUID of the request"
+                    }
+                  ]
+                },
+                "description": "Approves a pending role upgrade request: assigns the requested role to the user (preserving their existing roles), records the reviewer/timestamp, sends an approval email, and creates an in-app notification. Fails if the request is not pending."
+              }
+            },
+            {
+              "name": "Reject role upgrade request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "review_note",
+                      "value": "",
+                      "type": "text",
+                      "description": "Required. Reason for rejection"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/role-upgrade-requests/:request_id/reject",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "role-upgrade-requests",
+                    ":request_id",
+                    "reject"
+                  ],
+                  "variable": [
+                    {
+                      "key": "request_id",
+                      "value": "",
+                      "description": "UUID of the request"
+                    }
+                  ]
+                },
+                "description": "Rejects a pending role upgrade request with a required reason. Does not assign the requested role. Records the reviewer/timestamp and creates an in-app notification. Fails if the request is not pending."
               }
             }
           ]
@@ -1505,7 +1660,7 @@
                     "register"
                   ]
                 },
-                "description": "Self-registers a new customer account (public), as multipart/form-data so the profile image can be uploaded in the same request. Does not log the user in or return their profile — an OTP is emailed for verification; after verifying via 'Verify Email', the user logs in separately via 'Login'.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) — must be unique among active (non-deleted) users\n- `phone` (string, optional) — must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) — hashed server-side, never stored in plaintext\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update my profile image'."
+                "description": "Self-registers a new customer account (public), as multipart/form-data so the profile image can be uploaded in the same request. Does not log the user in or return their profile \u2014 an OTP is emailed for verification; after verifying via 'Verify Email', the user logs in separately via 'Login'.\n\n**Body (form-data)**\n- `first_name` (string, required)\n- `last_name` (string, required)\n- `email` (string, required) \u2014 must be unique among active (non-deleted) users\n- `phone` (string, optional) \u2014 must be unique among active (non-deleted) users if provided\n- `password` (string, required, min 8 chars) \u2014 hashed server-side, never stored in plaintext\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set later via 'Update my profile image'."
               }
             },
             {
@@ -1544,7 +1699,7 @@
                     "me"
                   ]
                 },
-                "description": "Updates the authenticated user's own profile, as multipart/form-data. Only the fields you include are changed. Email cannot be changed through this endpoint.\n\n**Body (form-data)**\n- `first_name` (string, optional)\n- `last_name` (string, optional)\n- `phone` (string, optional) — must stay unique among active (non-deleted) users\n- `image` (file, optional) — JPEG/PNG/WebP, max 5MB. Can also be set via 'Update my profile image'."
+                "description": "Updates the authenticated user's own profile, as multipart/form-data. Only the fields you include are changed. Email cannot be changed through this endpoint.\n\n**Body (form-data)**\n- `first_name` (string, optional)\n- `last_name` (string, optional)\n- `phone` (string, optional) \u2014 must stay unique among active (non-deleted) users\n- `image` (file, optional) \u2014 JPEG/PNG/WebP, max 5MB. Can also be set via 'Update my profile image'."
               }
             },
             {
@@ -1606,7 +1761,7 @@
                     "posts"
                   ]
                 },
-                "description": "Creates a post owned by the authenticated user, as multipart/form-data so images and/or videos can be attached in the same request — there is no separate 'add media' endpoint. `user_id` is always taken from the authenticated user, never from the body.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) — one of: draft, scheduled, published. `published_at`/`published_by` are set automatically the first time status becomes `published` (`published_by` is whoever made this call, which may be an admin publishing on the owner's behalf).\n- `scheduled_at` (datetime, required when status is `scheduled`)\n- `latitude` / `longitude` (float, optional, provide both together) — WGS84 coordinates of where the post was created; stored as a PostGIS point.\n- `location_name` (string, optional) — human-readable place name. If omitted and latitude/longitude are given, it's auto-filled via reverse geocoding (taluk, district, state) against imported geography data; left null if nothing matches. Provide it explicitly to override or to set a place name without geocoding.\n- `tags` (string[], optional, repeat the `tags` key for each tag) — tag names, e.g. `Kerala`, `Travel`. Resolved against a normalized, case-insensitive slug (`Kerala` -> `kerala`), reusing an existing tag or creating a new one as needed. Client never sends tag IDs.\n- `images` (file[], optional) — JPEG/PNG/WebP, max 5MB each\n- `videos` (file[], optional) — MP4/MOV/WebM, max 100MB each\n- `video_thumbnails` (file[], required if `videos` is set) — one cover image per video, matched by position",
+                "description": "Creates a post owned by the authenticated user, as multipart/form-data so images and/or videos can be attached in the same request \u2014 there is no separate 'add media' endpoint. `user_id` is always taken from the authenticated user, never from the body.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) \u2014 one of: draft, scheduled, published. `published_at`/`published_by` are set automatically the first time status becomes `published` (`published_by` is whoever made this call, which may be an admin publishing on the owner's behalf).\n- `scheduled_at` (datetime, required when status is `scheduled`)\n- `latitude` / `longitude` (float, optional, provide both together) \u2014 WGS84 coordinates of where the post was created; stored as a PostGIS point.\n- `location_name` (string, optional) \u2014 human-readable place name. If omitted and latitude/longitude are given, it's auto-filled via reverse geocoding (taluk, district, state) against imported geography data; left null if nothing matches. Provide it explicitly to override or to set a place name without geocoding.\n- `tags` (string[], optional, repeat the `tags` key for each tag) \u2014 tag names, e.g. `Kerala`, `Travel`. Resolved against a normalized, case-insensitive slug (`Kerala` -> `kerala`), reusing an existing tag or creating a new one as needed. Client never sends tag IDs.\n- `images` (file[], optional) \u2014 JPEG/PNG/WebP, max 5MB each\n- `videos` (file[], optional) \u2014 MP4/MOV/WebM, max 100MB each\n- `video_thumbnails` (file[], required if `videos` is set) \u2014 one cover image per video, matched by position",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
@@ -1758,7 +1913,7 @@
                     }
                   ]
                 },
-                "description": "Updates a post, as multipart/form-data. Only the owner (or an admin) may update it. Only the fields included are changed. Any images/videos included are appended to the post's existing media (this endpoint never removes media, use 'Delete post media' for that).\n\n**Body (form-data)** — same optional fields as Create post (including `latitude`/`longitude`, which re-run the reverse-geocode fallback for `location_name` unless you also pass `location_name` explicitly). Publishing here (status becomes `published`) also sets `published_by` to whoever made this call. `title` and `location_name` can also be changed independently of media/coordinates. `tags`, if included at all (even as an empty value), replaces the post's entire tag set; omit the key to leave existing tags untouched.",
+                "description": "Updates a post, as multipart/form-data. Only the owner (or an admin) may update it. Only the fields included are changed. Any images/videos included are appended to the post's existing media (this endpoint never removes media, use 'Delete post media' for that).\n\n**Body (form-data)** \u2014 same optional fields as Create post (including `latitude`/`longitude`, which re-run the reverse-geocode fallback for `location_name` unless you also pass `location_name` explicitly). Publishing here (status becomes `published`) also sets `published_by` to whoever made this call. `title` and `location_name` can also be changed independently of media/coordinates. `tags`, if included at all (even as an empty value), replaces the post's entire tag set; omit the key to leave existing tags untouched.",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
@@ -1947,7 +2102,7 @@
                     }
                   ]
                 },
-                "description": "Adds a comment to a post. Pass parent_id to reply to an existing comment on the same post.\n\n**Body (json)**\n- content (string, required)\n- parent_id (UUID, optional) — id of the comment being replied to",
+                "description": "Adds a comment to a post. Pass parent_id to reply to an existing comment on the same post.\n\n**Body (json)**\n- content (string, required)\n- parent_id (UUID, optional) \u2014 id of the comment being replied to",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"content\": \"Nice post!\",\n  \"parent_id\": null\n}",
@@ -1997,7 +2152,7 @@
                     }
                   ]
                 },
-                "description": "Returns a paginated list of top-level comments for a post, newest first. Each comment carries its full reply thread nested under `replies` (unpaginated, in chronological order, arbitrarily deep). `page`/`page_size`/`total`/`pages` apply to top-level threads only — replies are not counted or paginated separately. Auth optional: guests and other users only see published posts; the owner also sees their own draft/scheduled posts, and users with post.update_any see all. Hidden posts return 404."
+                "description": "Returns a paginated list of top-level comments for a post, newest first. Each comment carries its full reply thread nested under `replies` (unpaginated, in chronological order, arbitrarily deep). `page`/`page_size`/`total`/`pages` apply to top-level threads only \u2014 replies are not counted or paginated separately. Auth optional: guests and other users only see published posts; the owner also sees their own draft/scheduled posts, and users with post.update_any see all. Hidden posts return 404."
               }
             },
             {
@@ -2121,7 +2276,7 @@
                     }
                   ]
                 },
-                "description": "Records that the authenticated user shared a post. A user may share the same post more than once (each share is a separate record), unlike likes.\n\n**Body (json, optional)**\n- `utm_source` (string, optional) — where the share came from (e.g. whatsapp, facebook, copy_link), for attribution. Omit the body entirely if not tracking this.",
+                "description": "Records that the authenticated user shared a post. A user may share the same post more than once (each share is a separate record), unlike likes.\n\n**Body (json, optional)**\n- `utm_source` (string, optional) \u2014 where the share came from (e.g. whatsapp, facebook, copy_link), for attribution. Omit the body entirely if not tracking this.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"utm_source\": \"whatsapp\"\n}",
@@ -3113,7 +3268,7 @@
                     "ai"
                   ]
                 },
-                "description": "**Body** (all optional)\n- `ai_enabled` (bool)\n- `personalization_enabled` (bool)\n- `preferred_language` (string) — e.g. `en`, `ml`, `ta`, `hi`; not restricted to a fixed list\n- `response_style` (`concise` | `balanced` | `detailed`)"
+                "description": "**Body** (all optional)\n- `ai_enabled` (bool)\n- `personalization_enabled` (bool)\n- `preferred_language` (string) \u2014 e.g. `en`, `ml`, `ta`, `hi`; not restricted to a fixed list\n- `response_style` (`concise` | `balanced` | `detailed`)"
               }
             },
             {
@@ -3169,7 +3324,7 @@
                     "notifications"
                   ]
                 },
-                "description": "**Body** (all optional booleans)\n- `push_enabled`, `email_enabled` — channels\n- `post_activity`, `comments`, `likes`, `mentions`, `followers`, `messages`, `ai_updates`, `system_updates` — notification types"
+                "description": "**Body** (all optional booleans)\n- `push_enabled`, `email_enabled` \u2014 channels\n- `post_activity`, `comments`, `likes`, `mentions`, `followers`, `messages`, `ai_updates`, `system_updates` \u2014 notification types"
               }
             },
             {
@@ -3225,7 +3380,7 @@
                     "privacy"
                   ]
                 },
-                "description": "**Body** (all optional)\n- `profile_visibility` (`public` | `private`) — controls whether new follows on this user require approval\n- `location_visibility`, `activity_visibility` (`public` | `followers` | `private`)\n- `allow_messages`, `allow_mentions` (bool)"
+                "description": "**Body** (all optional)\n- `profile_visibility` (`public` | `private`) \u2014 controls whether new follows on this user require approval\n- `location_visibility`, `activity_visibility` (`public` | `followers` | `private`)\n- `allow_messages`, `allow_mentions` (bool)"
               }
             },
             {
@@ -3281,7 +3436,7 @@
                     "content"
                   ]
                 },
-                "description": "**Body** (all optional)\n- `preferred_category_ids` (UUID[]) — existing tag ids; replaces the full set\n- `preferred_location_ids` (UUID[]) — existing GIS district ids; replaces the full set\n- `language_filter` (string, nullable) — restrict feed content to one language\n- `hide_sensitive_content` (bool)\n- `personalized_feed` (bool)"
+                "description": "**Body** (all optional)\n- `preferred_category_ids` (UUID[]) \u2014 existing tag ids; replaces the full set\n- `preferred_location_ids` (UUID[]) \u2014 existing GIS district ids; replaces the full set\n- `language_filter` (string, nullable) \u2014 restrict feed content to one language\n- `hide_sensitive_content` (bool)\n- `personalized_feed` (bool)"
               }
             }
           ]
@@ -3466,6 +3621,197 @@
                   ]
                 },
                 "description": "Authenticated. Resolves the coordinates to a single formatted location name (taluk, district, state) in the same format used to auto-fill a post's location_name. 404 if no boundary matches."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Role Upgrade Requests",
+          "item": [
+            {
+              "name": "Submit role upgrade request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "requested_role_id",
+                      "value": "",
+                      "type": "text",
+                      "description": "UUID of the role being requested"
+                    },
+                    {
+                      "key": "reason",
+                      "value": "",
+                      "type": "text",
+                      "description": "Optional. Why you are requesting this role"
+                    },
+                    {
+                      "key": "document",
+                      "type": "file",
+                      "src": "",
+                      "description": "Optional. Verification document (JPEG/PNG/WebP/PDF, max 10MB). Additional documents can be attached afterwards via 'Add document to role upgrade request'."
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/role-upgrade-requests",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "role-upgrade-requests"
+                  ]
+                },
+                "description": "Submits a request to upgrade the authenticated user's account to another role (e.g. Promoter, Business Profile, Supplier, Public Authority), optionally attaching a verification document. Fails if a pending request for the same role already exists, if the role does not exist, if the role is restricted (Super Admin/Native Admin), or if the user already has the role."
+              }
+            },
+            {
+              "name": "List my role upgrade requests",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/role-upgrade-requests?page=1&page_size=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "role-upgrade-requests"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Lists the authenticated user's own role upgrade requests."
+              }
+            },
+            {
+              "name": "Get my role upgrade request",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/role-upgrade-requests/:request_id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "role-upgrade-requests",
+                    ":request_id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "request_id",
+                      "value": "",
+                      "description": "UUID of the request"
+                    }
+                  ]
+                },
+                "description": "Retrieves one of the authenticated user's own role upgrade requests. Returns 404 for a request belonging to another user."
+              }
+            },
+            {
+              "name": "Add document to role upgrade request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "document",
+                      "type": "file",
+                      "src": "",
+                      "description": "Verification document (JPEG/PNG/WebP/PDF, max 10MB)"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/role-upgrade-requests/:request_id/documents",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "role-upgrade-requests",
+                    ":request_id",
+                    "documents"
+                  ],
+                  "variable": [
+                    {
+                      "key": "request_id",
+                      "value": "",
+                      "description": "UUID of the request"
+                    }
+                  ]
+                },
+                "description": "Attaches an additional verification document to one of the authenticated user's own pending role upgrade requests. A request can have any number of documents."
+              }
+            },
+            {
+              "name": "Download role upgrade request document",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/role-upgrade-requests/:request_id/documents/:document_id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "role-upgrade-requests",
+                    ":request_id",
+                    "documents",
+                    ":document_id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "request_id",
+                      "value": "",
+                      "description": "UUID of the request"
+                    },
+                    {
+                      "key": "document_id",
+                      "value": "",
+                      "description": "UUID of the document"
+                    }
+                  ]
+                },
+                "description": "Downloads a document (raw file, not the JSON envelope). Accessible to the request's owner, or to an admin with role_upgrade_request.view_any."
               }
             }
           ]

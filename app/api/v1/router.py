@@ -16,6 +16,8 @@ from app.api.v1.posts import likes as post_like_routes
 from app.api.v1.posts import routes as post_routes
 from app.api.v1.posts import saves as post_save_routes
 from app.api.v1.posts import shares as post_share_routes
+from app.api.v1.role_upgrade_requests import admin_routes as role_upgrade_request_admin_routes
+from app.api.v1.role_upgrade_requests import routes as role_upgrade_request_routes
 from app.api.v1.roles import routes as role_routes
 from app.api.v1.settings import routes as setting_routes
 from app.api.v1.user_settings import routes as user_settings_routes
@@ -30,6 +32,8 @@ api_router.include_router(admin_routes.router)
 api_router.include_router(admin_geography_routes.router)
 api_router.include_router(geography_routes.router)
 api_router.include_router(role_routes.router)
+api_router.include_router(role_upgrade_request_routes.router)
+api_router.include_router(role_upgrade_request_admin_routes.router)
 api_router.include_router(permission_routes.router)
 api_router.include_router(setting_routes.router)
 api_router.include_router(user_settings_routes.router)

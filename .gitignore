@@ -33,6 +33,10 @@ Thumbs.db
 /uploads/*
 !/uploads/.gitkeep
 
+# Privately stored uploads (not served via the public /media static mount)
+/private_uploads/*
+!/private_uploads/.gitkeep
+
 # Tests
 tests/
 

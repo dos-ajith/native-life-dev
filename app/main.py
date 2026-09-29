@@ -52,6 +52,8 @@ app.add_middleware(RequestLoggingMiddleware)
 Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
 app.mount("/media", StaticFiles(directory=settings.upload_dir), name="media")
 
+Path(settings.private_upload_dir).mkdir(parents=True, exist_ok=True)
+
 
 @app.exception_handler(AppError)
 async def app_error_handler(_request: Request, exc: AppError) -> JSONResponse:
@@ -107,9 +109,7 @@ def _validation_error_response(errors: Sequence[Mapping[str, Any]]) -> JSONRespo
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_error_handler(
-    _request: Request, exc: RequestValidationError
-) -> JSONResponse:
+async def validation_error_handler(_request: Request, exc: RequestValidationError) -> JSONResponse:
     return _validation_error_response(exc.errors())
 
 

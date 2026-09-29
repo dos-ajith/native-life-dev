@@ -1,5 +1,6 @@
 class RoleSlug:
     SUPER_ADMIN = "super-admin"
+    NATIVE_ADMIN = "native-admin"
     PUBLIC_USER = "public-user"
 
 
@@ -42,6 +43,12 @@ class PermissionName:
     POST_SAVE = "post.save"
 
     COMMENT_DELETE_ANY = "comment.delete_any"
+
+    ROLE_UPGRADE_REQUEST_CREATE = "role_upgrade_request.create"
+    ROLE_UPGRADE_REQUEST_VIEW_OWN = "role_upgrade_request.view_own"
+    ROLE_UPGRADE_REQUEST_VIEW_ANY = "role_upgrade_request.view_any"
+    ROLE_UPGRADE_REQUEST_APPROVE = "role_upgrade_request.approve"
+    ROLE_UPGRADE_REQUEST_REJECT = "role_upgrade_request.reject"
 
 
 GUEST_PERMISSIONS = frozenset({PermissionName.POST_VIEW, PermissionName.PAGE_READ})

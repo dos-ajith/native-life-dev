@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = []
 
     upload_dir: str = "uploads"
+    private_upload_dir: str = "private_uploads"
 
     gis_import_max_upload_mb: int = 200
 

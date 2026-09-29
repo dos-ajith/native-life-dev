@@ -57,6 +57,32 @@ class NotificationService:
             is_enabled=lambda settings: settings.followers,
         )
 
+    def notify_role_upgrade_approved(
+        self, recipient_id: UUID, actor: User, request_id: UUID, role_name: str
+    ) -> None:
+        self._create_if_enabled(
+            recipient_id=recipient_id,
+            actor_id=actor.id,
+            type_=NotificationType.ROLE_UPGRADE_APPROVED,
+            entity_type="role_upgrade_request",
+            entity_id=request_id,
+            is_enabled=lambda settings: settings.system_updates,
+            metadata={"role_name": role_name},
+        )
+
+    def notify_role_upgrade_rejected(
+        self, recipient_id: UUID, actor: User, request_id: UUID, role_name: str
+    ) -> None:
+        self._create_if_enabled(
+            recipient_id=recipient_id,
+            actor_id=actor.id,
+            type_=NotificationType.ROLE_UPGRADE_REJECTED,
+            entity_type="role_upgrade_request",
+            entity_id=request_id,
+            is_enabled=lambda settings: settings.system_updates,
+            metadata={"role_name": role_name},
+        )
+
     def notify_post_liked(self, post: Post, actor: User) -> None:
         self._create_if_enabled(
             recipient_id=post.user_id,

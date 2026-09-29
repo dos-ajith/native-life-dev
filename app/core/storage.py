@@ -25,6 +25,15 @@ ALLOWED_POST_VIDEO_TYPES = {
     "video/webm": ".webm",
 }
 
+ROLE_UPGRADE_DOCUMENTS_SUBDIR = "role_upgrade_documents"
+MAX_ROLE_UPGRADE_DOCUMENT_BYTES = 10 * 1024 * 1024
+ALLOWED_ROLE_UPGRADE_DOCUMENT_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "application/pdf": ".pdf",
+}
+
 
 def _save_upload(
     file: UploadFile,
@@ -88,3 +97,25 @@ def delete_media_file(url: str, upload_dir: str) -> None:
         return
     filename = Path(url).name
     Path(upload_dir, filename).unlink(missing_ok=True)
+
+
+def save_role_upgrade_document(file: UploadFile, private_upload_dir: str) -> tuple[str, str, int]:
+    extension = ALLOWED_ROLE_UPGRADE_DOCUMENT_TYPES.get(file.content_type or "")
+    if extension is None:
+        raise BusinessRuleError(StorageMessages.INVALID_DOCUMENT_TYPE)
+
+    contents = file.file.read()
+    if len(contents) > MAX_ROLE_UPGRADE_DOCUMENT_BYTES:
+        raise BusinessRuleError(StorageMessages.DOCUMENT_TOO_LARGE)
+
+    directory = Path(private_upload_dir, ROLE_UPGRADE_DOCUMENTS_SUBDIR)
+    directory.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid.uuid4()}{extension}"
+    storage_path = directory / filename
+    storage_path.write_bytes(contents)
+
+    return str(storage_path), file.content_type or "", len(contents)
+
+
+def delete_role_upgrade_document(storage_path: str) -> None:
+    Path(storage_path).unlink(missing_ok=True)

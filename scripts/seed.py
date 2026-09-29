@@ -15,9 +15,7 @@ from app.utils.slug import slugify
 
 DEFAULT_USER_PASSWORD = "Password123!"
 
-ALL_PERMISSION_NAMES = tuple(
-    value for key, value in vars(PermissionName).items() if key.isupper()
-)
+ALL_PERMISSION_NAMES = tuple(value for key, value in vars(PermissionName).items() if key.isupper())
 
 READER_PERMISSIONS = (PermissionName.POST_VIEW, PermissionName.PAGE_READ)
 POST_ENGAGER_PERMISSIONS = (
@@ -29,6 +27,11 @@ POST_ENGAGER_PERMISSIONS = (
 )
 POST_AUTHOR_PERMISSIONS = (*POST_ENGAGER_PERMISSIONS, PermissionName.POST_CREATE)
 
+ROLE_UPGRADE_SELF_SERVICE_PERMISSIONS = (
+    PermissionName.ROLE_UPGRADE_REQUEST_CREATE,
+    PermissionName.ROLE_UPGRADE_REQUEST_VIEW_OWN,
+)
+
 ROLE_PERMISSIONS: dict[str, tuple[str, ...]] = {
     "Super Admin": ALL_PERMISSION_NAMES,
     "Native Admin": ALL_PERMISSION_NAMES,
@@ -36,7 +39,7 @@ ROLE_PERMISSIONS: dict[str, tuple[str, ...]] = {
     "Business Profile": POST_AUTHOR_PERMISSIONS,
     "Promoter": POST_AUTHOR_PERMISSIONS,
     "Delivery Team Member": POST_ENGAGER_PERMISSIONS,
-    "Public User": POST_AUTHOR_PERMISSIONS,
+    "Public User": (*POST_AUTHOR_PERMISSIONS, *ROLE_UPGRADE_SELF_SERVICE_PERMISSIONS),
 }
 
 ROLE_USERS = {

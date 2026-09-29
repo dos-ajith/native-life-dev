@@ -220,6 +220,82 @@ def render_verification_otp_email(
     )
 
 
+def render_role_upgrade_approved_email(
+    app_name: str,
+    role_name: str,
+    support_url: str | None,
+    privacy_policy_url: str | None,
+    terms_of_service_url: str | None,
+) -> EmailContent:
+    escaped_role_name = escape(role_name)
+    body_html = f"""
+<tr>
+<td class="content-padding" style="padding:8px 40px 40px 40px; text-align:center;">
+<p
+  style="margin:0; font-family: Arial, Helvetica, sans-serif; font-size:15px;
+    line-height:22px; color:#6B7280;"
+>Your request to upgrade your {escape(app_name)} account to
+<strong style="color:#111827;">{escaped_role_name}</strong> has been approved.
+Your new role is now active.</p>
+</td>
+</tr>"""
+    body_text = (
+        f"Your request to upgrade your {app_name} account to {role_name} has been approved.\n"
+        "Your new role is now active."
+    )
+    return render_transactional_email(
+        subject=f"Your {app_name} role upgrade was approved",
+        heading="Role upgrade approved",
+        body_html=body_html,
+        body_text=body_text,
+        app_name=app_name,
+        support_url=support_url,
+        privacy_policy_url=privacy_policy_url,
+        terms_of_service_url=terms_of_service_url,
+    )
+
+
+def render_role_upgrade_rejected_email(
+    app_name: str,
+    role_name: str,
+    review_note: str | None,
+    support_url: str | None,
+    privacy_policy_url: str | None,
+    terms_of_service_url: str | None,
+) -> EmailContent:
+    escaped_role_name = escape(role_name)
+    note_html = (
+        f'<p style="margin:12px 0 0 0; font-family: Arial, Helvetica, sans-serif; '
+        f'font-size:14px; line-height:20px; color:#4B5563;">{escape(review_note)}</p>'
+        if review_note
+        else ""
+    )
+    body_html = f"""
+<tr>
+<td class="content-padding" style="padding:8px 40px 40px 40px; text-align:center;">
+<p
+  style="margin:0; font-family: Arial, Helvetica, sans-serif; font-size:15px;
+    line-height:22px; color:#6B7280;"
+>Your request to upgrade your {escape(app_name)} account to
+<strong style="color:#111827;">{escaped_role_name}</strong> was not approved.</p>
+{note_html}
+</td>
+</tr>"""
+    body_text = f"Your request to upgrade your {app_name} account to {role_name} was not approved."
+    if review_note:
+        body_text = f"{body_text}\n\n{review_note}"
+    return render_transactional_email(
+        subject=f"Your {app_name} role upgrade request was not approved",
+        heading="Role upgrade not approved",
+        body_html=body_html,
+        body_text=body_text,
+        app_name=app_name,
+        support_url=support_url,
+        privacy_policy_url=privacy_policy_url,
+        terms_of_service_url=terms_of_service_url,
+    )
+
+
 def _build_support_line(support_url: str | None) -> str:
     if not support_url:
         return "Need help? Contact our support team."
