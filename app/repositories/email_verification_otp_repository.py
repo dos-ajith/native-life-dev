@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.models.email_verification_otp import EmailVerificationOtp
@@ -52,3 +52,8 @@ class EmailVerificationOtpRepository:
     def increment_attempts(self, otp: EmailVerificationOtp) -> None:
         otp.attempts += 1
         self._db.commit()
+
+    def delete_all_for_user(self, user_id: UUID) -> None:
+        self._db.execute(
+            delete(EmailVerificationOtp).where(EmailVerificationOtp.user_id == user_id)
+        )

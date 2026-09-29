@@ -52,8 +52,8 @@ class EmailVerificationService:
             self._otps.increment_attempts(record)
             raise BusinessRuleError(AuthMessages.INVALID_OR_EXPIRED_OTP)
 
-        record.consumed_at = datetime.now(UTC)
         user.email_verified_at = datetime.now(UTC)
+        self._otps.delete_all_for_user(user.id)
         self._db.commit()
         self._db.refresh(user)
         self._activity_logs.log(
