@@ -1,5 +1,6 @@
 from datetime import UTC, timedelta
 
+from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.core.activity_actions import ActivityAction
@@ -26,10 +27,10 @@ class EmailVerificationService:
         self._activity_logs = ActivityLogService(db)
         self._emails = EmailService(db, settings)
 
-    def issue_for_registration(self, user: User) -> None:
-        self._issue_and_send(user, trigger="registration")
+    def issue_for_registration(self, user: User, background_tasks: BackgroundTasks) -> None:
+        self._issue_and_send(user, trigger="registration", background_tasks=background_tasks)
 
-    def resend(self, email: str) -> None:
+    def resend(self, email: str, background_tasks: BackgroundTasks) -> None:
         user = self._users.get_by_email(email)
         if user is None or user.email_verified_at is not None:
             return
@@ -38,7 +39,7 @@ class EmailVerificationService:
             elapsed = app_now_utc(self._settings) - latest.created_at.replace(tzinfo=UTC)
             if elapsed < timedelta(seconds=self._settings.otp_resend_cooldown_seconds):
                 return
-        self._issue_and_send(user, trigger="resend")
+        self._issue_and_send(user, trigger="resend", background_tasks=background_tasks)
 
     def verify(self, email: str, otp: str) -> tuple[User, bool]:
         user = self._users.get_by_email(email)
@@ -68,7 +69,9 @@ class EmailVerificationService:
         )
         return user, False
 
-    def _issue_and_send(self, user: User, trigger: str) -> None:
+    def _issue_and_send(
+        self, user: User, trigger: str, background_tasks: BackgroundTasks
+    ) -> None:
         self._otps.invalidate_active_for_user(user.id)
         code = generate_otp(self._settings.otp_length)
         expires_at = app_now_utc(self._settings) + timedelta(
@@ -84,12 +87,13 @@ class EmailVerificationService:
             terms_of_service_url=self._settings.terms_of_service_url,
         )
         self._emails.send(
+            background_tasks,
             email_type=EmailType.EMAIL_VERIFICATION,
             to_email=user.email,
             subject=content.subject,
             text_body=content.text_body,
             html_body=content.html_body,
-            user=user,
+            user_id=user.id,
         )
         self._activity_logs.log(
             actor=user,

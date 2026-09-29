@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import Any
 from uuid import UUID
 
-from fastapi import UploadFile
+from fastapi import BackgroundTasks, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.activity_actions import ActivityAction
@@ -67,6 +67,7 @@ class UserService:
         self,
         payload: UserCreate,
         settings: Settings,
+        background_tasks: BackgroundTasks,
         ip_address: str | None = None,
         user_agent: str | None = None,
         image: UploadFile | None = None,
@@ -91,7 +92,9 @@ class UserService:
             ip_address=ip_address,
             user_agent=user_agent,
         )
-        EmailVerificationService(self._db, settings).issue_for_registration(user)
+        EmailVerificationService(self._db, settings).issue_for_registration(
+            user, background_tasks
+        )
         return user
 
     def _create(

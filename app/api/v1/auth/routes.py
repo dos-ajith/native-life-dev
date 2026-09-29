@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 
 from app.api.deps import CurrentUserDep, DbSessionDep, SettingsDep, TokenClaimsDep
 from app.core.messages import AuthMessages
@@ -64,7 +64,10 @@ def verify_email(
 
 @router.post("/resend-email-verification", response_model=SuccessResponse[None])
 def resend_email_verification(
-    payload: ResendEmailVerificationRequest, db: DbSessionDep, settings: SettingsDep
+    payload: ResendEmailVerificationRequest,
+    db: DbSessionDep,
+    settings: SettingsDep,
+    background_tasks: BackgroundTasks,
 ) -> SuccessResponse[None]:
-    EmailVerificationService(db, settings).resend(payload.email)
+    EmailVerificationService(db, settings).resend(payload.email, background_tasks)
     return SuccessResponse(message=AuthMessages.VERIFICATION_CODE_SENT, data=None)

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from uuid import UUID
 
 from sqlalchemy.orm import Session
 
@@ -14,6 +15,9 @@ class EmailRepository:
         self._db.commit()
         self._db.refresh(email)
         return email
+
+    def get_by_id(self, email_id: UUID) -> Email | None:
+        return self._db.get(Email, email_id)
 
     def mark_sent(self, email: Email, provider_message_id: str | None) -> None:
         email.status = EmailStatus.SENT

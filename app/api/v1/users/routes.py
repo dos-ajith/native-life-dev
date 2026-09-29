@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, File, Form, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, File, Form, UploadFile, status
 
 from app.api.deps import (
     ActivityRequestMetaDep,
@@ -26,6 +26,7 @@ def register_user(
     db: DbSessionDep,
     settings: SettingsDep,
     meta: ActivityRequestMetaDep,
+    background_tasks: BackgroundTasks,
     first_name: Annotated[str, Form()],
     last_name: Annotated[str, Form()],
     email: Annotated[str, Form()],
@@ -39,6 +40,7 @@ def register_user(
     user = UserService(db).register(
         payload,
         settings,
+        background_tasks,
         meta.ip_address,
         meta.user_agent,
         image=image,
