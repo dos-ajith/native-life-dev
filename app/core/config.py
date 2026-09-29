@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     mail_from_email: str | None = None
 
+    support_url: str | None = None
+    privacy_policy_url: str | None = None
+    terms_of_service_url: str | None = None
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
