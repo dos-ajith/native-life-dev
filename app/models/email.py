@@ -38,6 +38,8 @@ class Email(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     to_email: Mapped[str] = mapped_column(String(255))
     from_email: Mapped[str | None] = mapped_column(String(255))
     subject: Mapped[str] = mapped_column(String(255))
+    text_body: Mapped[str] = mapped_column(Text())
+    html_body: Mapped[str] = mapped_column(Text())
     email_type: Mapped[EmailType] = mapped_column(
         Enum(
             EmailType,

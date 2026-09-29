@@ -58,6 +58,8 @@ class EmailService:
                 to_email=to_email,
                 from_email=self._settings.mail_from_email,
                 subject=subject,
+                text_body=text_body,
+                html_body=html_body,
                 email_type=email_type,
                 provider="mandrill" if mandrill_enabled else self._provider.name,
                 status=EmailStatus.PENDING,
