@@ -116,4 +116,6 @@ def downgrade() -> None:
     op.drop_index('ix_posts_status', table_name='posts')
     op.drop_index('ix_posts_deleted_at', table_name='posts')
     op.drop_table('posts')
+    sa.Enum(name='post_media_type').drop(op.get_bind(), checkfirst=True)
+    sa.Enum(name='post_status').drop(op.get_bind(), checkfirst=True)
     # ### end Alembic commands ###
