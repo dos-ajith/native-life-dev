@@ -27,9 +27,7 @@ class PostCommentRepository:
             & PostComment.deleted_at.is_(None)
             & PostComment.parent_id.is_(None)
         )
-        total = (
-            self._db.scalar(select(func.count()).select_from(PostComment).where(root_only)) or 0
-        )
+        total = self._db.scalar(select(func.count()).select_from(PostComment).where(root_only)) or 0
         offset = (params.page - 1) * params.page_size
         items = self._db.scalars(
             select(PostComment)

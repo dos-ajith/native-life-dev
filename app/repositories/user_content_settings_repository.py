@@ -82,8 +82,7 @@ class UserContentSettingsRepository:
     ) -> None:
         self._db.execute(
             delete(user_content_preferred_districts).where(
-                user_content_preferred_districts.c.user_content_settings_id
-                == content_settings_id
+                user_content_preferred_districts.c.user_content_settings_id == content_settings_id
             )
         )
         if district_ids:

@@ -12,9 +12,7 @@ from app.services.page_service import PageService
 
 router = APIRouter(prefix="/pages", tags=["pages"])
 
-PageReadDep = Annotated[
-    User | None, Depends(require_permission_or_guest(PermissionName.PAGE_READ))
-]
+PageReadDep = Annotated[User | None, Depends(require_permission_or_guest(PermissionName.PAGE_READ))]
 
 
 @router.get("/{slug}", response_model=SuccessResponse[PublishedPageRead])

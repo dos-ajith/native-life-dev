@@ -80,9 +80,7 @@ class PostRepository:
         self._db = db
 
     def get_by_id(self, post_id: UUID) -> Post | None:
-        return self._db.scalar(
-            select(Post).where(Post.id == post_id, Post.deleted_at.is_(None))
-        )
+        return self._db.scalar(select(Post).where(Post.id == post_id, Post.deleted_at.is_(None)))
 
     def get_visible_by_id(self, post_id: UUID, scope: PostVisibilityScope) -> Post | None:
         return self._db.scalar(select(Post).where(Post.id == post_id, _visible_in(scope)))
@@ -244,9 +242,7 @@ class PostRepository:
         ).all()
         return list(items), total
 
-    def list(
-        self, params: PaginationParams, scope: PostVisibilityScope
-    ) -> tuple[list[Post], int]:
+    def list(self, params: PaginationParams, scope: PostVisibilityScope) -> tuple[list[Post], int]:
         conditions: list[ColumnElement[bool]] = [_visible_in(scope)]
         total = self._db.scalar(select(func.count()).select_from(Post).where(*conditions)) or 0
         offset = (params.page - 1) * params.page_size
@@ -295,9 +291,7 @@ class PostRepository:
     def decrement_saved(self, post_id: UUID) -> None:
         self._adjust_count(post_id, Post.saved_count, -1)
 
-    def _adjust_count(
-        self, post_id: UUID, column: InstrumentedAttribute[int], delta: int
-    ) -> None:
+    def _adjust_count(self, post_id: UUID, column: InstrumentedAttribute[int], delta: int) -> None:
         self._db.execute(
             update(Post)
             .where(Post.id == post_id)

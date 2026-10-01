@@ -230,6 +230,7 @@ class RoleUpgradeRequestMessages:
     SUBMITTED = "Role upgrade request submitted"
     RETRIEVED = "Role upgrade request retrieved"
     LIST_RETRIEVED = "Role upgrade requests retrieved"
+    REQUESTABLE_ROLES_RETRIEVED = "Requestable roles retrieved"
     DOCUMENT_ADDED = "Document added to role upgrade request"
     APPROVED = "Role upgrade request approved"
     REJECTED = "Role upgrade request rejected"

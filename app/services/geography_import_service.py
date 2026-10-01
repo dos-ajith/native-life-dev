@@ -225,9 +225,7 @@ def _read_taluk_layer(layer: LayerProfile, transformer: Transformer) -> list[Tal
             _require_state_lgd(state_lgd, layer.name)
             geom = _to_wgs84_multipolygon(shape_record.shape, transformer, layer.name, lgd_code)
             records.append(
-                TalukRecord(
-                    lgd_code=lgd_code, district_lgd_code=district_lgd, name=name, geom=geom
-                )
+                TalukRecord(lgd_code=lgd_code, district_lgd_code=district_lgd, name=name, geom=geom)
             )
         return records
 
@@ -420,9 +418,7 @@ class GeographyImportService:
             raise
         return summary
 
-    def _log(
-        self, actor: User, action: str, import_id: UUID, metadata: dict[str, Any]
-    ) -> None:
+    def _log(self, actor: User, action: str, import_id: UUID, metadata: dict[str, Any]) -> None:
         self._activity_logs.log(
             actor=actor,
             action=action,

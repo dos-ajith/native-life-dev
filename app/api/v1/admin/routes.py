@@ -70,9 +70,7 @@ def list_users(
 
 
 @router.get("/edit/{user_id}", response_model=SuccessResponse[UserRead])
-def edit_user(
-    user_id: UUID, db: DbSessionDep, _: UserViewDep
-) -> SuccessResponse[UserRead]:
+def edit_user(user_id: UUID, db: DbSessionDep, _: UserViewDep) -> SuccessResponse[UserRead]:
     user = UserService(db).get(user_id)
     return SuccessResponse(message=UserMessages.RETRIEVED, data=UserRead.model_validate(user))
 
@@ -131,8 +129,6 @@ def set_user_roles(
 
 
 @router.delete("/delete/{user_id}", response_model=SuccessResponse[None])
-def delete_user(
-    user_id: UUID, db: DbSessionDep, admin: UserDeleteDep
-) -> SuccessResponse[None]:
+def delete_user(user_id: UUID, db: DbSessionDep, admin: UserDeleteDep) -> SuccessResponse[None]:
     UserService(db).delete(user_id, admin)
     return SuccessResponse(message=UserMessages.DELETED, data=None)

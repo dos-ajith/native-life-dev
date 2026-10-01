@@ -1,6 +1,6 @@
 from app.core.config import get_settings
 from app.core.database import SessionLocal
-from app.core.permissions import PermissionName
+from app.core.permissions import PermissionName, RoleName
 from app.core.security import hash_password
 from app.models.permission import Permission
 from app.models.role import Role
@@ -33,22 +33,22 @@ ROLE_UPGRADE_SELF_SERVICE_PERMISSIONS = (
 )
 
 ROLE_PERMISSIONS: dict[str, tuple[str, ...]] = {
-    "Super Admin": ALL_PERMISSION_NAMES,
-    "Native Admin": ALL_PERMISSION_NAMES,
-    "Public Authority": POST_AUTHOR_PERMISSIONS,
-    "Business Profile": POST_AUTHOR_PERMISSIONS,
-    "Promoter": POST_AUTHOR_PERMISSIONS,
-    "Delivery Team Member": POST_ENGAGER_PERMISSIONS,
-    "Public User": (*POST_AUTHOR_PERMISSIONS, *ROLE_UPGRADE_SELF_SERVICE_PERMISSIONS),
+    RoleName.SUPER_ADMIN: ALL_PERMISSION_NAMES,
+    RoleName.NATIVE_ADMIN: ALL_PERMISSION_NAMES,
+    RoleName.PUBLIC_AUTHORITY: POST_AUTHOR_PERMISSIONS,
+    RoleName.BUSINESS_PROFILE: POST_AUTHOR_PERMISSIONS,
+    RoleName.PROMOTER: POST_AUTHOR_PERMISSIONS,
+    RoleName.DELIVERY_TEAM_MEMBER: POST_ENGAGER_PERMISSIONS,
+    RoleName.PUBLIC_USER: (*POST_AUTHOR_PERMISSIONS, *ROLE_UPGRADE_SELF_SERVICE_PERMISSIONS),
 }
 
 ROLE_USERS = {
-    "Super Admin": ("dev@nativelife.com", UserType.PRIVATE),
-    "Native Admin": ("native.admin@nativelife.com", UserType.PRIVATE),
-    "Public Authority": ("public.authority@nativelife.com", UserType.PUBLIC),
-    "Business Profile": ("business.profile@nativelife.com", UserType.PUBLIC),
-    "Promoter": ("promoter@nativelife.com", UserType.PUBLIC),
-    "Delivery Team Member": ("delivery.team.member@nativelife.com", UserType.PRIVATE),
+    RoleName.SUPER_ADMIN: ("dev@nativelife.com", UserType.PRIVATE),
+    RoleName.NATIVE_ADMIN: ("native.admin@nativelife.com", UserType.PRIVATE),
+    RoleName.PUBLIC_AUTHORITY: ("public.authority@nativelife.com", UserType.PUBLIC),
+    RoleName.BUSINESS_PROFILE: ("business.profile@nativelife.com", UserType.PUBLIC),
+    RoleName.PROMOTER: ("promoter@nativelife.com", UserType.PUBLIC),
+    RoleName.DELIVERY_TEAM_MEMBER: ("delivery.team.member@nativelife.com", UserType.PRIVATE),
 }
 
 DEFAULT_SETTINGS = {

@@ -12,9 +12,10 @@ from app.core.email_templates import (
 )
 from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.core.messages import RoleUpgradeRequestMessages
-from app.core.permissions import PermissionName, RoleSlug
+from app.core.permissions import NON_REQUESTABLE_ROLE_SLUGS, PermissionName
 from app.core.storage import save_role_upgrade_document
 from app.models.email import EmailType
+from app.models.role import Role
 from app.models.role_upgrade_request import RoleUpgradeRequest, RoleUpgradeRequestStatus
 from app.models.role_upgrade_request_document import RoleUpgradeRequestDocument
 from app.models.user import User
@@ -30,8 +31,6 @@ from app.services.email_service import EmailService
 from app.services.notification_service import NotificationService
 from app.services.user_service import UserService
 
-RESTRICTED_ROLE_SLUGS = {RoleSlug.SUPER_ADMIN, RoleSlug.NATIVE_ADMIN}
-
 
 class RoleUpgradeRequestService:
     def __init__(self, db: Session, settings: Settings) -> None:
@@ -45,6 +44,11 @@ class RoleUpgradeRequestService:
         self._notifications = NotificationService(db)
         self._emails = EmailService(db, settings)
 
+    def list_requestable_roles(self, actor: User) -> list[Role]:
+        return self._roles.list_excluding(
+            NON_REQUESTABLE_ROLE_SLUGS, {role.id for role in actor.roles}
+        )
+
     def submit(
         self,
         actor: User,
@@ -55,7 +59,7 @@ class RoleUpgradeRequestService:
         role = self._roles.get_by_id(requested_role_id)
         if role is None:
             raise BusinessRuleError(RoleUpgradeRequestMessages.UNKNOWN_ROLE)
-        if role.slug in RESTRICTED_ROLE_SLUGS:
+        if role.slug in NON_REQUESTABLE_ROLE_SLUGS:
             raise BusinessRuleError(RoleUpgradeRequestMessages.RESTRICTED_ROLE)
         if any(existing_role.id == role.id for existing_role in actor.roles):
             raise BusinessRuleError(RoleUpgradeRequestMessages.ALREADY_HAS_ROLE)

@@ -69,9 +69,7 @@ class EmailVerificationService:
         )
         return user, False
 
-    def _issue_and_send(
-        self, user: User, trigger: str, background_tasks: BackgroundTasks
-    ) -> None:
+    def _issue_and_send(self, user: User, trigger: str, background_tasks: BackgroundTasks) -> None:
         self._otps.invalidate_active_for_user(user.id)
         code = generate_otp(self._settings.otp_length)
         expires_at = app_now_utc(self._settings) + timedelta(

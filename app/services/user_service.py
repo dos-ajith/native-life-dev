@@ -92,9 +92,7 @@ class UserService:
             ip_address=ip_address,
             user_agent=user_agent,
         )
-        EmailVerificationService(self._db, settings).issue_for_registration(
-            user, background_tasks
-        )
+        EmailVerificationService(self._db, settings).issue_for_registration(user, background_tasks)
         return user
 
     def _create(

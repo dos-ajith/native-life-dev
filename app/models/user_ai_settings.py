@@ -11,12 +11,8 @@ from app.models.user_settings_enums import AIResponseStyle
 class UserAISettings(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "user_ai_settings"
 
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), unique=True
-    )
-    ai_enabled: Mapped[bool] = mapped_column(
-        Boolean(), default=UserSettingsDefaults.AI_ENABLED
-    )
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    ai_enabled: Mapped[bool] = mapped_column(Boolean(), default=UserSettingsDefaults.AI_ENABLED)
     personalization_enabled: Mapped[bool] = mapped_column(
         Boolean(), default=UserSettingsDefaults.PERSONALIZATION_ENABLED
     )

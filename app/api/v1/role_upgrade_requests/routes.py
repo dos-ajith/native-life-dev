@@ -16,6 +16,7 @@ from app.core.permissions import PermissionName
 from app.models.user import User
 from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
+from app.schemas.role import RoleSummary
 from app.schemas.role_upgrade_request import (
     RoleUpgradeRequestCreate,
     RoleUpgradeRequestDocumentRead,
@@ -23,7 +24,7 @@ from app.schemas.role_upgrade_request import (
 )
 from app.services.role_upgrade_request_service import RoleUpgradeRequestService
 
-router = APIRouter(prefix="/role-upgrade-requests", tags=["role-upgrade-requests"])
+router = APIRouter(prefix="/upgrade-requests", tags=["upgrade-requests"])
 
 RoleUpgradeRequestCreateDep = Annotated[
     User, Depends(require_permission(PermissionName.ROLE_UPGRADE_REQUEST_CREATE))
@@ -51,6 +52,17 @@ def submit_role_upgrade_request(
     return SuccessResponse(
         message=RoleUpgradeRequestMessages.SUBMITTED,
         data=RoleUpgradeRequestRead.model_validate(request),
+    )
+
+
+@router.get("/roles", response_model=SuccessResponse[list[RoleSummary]])
+def list_requestable_roles(
+    db: DbSessionDep, settings: SettingsDep, actor: RoleUpgradeRequestCreateDep
+) -> SuccessResponse[list[RoleSummary]]:
+    roles = RoleUpgradeRequestService(db, settings).list_requestable_roles(actor)
+    return SuccessResponse(
+        message=RoleUpgradeRequestMessages.REQUESTABLE_ROLES_RETRIEVED,
+        data=[RoleSummary.model_validate(role) for role in roles],
     )
 
 

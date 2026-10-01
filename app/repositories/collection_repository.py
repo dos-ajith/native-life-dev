@@ -14,9 +14,7 @@ class CollectionRepository:
     def get_by_id(self, collection_id: UUID) -> Collection | None:
         return self._db.scalar(select(Collection).where(Collection.id == collection_id))
 
-    def list_by_user(
-        self, user_id: UUID, params: PaginationParams
-    ) -> tuple[list[Collection], int]:
+    def list_by_user(self, user_id: UUID, params: PaginationParams) -> tuple[list[Collection], int]:
         conditions = [Collection.user_id == user_id]
         total = (
             self._db.scalar(select(func.count()).select_from(Collection).where(*conditions)) or 0

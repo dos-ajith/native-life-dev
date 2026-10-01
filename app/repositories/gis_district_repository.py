@@ -35,8 +35,7 @@ class GisDistrictRepository:
     ) -> tuple[list[GisDistrict], int]:
         where_clause = GisDistrict.state_id == state_id
         total = (
-            self._db.scalar(select(func.count()).select_from(GisDistrict).where(where_clause))
-            or 0
+            self._db.scalar(select(func.count()).select_from(GisDistrict).where(where_clause)) or 0
         )
         offset = (params.page - 1) * params.page_size
         items = self._db.scalars(

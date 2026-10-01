@@ -13,19 +13,13 @@ class UserRepository:
         self._db = db
 
     def get_by_email(self, email: str) -> User | None:
-        return self._db.scalar(
-            select(User).where(User.email == email, User.deleted_at.is_(None))
-        )
+        return self._db.scalar(select(User).where(User.email == email, User.deleted_at.is_(None)))
 
     def get_by_phone(self, phone: str) -> User | None:
-        return self._db.scalar(
-            select(User).where(User.phone == phone, User.deleted_at.is_(None))
-        )
+        return self._db.scalar(select(User).where(User.phone == phone, User.deleted_at.is_(None)))
 
     def get_by_id(self, user_id: UUID) -> User | None:
-        return self._db.scalar(
-            select(User).where(User.id == user_id, User.deleted_at.is_(None))
-        )
+        return self._db.scalar(select(User).where(User.id == user_id, User.deleted_at.is_(None)))
 
     def get_by_id_including_deleted(self, user_id: UUID) -> User | None:
         return self._db.get(User, user_id)

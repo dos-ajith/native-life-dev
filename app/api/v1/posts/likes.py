@@ -14,9 +14,7 @@ router = APIRouter(prefix="/posts", tags=["post-likes"])
 @router.post(
     "/{post_id}/likes", response_model=SuccessResponse[None], status_code=status.HTTP_201_CREATED
 )
-def like_post(
-    post_id: UUID, db: DbSessionDep, current_user: PostLikeDep
-) -> SuccessResponse[None]:
+def like_post(post_id: UUID, db: DbSessionDep, current_user: PostLikeDep) -> SuccessResponse[None]:
     PostLikeService(db).like(post_id, current_user)
     return SuccessResponse(message=PostLikeMessages.LIKED, data=None)
 

@@ -1,7 +1,25 @@
+class RoleName:
+    SUPER_ADMIN = "Super Admin"
+    NATIVE_ADMIN = "Native Admin"
+    PUBLIC_AUTHORITY = "Public Authority"
+    BUSINESS_PROFILE = "Business Profile"
+    PROMOTER = "Promoter"
+    DELIVERY_TEAM_MEMBER = "Delivery Team Member"
+    PUBLIC_USER = "Public User"
+
+
 class RoleSlug:
     SUPER_ADMIN = "super-admin"
     NATIVE_ADMIN = "native-admin"
+    PUBLIC_AUTHORITY = "public-authority"
+    BUSINESS_PROFILE = "business-profile"
+    PROMOTER = "promoter"
+    DELIVERY_TEAM_MEMBER = "delivery-team-member"
     PUBLIC_USER = "public-user"
+
+
+ADMIN_ROLE_SLUGS = frozenset({RoleSlug.SUPER_ADMIN, RoleSlug.NATIVE_ADMIN})
+NON_REQUESTABLE_ROLE_SLUGS = ADMIN_ROLE_SLUGS | {RoleSlug.PUBLIC_USER}
 
 
 class PermissionName:

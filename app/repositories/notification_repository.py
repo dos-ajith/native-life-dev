@@ -36,8 +36,7 @@ class NotificationRepository:
             conditions.append(Notification.is_read.is_(False))
 
         total = (
-            self._db.scalar(select(func.count()).select_from(Notification).where(*conditions))
-            or 0
+            self._db.scalar(select(func.count()).select_from(Notification).where(*conditions)) or 0
         )
         offset = (params.page - 1) * params.page_size
         items = self._db.scalars(

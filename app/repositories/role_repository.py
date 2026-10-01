@@ -23,6 +23,15 @@ class RoleRepository:
     def get_by_ids(self, role_ids: list[UUID]) -> list[Role]:
         return list(self._db.scalars(select(Role).where(Role.id.in_(role_ids))))
 
+    def list_excluding(self, excluded_slugs: frozenset[str], excluded_ids: set[UUID]) -> list[Role]:
+        return list(
+            self._db.scalars(
+                select(Role)
+                .where(Role.slug.not_in(excluded_slugs), Role.id.not_in(excluded_ids))
+                .order_by(Role.name)
+            )
+        )
+
     def list(self, params: PaginationParams) -> tuple[list[Role], int]:
         total = self._db.scalar(select(func.count()).select_from(Role)) or 0
         offset = (params.page - 1) * params.page_size

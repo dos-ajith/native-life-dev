@@ -97,9 +97,7 @@ def list_posts(
 
 
 @router.get("/{slug}", response_model=SuccessResponse[PostDetailRead])
-def get_post(
-    slug: str, db: DbSessionDep, viewer: PostViewDep
-) -> SuccessResponse[PostDetailRead]:
+def get_post(slug: str, db: DbSessionDep, viewer: PostViewDep) -> SuccessResponse[PostDetailRead]:
     detail = PostService(db).get_detail_by_slug(slug, viewer)
     return SuccessResponse(message=PostMessages.RETRIEVED, data=detail)
 

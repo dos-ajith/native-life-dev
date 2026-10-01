@@ -161,9 +161,7 @@ class PostService:
         if not posts:
             return [], total
         author_ids = list({post.user_id for post in posts})
-        authors = {
-            user.id: user for user in self._users.get_by_ids_including_deleted(author_ids)
-        }
+        authors = {user.id: user for user in self._users.get_by_ids_including_deleted(author_ids)}
         post_ids = [post.id for post in posts]
         media_by_post: dict[UUID, list[PostMedia]] = defaultdict(list)
         for media_item in self._media.list_by_posts(post_ids):

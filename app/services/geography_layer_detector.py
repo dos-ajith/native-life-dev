@@ -337,9 +337,7 @@ def _select_level(
     level: AdminLevel, classifications: list[LayerClassification]
 ) -> LayerProfile | None:
     candidates = [
-        item.profile
-        for item in classifications
-        if item.level == level and item.profile is not None
+        item.profile for item in classifications if item.level == level and item.profile is not None
     ]
     if len(candidates) > 1:
         legacy_matches = [
@@ -357,9 +355,7 @@ def _select_level(
 
 
 def _select_village_layer(classifications: list[LayerClassification]) -> LayerProfile | None:
-    candidates = [
-        item.profile for item in classifications if item.village_source and item.profile
-    ]
+    candidates = [item.profile for item in classifications if item.village_source and item.profile]
     if len(candidates) > 1:
         raise BusinessRuleError(
             GeographyMessages.AMBIGUOUS_LAYER.format(

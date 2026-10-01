@@ -65,9 +65,7 @@ def update_me(
     user = UserService(db).update_self(current_user, payload)
     if image is not None:
         user = UserService(db).update_image(user, image, settings.upload_dir)
-    return SuccessResponse(
-        message=UserMessages.PROFILE_UPDATED, data=UserRead.model_validate(user)
-    )
+    return SuccessResponse(message=UserMessages.PROFILE_UPDATED, data=UserRead.model_validate(user))
 
 
 @router.post("/me/image", response_model=SuccessResponse[UserRead])

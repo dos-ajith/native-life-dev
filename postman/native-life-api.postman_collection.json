@@ -1460,13 +1460,13 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{base_url}}/admin/role-upgrade-requests?page=1&page_size=20",
+                  "raw": "{{base_url}}/admin/upgrade-requests?page=1&page_size=20",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
                     "admin",
-                    "role-upgrade-requests"
+                    "upgrade-requests"
                   ],
                   "query": [
                     {
@@ -1493,13 +1493,13 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{base_url}}/admin/role-upgrade-requests/:request_id",
+                  "raw": "{{base_url}}/admin/upgrade-requests/:request_id",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
                     "admin",
-                    "role-upgrade-requests",
+                    "upgrade-requests",
                     ":request_id"
                   ],
                   "variable": [
@@ -1535,13 +1535,13 @@
                   ]
                 },
                 "url": {
-                  "raw": "{{base_url}}/admin/role-upgrade-requests/:request_id/approve",
+                  "raw": "{{base_url}}/admin/upgrade-requests/:request_id/approve",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
                     "admin",
-                    "role-upgrade-requests",
+                    "upgrade-requests",
                     ":request_id",
                     "approve"
                   ],
@@ -1578,13 +1578,13 @@
                   ]
                 },
                 "url": {
-                  "raw": "{{base_url}}/admin/role-upgrade-requests/:request_id/reject",
+                  "raw": "{{base_url}}/admin/upgrade-requests/:request_id/reject",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
                     "admin",
-                    "role-upgrade-requests",
+                    "upgrade-requests",
                     ":request_id",
                     "reject"
                   ],
@@ -3629,6 +3629,29 @@
           "name": "Role Upgrade Requests",
           "item": [
             {
+              "name": "List requestable roles",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/upgrade-requests/roles",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "upgrade-requests",
+                    "roles"
+                  ]
+                },
+                "description": "Lists roles the authenticated user can request an upgrade to. Excludes Super Admin, Native Admin, Public User and roles the user already has. Use the returned id as requested_role_id when submitting."
+              }
+            },
+            {
               "name": "Submit role upgrade request",
               "request": {
                 "method": "POST",
@@ -3662,12 +3685,12 @@
                   ]
                 },
                 "url": {
-                  "raw": "{{base_url}}/role-upgrade-requests",
+                  "raw": "{{base_url}}/upgrade-requests",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
-                    "role-upgrade-requests"
+                    "upgrade-requests"
                   ]
                 },
                 "description": "Submits a request to upgrade the authenticated user's account to another role (e.g. Promoter, Business Profile, Supplier, Public Authority), optionally attaching a verification document. Fails if a pending request for the same role already exists, if the role does not exist, if the role is restricted (Super Admin/Native Admin), or if the user already has the role."
@@ -3684,12 +3707,12 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{base_url}}/role-upgrade-requests?page=1&page_size=20",
+                  "raw": "{{base_url}}/upgrade-requests?page=1&page_size=20",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
-                    "role-upgrade-requests"
+                    "upgrade-requests"
                   ],
                   "query": [
                     {
@@ -3716,12 +3739,12 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{base_url}}/role-upgrade-requests/:request_id",
+                  "raw": "{{base_url}}/upgrade-requests/:request_id",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
-                    "role-upgrade-requests",
+                    "upgrade-requests",
                     ":request_id"
                   ],
                   "variable": [
@@ -3757,12 +3780,12 @@
                   ]
                 },
                 "url": {
-                  "raw": "{{base_url}}/role-upgrade-requests/:request_id/documents",
+                  "raw": "{{base_url}}/upgrade-requests/:request_id/documents",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
-                    "role-upgrade-requests",
+                    "upgrade-requests",
                     ":request_id",
                     "documents"
                   ],
@@ -3788,12 +3811,12 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{base_url}}/role-upgrade-requests/:request_id/documents/:document_id",
+                  "raw": "{{base_url}}/upgrade-requests/:request_id/documents/:document_id",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
-                    "role-upgrade-requests",
+                    "upgrade-requests",
                     ":request_id",
                     "documents",
                     ":document_id"

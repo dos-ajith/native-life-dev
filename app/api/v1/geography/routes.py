@@ -38,9 +38,7 @@ def list_districts(
     return SuccessResponse(message=GeographyMessages.DISTRICTS_RETRIEVED, data=page)
 
 
-@router.get(
-    "/districts/{district_id}/taluks", response_model=SuccessResponse[Page[GisTalukRead]]
-)
+@router.get("/districts/{district_id}/taluks", response_model=SuccessResponse[Page[GisTalukRead]])
 def list_taluks(
     district_id: UUID, db: DbSessionDep, params: PaginationDep
 ) -> SuccessResponse[Page[GisTalukRead]]:

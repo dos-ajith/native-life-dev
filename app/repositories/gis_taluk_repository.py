@@ -26,9 +26,7 @@ class GisTalukRepository:
         self, district_id: UUID, params: PaginationParams
     ) -> tuple[list[GisTaluk], int]:
         where_clause = GisTaluk.district_id == district_id
-        total = (
-            self._db.scalar(select(func.count()).select_from(GisTaluk).where(where_clause)) or 0
-        )
+        total = self._db.scalar(select(func.count()).select_from(GisTaluk).where(where_clause)) or 0
         offset = (params.page - 1) * params.page_size
         items = self._db.scalars(
             select(GisTaluk)

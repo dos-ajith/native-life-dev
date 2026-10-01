@@ -11,9 +11,7 @@ class UserAISettingsRepository:
         self._db = db
 
     def get_by_user_id(self, user_id: UUID) -> UserAISettings | None:
-        return self._db.scalar(
-            select(UserAISettings).where(UserAISettings.user_id == user_id)
-        )
+        return self._db.scalar(select(UserAISettings).where(UserAISettings.user_id == user_id))
 
     def add(self, settings: UserAISettings) -> UserAISettings:
         self._db.add(settings)

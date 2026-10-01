@@ -12,7 +12,7 @@ from app.schemas.response import SuccessResponse
 from app.schemas.role_upgrade_request import RoleUpgradeRequestRead, RoleUpgradeRequestReject
 from app.services.role_upgrade_request_service import RoleUpgradeRequestService
 
-router = APIRouter(prefix="/admin/role-upgrade-requests", tags=["admin", "role-upgrade-requests"])
+router = APIRouter(prefix="/admin/upgrade-requests", tags=["admin", "upgrade-requests"])
 
 RoleUpgradeRequestViewAnyDep = Annotated[
     User, Depends(require_permission(PermissionName.ROLE_UPGRADE_REQUEST_VIEW_ANY))

@@ -110,7 +110,9 @@ def derive_admin_boundaries(villages: list[VillageRecord]) -> AdminBoundaries:
         AdminLevel.STATE,
     )
     taluk_names = _majority_name_by_code(
-        villages, lambda village: village.taluk_lgd_code, lambda village: village.taluk_name,
+        villages,
+        lambda village: village.taluk_lgd_code,
+        lambda village: village.taluk_name,
         AdminLevel.TALUK,
     )
     district_names = _majority_name_by_code(
@@ -120,7 +122,9 @@ def derive_admin_boundaries(villages: list[VillageRecord]) -> AdminBoundaries:
         AdminLevel.DISTRICT,
     )
     state_names = _majority_name_by_code(
-        villages, lambda village: village.state_lgd_code, lambda village: village.state_name,
+        villages,
+        lambda village: village.state_lgd_code,
+        lambda village: village.state_name,
         AdminLevel.STATE,
     )
 

@@ -64,9 +64,7 @@ def edit_page(page_id: UUID, db: DbSessionDep, _: PageViewDep) -> SuccessRespons
 
 
 @router.get("/slug/{slug}", response_model=SuccessResponse[PageRead])
-def get_page_by_slug(
-    slug: str, db: DbSessionDep, _: PageViewDep
-) -> SuccessResponse[PageRead]:
+def get_page_by_slug(slug: str, db: DbSessionDep, _: PageViewDep) -> SuccessResponse[PageRead]:
     page = PageService(db).get_by_slug(slug)
     return SuccessResponse(message=PageMessages.RETRIEVED, data=PageRead.model_validate(page))
 

@@ -195,9 +195,7 @@ class UserSettingsService:
 
         changed_fields = list(data.keys())
         if payload.preferred_category_ids is not None:
-            self._content_settings.replace_preferred_tags(
-                saved.id, payload.preferred_category_ids
-            )
+            self._content_settings.replace_preferred_tags(saved.id, payload.preferred_category_ids)
             changed_fields.append("preferred_category_ids")
         if payload.preferred_location_ids is not None:
             self._content_settings.replace_preferred_districts(

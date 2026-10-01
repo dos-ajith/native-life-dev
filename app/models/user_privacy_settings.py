@@ -25,9 +25,7 @@ _profile_visibility_type = Enum(
 class UserPrivacySettings(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "user_privacy_settings"
 
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), unique=True
-    )
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
     profile_visibility: Mapped[ProfileVisibility] = mapped_column(
         _profile_visibility_type, default=UserSettingsDefaults.PROFILE_VISIBILITY
     )
