@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
 from app.core.messages import NotificationMessages
+from app.core.permissions import PermissionName, RoleSlug
 from app.models.notification import Notification, NotificationType
 from app.models.post import Post
 from app.models.user import User
@@ -15,9 +16,22 @@ from app.repositories.user_notification_settings_repository import (
     UserNotificationSettingsRepository,
 )
 from app.repositories.user_repository import UserRepository
-from app.schemas.notification import NotificationRead, NotificationTargetRead
+from app.schemas.notification import NotificationRead
 from app.schemas.pagination import PaginationParams
-from app.services.post_service import PostService
+
+ROLE_UPGRADE_REQUEST_ENTITY_TYPE = "role_upgrade_request"
+ROLE_NAME_METADATA_KEY = "role_name"
+
+NOTIFICATION_MESSAGE_TEMPLATES = {
+    NotificationType.USER_FOLLOWED: NotificationMessages.USER_FOLLOWED,
+    NotificationType.FOLLOW_REQUESTED: NotificationMessages.FOLLOW_REQUESTED,
+    NotificationType.FOLLOW_REQUEST_ACCEPTED: NotificationMessages.FOLLOW_REQUEST_ACCEPTED,
+    NotificationType.POST_LIKED: NotificationMessages.POST_LIKED,
+    NotificationType.POST_COMMENTED: NotificationMessages.POST_COMMENTED,
+    NotificationType.ROLE_UPGRADE_REQUESTED: NotificationMessages.ROLE_UPGRADE_REQUESTED,
+    NotificationType.ROLE_UPGRADE_APPROVED: NotificationMessages.ROLE_UPGRADE_APPROVED,
+    NotificationType.ROLE_UPGRADE_REJECTED: NotificationMessages.ROLE_UPGRADE_REJECTED,
+}
 
 
 class NotificationService:
@@ -25,7 +39,6 @@ class NotificationService:
         self._notifications = NotificationRepository(db)
         self._settings = UserNotificationSettingsRepository(db)
         self._users = UserRepository(db)
-        self._posts = PostService(db)
 
     def notify_user_followed(self, follower: User, followed_id: UUID) -> None:
         self._create_if_enabled(
@@ -57,6 +70,23 @@ class NotificationService:
             is_enabled=lambda settings: settings.followers,
         )
 
+    def notify_role_upgrade_requested(
+        self, actor: User, request_id: UUID, role_name: str
+    ) -> None:
+        reviewers = self._users.list_active_with_permission(
+            PermissionName.ROLE_UPGRADE_REQUEST_APPROVE, frozenset({RoleSlug.SUPER_ADMIN})
+        )
+        for reviewer in reviewers:
+            self._create_if_enabled(
+                recipient_id=reviewer.id,
+                actor_id=actor.id,
+                type_=NotificationType.ROLE_UPGRADE_REQUESTED,
+                entity_type=ROLE_UPGRADE_REQUEST_ENTITY_TYPE,
+                entity_id=request_id,
+                is_enabled=lambda settings: settings.system_updates,
+                metadata={ROLE_NAME_METADATA_KEY: role_name},
+            )
+
     def notify_role_upgrade_approved(
         self, recipient_id: UUID, actor: User, request_id: UUID, role_name: str
     ) -> None:
@@ -64,10 +94,10 @@ class NotificationService:
             recipient_id=recipient_id,
             actor_id=actor.id,
             type_=NotificationType.ROLE_UPGRADE_APPROVED,
-            entity_type="role_upgrade_request",
+            entity_type=ROLE_UPGRADE_REQUEST_ENTITY_TYPE,
             entity_id=request_id,
             is_enabled=lambda settings: settings.system_updates,
-            metadata={"role_name": role_name},
+            metadata={ROLE_NAME_METADATA_KEY: role_name},
         )
 
     def notify_role_upgrade_rejected(
@@ -77,10 +107,10 @@ class NotificationService:
             recipient_id=recipient_id,
             actor_id=actor.id,
             type_=NotificationType.ROLE_UPGRADE_REJECTED,
-            entity_type="role_upgrade_request",
+            entity_type=ROLE_UPGRADE_REQUEST_ENTITY_TYPE,
             entity_id=request_id,
             is_enabled=lambda settings: settings.system_updates,
-            metadata={"role_name": role_name},
+            metadata={ROLE_NAME_METADATA_KEY: role_name},
         )
 
     def notify_post_liked(self, post: Post, actor: User) -> None:
@@ -110,7 +140,7 @@ class NotificationService:
         notifications, total = self._notifications.list_for_recipient(
             recipient.id, params, unread_only
         )
-        return [self._to_read(notification, recipient) for notification in notifications], total
+        return [self._to_read(notification) for notification in notifications], total
 
     def get_unread_count(self, recipient: User) -> int:
         return self._notifications.count_unread(recipient.id)
@@ -118,7 +148,7 @@ class NotificationService:
     def mark_notification_read(self, recipient: User, notification_id: UUID) -> NotificationRead:
         notification = self._get_owned(notification_id, recipient.id)
         updated = self._notifications.mark_read(notification)
-        return self._to_read(updated, recipient)
+        return self._to_read(updated)
 
     def mark_all_notifications_read(self, recipient: User) -> None:
         self._notifications.mark_all_read(recipient.id)
@@ -162,27 +192,24 @@ class NotificationService:
             return settings
         return self._settings.add(UserNotificationSettings(user_id=user_id))
 
-    def _to_read(self, notification: Notification, recipient: User) -> NotificationRead:
-        actor = self._resolve_actor(notification.actor_id)
-        target = self._resolve_target(notification, recipient)
-        return NotificationRead.from_notification(notification, actor, target)
+    def _to_read(self, notification: Notification) -> NotificationRead:
+        return NotificationRead(
+            id=notification.id,
+            message=self._render_message(notification),
+            is_read=notification.is_read,
+            created_at=notification.created_at,
+        )
 
-    def _resolve_actor(self, actor_id: UUID | None) -> User | None:
+    def _render_message(self, notification: Notification) -> str:
+        return NOTIFICATION_MESSAGE_TEMPLATES[notification.type].format(
+            actor=self._actor_name(notification.actor_id),
+            role_name=(notification.metadata_ or {}).get(ROLE_NAME_METADATA_KEY, ""),
+        )
+
+    def _actor_name(self, actor_id: UUID | None) -> str:
         if actor_id is None:
-            return None
-        return self._users.get_by_id_including_deleted(actor_id)
-
-    def _resolve_target(
-        self, notification: Notification, recipient: User
-    ) -> NotificationTargetRead | None:
-        if notification.entity_type is None or notification.entity_id is None:
-            return None
-        if notification.entity_type == "post":
-            try:
-                post = self._posts.get_visible(notification.entity_id, recipient)
-            except NotFoundError:
-                return None
-            return NotificationTargetRead(type="post", id=post.id)
-        if notification.entity_type == "user":
-            return NotificationTargetRead(type="user", id=notification.entity_id)
-        return None
+            return NotificationMessages.UNKNOWN_ACTOR
+        actor = self._users.get_by_id_including_deleted(actor_id)
+        if actor is None:
+            return NotificationMessages.UNKNOWN_ACTOR
+        return f"{actor.first_name} {actor.last_name}"

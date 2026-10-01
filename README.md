@@ -212,6 +212,17 @@ one dev user per role, and default app settings. It's idempotent — safe to
 re-run, existing rows are left as-is. Seeded users all use the password
 `Password123!`, e.g. `dev@nativelife.com` for the Super Admin role.
 
+### Reset local database
+
+Wipe all tables, rebuild the schema, and re-seed (local dev only — this
+destroys all data):
+
+```powershell
+alembic downgrade base
+alembic upgrade head
+python -m scripts.seed
+```
+
 ## Testing
 
 ```powershell

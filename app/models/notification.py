@@ -16,6 +16,7 @@ class NotificationType(enum.StrEnum):
     FOLLOW_REQUEST_ACCEPTED = "follow_request_accepted"
     POST_LIKED = "post_liked"
     POST_COMMENTED = "post_commented"
+    ROLE_UPGRADE_REQUESTED = "role_upgrade_requested"
     ROLE_UPGRADE_APPROVED = "role_upgrade_approved"
     ROLE_UPGRADE_REJECTED = "role_upgrade_rejected"
 

@@ -42,12 +42,11 @@ def submit_role_upgrade_request(
     settings: SettingsDep,
     actor: RoleUpgradeRequestCreateDep,
     requested_role_id: Annotated[UUID, Form()],
-    reason: Annotated[str | None, Form()] = None,
     document: Annotated[UploadFile | None, File()] = None,
 ) -> SuccessResponse[RoleUpgradeRequestRead]:
-    payload = RoleUpgradeRequestCreate(requested_role_id=requested_role_id, reason=reason)
+    payload = RoleUpgradeRequestCreate(requested_role_id=requested_role_id)
     request = RoleUpgradeRequestService(db, settings).submit(
-        actor, payload.requested_role_id, payload.reason, document
+        actor, payload.requested_role_id, document
     )
     return SuccessResponse(
         message=RoleUpgradeRequestMessages.SUBMITTED,

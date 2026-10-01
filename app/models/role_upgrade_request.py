@@ -11,6 +11,7 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 if TYPE_CHECKING:
     from app.models.role import Role
     from app.models.role_upgrade_request_document import RoleUpgradeRequestDocument
+    from app.models.user import User
 
 
 class RoleUpgradeRequestStatus(enum.StrEnum):
@@ -44,11 +45,11 @@ class RoleUpgradeRequest(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         ),
         default=RoleUpgradeRequestStatus.PENDING,
     )
-    reason: Mapped[str | None] = mapped_column(Text())
     reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     reviewed_at: Mapped[datetime | None] = mapped_column(default=None)
     review_note: Mapped[str | None] = mapped_column(Text())
 
+    user: Mapped["User"] = relationship(foreign_keys=[user_id])
     requested_role: Mapped["Role"] = relationship(foreign_keys=[requested_role_id])
     documents: Mapped[list["RoleUpgradeRequestDocument"]] = relationship(
         back_populates="request", cascade="all, delete-orphan"

@@ -19,6 +19,8 @@ from app.models.post_share import PostShare
 from app.models.post_tag import post_tags
 from app.models.role import Role
 from app.models.role_has_permission import role_has_permissions
+from app.models.role_upgrade_request import RoleUpgradeRequest
+from app.models.role_upgrade_request_document import RoleUpgradeRequestDocument
 from app.models.saved_post import SavedPost
 from app.models.setting import Setting
 from app.models.tag import Tag
@@ -54,6 +56,8 @@ __all__ = [
     "PostMedia",
     "PostShare",
     "Role",
+    "RoleUpgradeRequest",
+    "RoleUpgradeRequestDocument",
     "SavedPost",
     "Setting",
     "Tag",

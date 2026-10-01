@@ -169,6 +169,15 @@ class NotificationMessages:
     MARKED_READ = "Notification marked as read"
     ALL_MARKED_READ = "All notifications marked as read"
     NOT_FOUND = "Notification not found"
+    UNKNOWN_ACTOR = "Someone"
+    USER_FOLLOWED = "{actor} started following you"
+    FOLLOW_REQUESTED = "{actor} requested to follow you"
+    FOLLOW_REQUEST_ACCEPTED = "{actor} accepted your follow request"
+    POST_LIKED = "{actor} liked your post"
+    POST_COMMENTED = "{actor} commented on your post"
+    ROLE_UPGRADE_REQUESTED = "{actor} requested the {role_name} role"
+    ROLE_UPGRADE_APPROVED = "Your request for the {role_name} role was approved"
+    ROLE_UPGRADE_REJECTED = "Your request for the {role_name} role was rejected"
 
 
 class AIMessages:

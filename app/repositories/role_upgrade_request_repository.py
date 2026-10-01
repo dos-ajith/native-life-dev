@@ -12,12 +12,10 @@ class RoleUpgradeRequestRepository:
     def __init__(self, db: Session) -> None:
         self._db = db
 
-    def create_pending(
-        self, user_id: UUID, requested_role_id: UUID, reason: str | None
-    ) -> RoleUpgradeRequest | None:
+    def create_pending(self, user_id: UUID, requested_role_id: UUID) -> RoleUpgradeRequest | None:
         created_id = self._db.scalar(
             insert(RoleUpgradeRequest)
-            .values(user_id=user_id, requested_role_id=requested_role_id, reason=reason)
+            .values(user_id=user_id, requested_role_id=requested_role_id)
             .on_conflict_do_nothing(
                 index_elements=[
                     RoleUpgradeRequest.user_id,

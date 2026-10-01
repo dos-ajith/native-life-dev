@@ -1,10 +1,12 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.models.user import User
+from app.models.permission import Permission
+from app.models.role import Role
+from app.models.user import User, UserStatus
 from app.schemas.pagination import PaginationParams
 
 
@@ -26,6 +28,26 @@ class UserRepository:
 
     def get_by_ids_including_deleted(self, user_ids: list[UUID]) -> list[User]:
         return list(self._db.scalars(select(User).where(User.id.in_(user_ids))))
+
+    def list_active_with_permission(
+        self, permission_name: str, unrestricted_role_slugs: frozenset[str]
+    ) -> list[User]:
+        return list(
+            self._db.scalars(
+                select(User)
+                .where(
+                    User.deleted_at.is_(None),
+                    User.status == UserStatus.ACTIVE,
+                    User.roles.any(
+                        or_(
+                            Role.slug.in_(unrestricted_role_slugs),
+                            Role.permissions.any(Permission.name == permission_name),
+                        )
+                    ),
+                )
+                .distinct()
+            )
+        )
 
     def list(self, params: PaginationParams) -> tuple[list[User], int]:
         not_deleted = User.deleted_at.is_(None)

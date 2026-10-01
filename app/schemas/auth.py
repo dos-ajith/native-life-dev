@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field
 
+from app.schemas.base import BaseReadSchema
 from app.schemas.user import AuthenticatedUserRead
 
 
@@ -25,6 +26,6 @@ class ResendEmailVerificationRequest(BaseModel):
     email: EmailStr
 
 
-class EmailVerificationResult(BaseModel):
+class EmailVerificationResult(BaseReadSchema):
     email: EmailStr
     email_verified_at: datetime | None

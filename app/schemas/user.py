@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.user import UserStatus, UserType
+from app.schemas.base import BaseReadSchema
 from app.schemas.role import RoleSummary, RoleWithPermissions
 from app.schemas.validators import AlphanumericStr
 
@@ -16,9 +17,7 @@ Phone = Annotated[str, Field(max_length=30, pattern=PHONE_PATTERN)]
 Password = Annotated[str, Field(min_length=8, max_length=128)]
 
 
-class UserRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class UserRead(BaseReadSchema):
     id: UUID
     first_name: str
     last_name: str
@@ -30,9 +29,7 @@ class UserRead(BaseModel):
     roles: list[RoleSummary]
 
 
-class AuthenticatedUserRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class AuthenticatedUserRead(BaseReadSchema):
     id: UUID
     first_name: str
     last_name: str

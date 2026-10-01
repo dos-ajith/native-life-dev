@@ -2,17 +2,15 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from app.models.role_upgrade_request import RoleUpgradeRequestStatus
+from app.schemas.base import BaseReadSchema
 from app.schemas.role import RoleSummary
+from app.schemas.user import UserSummaryRead
 
-ReviewNote = Annotated[str, Field(max_length=1000)]
 
-
-class RoleUpgradeRequestDocumentRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class RoleUpgradeRequestDocumentRead(BaseReadSchema):
     id: UUID
     file_name: str
     content_type: str
@@ -20,14 +18,12 @@ class RoleUpgradeRequestDocumentRead(BaseModel):
     created_at: datetime
 
 
-class RoleUpgradeRequestRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class RoleUpgradeRequestRead(BaseReadSchema):
     id: UUID
     user_id: UUID
+    user: UserSummaryRead
     requested_role: RoleSummary
     status: RoleUpgradeRequestStatus
-    reason: str | None
     reviewed_by: UUID | None
     reviewed_at: datetime | None
     review_note: str | None
@@ -37,7 +33,6 @@ class RoleUpgradeRequestRead(BaseModel):
 
 class RoleUpgradeRequestCreate(BaseModel):
     requested_role_id: UUID
-    reason: ReviewNote | None = None
 
 
 class RoleUpgradeRequestReject(BaseModel):

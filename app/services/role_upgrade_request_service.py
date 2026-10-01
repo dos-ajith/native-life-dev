@@ -53,7 +53,6 @@ class RoleUpgradeRequestService:
         self,
         actor: User,
         requested_role_id: UUID,
-        reason: str | None,
         document: UploadFile | None,
     ) -> RoleUpgradeRequest:
         role = self._roles.get_by_id(requested_role_id)
@@ -70,7 +69,7 @@ class RoleUpgradeRequestService:
             saved_document = save_role_upgrade_document(document, self._settings.private_upload_dir)
             document_filename = document.filename
 
-        request = self._requests.create_pending(actor.id, requested_role_id, reason)
+        request = self._requests.create_pending(actor.id, requested_role_id)
         if request is None:
             raise BusinessRuleError(RoleUpgradeRequestMessages.DUPLICATE_PENDING_REQUEST)
 
@@ -92,6 +91,9 @@ class RoleUpgradeRequestService:
             entity_type="role_upgrade_request",
             entity_id=request.id,
             metadata={"requested_role_id": str(role.id), "role_name": role.name},
+        )
+        self._notifications.notify_role_upgrade_requested(
+            actor=actor, request_id=request.id, role_name=role.name
         )
         return request
 
