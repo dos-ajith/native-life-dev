@@ -1,7 +1,9 @@
+from datetime import date
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from sqlalchemy.orm import Session
 
 from app.api.deps import (
     ActivityRequestMetaDep,
@@ -12,19 +14,25 @@ from app.api.deps import (
     require_permission,
 )
 from app.core.messages import UserMessages
+from app.core.openapi_tags import ApiTag
 from app.core.permissions import PermissionName
-from app.models.user import User, UserStatus, UserType
+from app.models.user import User, UserGender, UserStatus, UserType
 from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
 from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.services.account_role_status_service import AccountRoleStatusService
 from app.services.user_service import UserService
 
-router = APIRouter(prefix="/admin/users", tags=["admin"])
+router = APIRouter(prefix="/admin/users", tags=[ApiTag.ADMIN_USERS])
 
 UserCreateDep = Annotated[User, Depends(require_permission(PermissionName.USER_CREATE))]
 UserViewDep = Annotated[User, Depends(require_permission(PermissionName.USER_VIEW))]
 UserUpdateDep = Annotated[User, Depends(require_permission(PermissionName.USER_UPDATE))]
 UserDeleteDep = Annotated[User, Depends(require_permission(PermissionName.USER_DELETE))]
+
+
+def _user_read(db: Session, user: User) -> UserRead:
+    return UserRead.from_user(user, AccountRoleStatusService(db).describe(user))
 
 
 @router.post(
@@ -41,10 +49,18 @@ def create_user(
     password: Annotated[str, Form()],
     role_ids: Annotated[list[UUID], Form(default_factory=list)],
     phone: Annotated[str | None, Form()] = None,
+    gender: Annotated[UserGender | None, Form()] = None,
+    date_of_birth: Annotated[date | None, Form()] = None,
     image: Annotated[UploadFile | None, File()] = None,
 ) -> SuccessResponse[UserRead]:
     payload = UserCreate(
-        first_name=first_name, last_name=last_name, email=email, phone=phone, password=password
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        phone=phone,
+        password=password,
+        gender=gender,
+        date_of_birth=date_of_birth,
     )
     user = UserService(db).create(
         payload,
@@ -55,7 +71,7 @@ def create_user(
         upload_dir=settings.upload_dir,
         role_ids=role_ids,
     )
-    return SuccessResponse(message=UserMessages.CREATED, data=UserRead.model_validate(user))
+    return SuccessResponse(message=UserMessages.CREATED, data=_user_read(db, user))
 
 
 @router.get("", response_model=SuccessResponse[Page[UserRead]])
@@ -63,18 +79,19 @@ def list_users(
     db: DbSessionDep, _: UserViewDep, params: PaginationDep
 ) -> SuccessResponse[Page[UserRead]]:
     items, total = UserService(db).list(params)
+    account_roles = AccountRoleStatusService(db).describe_many(items)
     page = Page[UserRead].create(
-        items=[UserRead.model_validate(item) for item in items], total=total, params=params
+        items=[UserRead.from_user(item, account_roles[item.id]) for item in items],
+        total=total,
+        params=params,
     )
     return SuccessResponse(message=UserMessages.LIST_RETRIEVED, data=page)
 
 
 @router.get("/edit/{user_id}", response_model=SuccessResponse[UserRead])
-def edit_user(
-    user_id: UUID, db: DbSessionDep, _: UserViewDep
-) -> SuccessResponse[UserRead]:
+def edit_user(user_id: UUID, db: DbSessionDep, _: UserViewDep) -> SuccessResponse[UserRead]:
     user = UserService(db).get(user_id)
-    return SuccessResponse(message=UserMessages.RETRIEVED, data=UserRead.model_validate(user))
+    return SuccessResponse(message=UserMessages.RETRIEVED, data=_user_read(db, user))
 
 
 @router.patch("/update/{user_id}", response_model=SuccessResponse[UserRead])
@@ -89,6 +106,8 @@ def update_user(
     phone: Annotated[str | None, Form()] = None,
     user_status: Annotated[UserStatus | None, Form(alias="status")] = None,
     user_type: Annotated[UserType | None, Form()] = None,
+    gender: Annotated[UserGender | None, Form()] = None,
+    date_of_birth: Annotated[date | None, Form()] = None,
     image: Annotated[UploadFile | None, File()] = None,
 ) -> SuccessResponse[UserRead]:
     payload = UserUpdate(
@@ -98,25 +117,25 @@ def update_user(
         phone=phone,
         status=user_status,
         user_type=user_type,
+        gender=gender,
+        date_of_birth=date_of_birth,
     )
     user = UserService(db).update(user_id, payload, admin)
     if image is not None:
-        user = UserService(db).update_image_for(user_id, image, settings.upload_dir)
-    return SuccessResponse(message=UserMessages.UPDATED, data=UserRead.model_validate(user))
+        user = UserService(db).update_image_for(user_id, image, settings.upload_dir, admin)
+    return SuccessResponse(message=UserMessages.UPDATED, data=_user_read(db, user))
 
 
 @router.post("/update/{user_id}/image", response_model=SuccessResponse[UserRead])
 def update_user_image(
     user_id: UUID,
     db: DbSessionDep,
-    _: UserUpdateDep,
+    admin: UserUpdateDep,
     settings: SettingsDep,
     image: ProfileImageDep,
 ) -> SuccessResponse[UserRead]:
-    user = UserService(db).update_image_for(user_id, image, settings.upload_dir)
-    return SuccessResponse(
-        message=UserMessages.PROFILE_IMAGE_UPDATED, data=UserRead.model_validate(user)
-    )
+    user = UserService(db).update_image_for(user_id, image, settings.upload_dir, admin)
+    return SuccessResponse(message=UserMessages.PROFILE_IMAGE_UPDATED, data=_user_read(db, user))
 
 
 @router.put("/update/{user_id}/roles", response_model=SuccessResponse[UserRead])
@@ -127,12 +146,10 @@ def set_user_roles(
     role_ids: Annotated[list[UUID], Form(default_factory=list)],
 ) -> SuccessResponse[UserRead]:
     user = UserService(db).assign_roles(user_id, role_ids, admin)
-    return SuccessResponse(message=UserMessages.ROLES_UPDATED, data=UserRead.model_validate(user))
+    return SuccessResponse(message=UserMessages.ROLES_UPDATED, data=_user_read(db, user))
 
 
 @router.delete("/delete/{user_id}", response_model=SuccessResponse[None])
-def delete_user(
-    user_id: UUID, db: DbSessionDep, admin: UserDeleteDep
-) -> SuccessResponse[None]:
+def delete_user(user_id: UUID, db: DbSessionDep, admin: UserDeleteDep) -> SuccessResponse[None]:
     UserService(db).delete(user_id, admin)
     return SuccessResponse(message=UserMessages.DELETED, data=None)

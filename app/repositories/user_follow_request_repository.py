@@ -17,9 +17,7 @@ class UserFollowRequestRepository:
         created_id = self._db.scalar(
             insert(UserFollowRequest)
             .values(requester_id=requester_id, target_id=target_id)
-            .on_conflict_do_nothing(
-                constraint="uq_user_follow_requests_requester_id_target_id"
-            )
+            .on_conflict_do_nothing(constraint="uq_user_follow_requests_requester_id_target_id")
             .returning(UserFollowRequest.id)
         )
         self._db.commit()

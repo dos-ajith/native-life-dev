@@ -1,4 +1,4 @@
-from app.core.exceptions import AppError, BusinessRuleError
+from app.core.exceptions import AppError, BusinessRuleError, TooManyRequestsError
 
 
 class UnknownAIToolError(BusinessRuleError):
@@ -23,3 +23,7 @@ class AIProviderTimeoutError(AppError):
 
 class AIResponseError(AppError):
     status_code = 502
+
+
+class AIProviderRateLimitedError(TooManyRequestsError):
+    pass

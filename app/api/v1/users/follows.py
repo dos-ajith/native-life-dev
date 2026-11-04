@@ -4,14 +4,15 @@ from fastapi import APIRouter, status
 
 from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaginationDep
 from app.core.messages import UserFollowMessages
+from app.core.openapi_tags import ApiTag
 from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
 from app.schemas.user import UserSummaryRead
 from app.schemas.user_follow import FollowCountsRead, FollowStatusRead
 from app.services.user_follow_service import UserFollowService
 
-router = APIRouter(prefix="/users", tags=["user-follows"])
-me_router = APIRouter(prefix="/me", tags=["user-follows"])
+router = APIRouter(prefix="/users", tags=[ApiTag.USER_FOLLOWS])
+me_router = APIRouter(prefix="/me", tags=[ApiTag.USER_FOLLOWS])
 
 
 @router.post(

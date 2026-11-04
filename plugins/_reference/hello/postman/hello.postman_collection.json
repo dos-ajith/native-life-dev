@@ -1,0 +1,91 @@
+{
+  "info": {
+    "name": "Native Life Plugin · Hello (reference)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Reference plugin endpoints. Import alongside the core Native Life API collection and reuse its base_url and access_token variables. The plugin must be applied, the application restarted and the plugin enabled (7. Admin > Plugins) before these return 200; otherwise they return 404."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api/v1"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Platform App (Mobile)",
+      "item": [
+        {
+          "name": "1.5 Businesses",
+          "item": [
+            {
+              "name": "Hello",
+              "item": [
+                {
+                  "name": "Get greeting",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/hello/greeting",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "hello",
+                        "greeting"
+                      ]
+                    },
+                    "description": "Harmless reference endpoint. Requires plugin.hello.greeting.view (Super Admin has it implicitly; grant it to other roles through 7. Admin > Roles)."
+                  }
+                },
+                {
+                  "name": "Get business greeting",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/hello/businesses/:business_id/greeting",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "hello",
+                        "businesses",
+                        ":business_id",
+                        "greeting"
+                      ],
+                      "variable": [
+                        {
+                          "key": "business_id",
+                          "value": "{{business_id}}",
+                          "description": "UUID of a business you own"
+                        }
+                      ]
+                    },
+                    "description": "Business-scoped reference endpoint. Requires plugin.hello.greeting.view and the plugin enabled for this business (Business Plugins > Enable). 403 if not enabled for the business or not the owner; 404 if the plugin is globally disabled; 422 if the business is inactive."
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

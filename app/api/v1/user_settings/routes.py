@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.deps import CurrentActiveUserDep, DbSessionDep
 from app.core.messages import UserSettingsMessages
+from app.core.openapi_tags import ApiTag
 from app.schemas.response import SuccessResponse
 from app.schemas.user_settings import (
     AISettingsRead,
@@ -17,7 +18,7 @@ from app.schemas.user_settings import (
 )
 from app.services.user_settings_service import UserSettingsService
 
-router = APIRouter(prefix="/me/settings", tags=["user-settings"])
+router = APIRouter(prefix="/me/settings", tags=[ApiTag.USER_SETTINGS])
 
 
 @router.get("", response_model=SuccessResponse[UserSettingsRead])

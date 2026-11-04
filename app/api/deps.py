@@ -1,10 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from typing import Annotated
-from uuid import UUID
 
-import jwt
 from fastapi import Depends, File, Query, Request, UploadFile
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
@@ -12,34 +9,41 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.core.exceptions import AuthenticationError, AuthorizationError
-from app.core.formatting_context import (
-    APP_DATE_FORMAT_SETTING_KEY,
-    APP_TIME_FORMAT_SETTING_KEY,
-    DEFAULT_APP_DATE_FORMAT,
-    DEFAULT_APP_TIME_FORMAT,
-    set_datetime_formats,
-)
-from app.core.jwt import decode_access_token
+from app.core.google_auth import GoogleTokenVerifier, get_google_token_verifier
+from app.core.jwt import TokenClaims, parse_token_claims
 from app.core.messages import AuthMessages
-from app.models.user import User, UserStatus
-from app.repositories.active_token_repository import ActiveTokenRepository
-from app.repositories.setting_repository import SettingRepository
-from app.repositories.user_repository import UserRepository
+from app.core.sms import SmsProvider, get_sms_provider
+from app.models.user import User
 from app.schemas.geography import ReverseGeocodeQuery
 from app.schemas.pagination import PaginationParams
-from app.services.authorization_service import guest_has_permission, has_permission
+from app.services.authorization_service import (
+    guest_has_permission,
+    has_any_permission,
+    has_permission,
+    is_super_admin,
+)
+from app.services.token_authentication_service import TokenAuthenticationService, ensure_active_user
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 DbSessionDep = Annotated[Session, Depends(get_db)]
 
+
+def get_sms_provider_dependency(settings: SettingsDep) -> SmsProvider | None:
+    return get_sms_provider(settings)
+
+
+SmsProviderDep = Annotated[SmsProvider | None, Depends(get_sms_provider_dependency)]
+
+
+def get_google_token_verifier_dependency(settings: SettingsDep) -> GoogleTokenVerifier | None:
+    return get_google_token_verifier(settings)
+
+
+GoogleTokenVerifierDep = Annotated[
+    GoogleTokenVerifier | None, Depends(get_google_token_verifier_dependency)
+]
+
 _bearer_scheme = HTTPBearer(auto_error=False)
-
-
-@dataclass
-class TokenClaims:
-    user_id: UUID
-    jti: UUID
-    expires_at: datetime
 
 
 def get_token_claims(
@@ -48,15 +52,7 @@ def get_token_claims(
 ) -> TokenClaims:
     if credentials is None:
         raise AuthenticationError(AuthMessages.MISSING_TOKEN)
-    try:
-        payload = decode_access_token(credentials.credentials, settings)
-        return TokenClaims(
-            user_id=UUID(payload["sub"]),
-            jti=UUID(payload["jti"]),
-            expires_at=datetime.fromtimestamp(payload["exp"], tz=UTC),
-        )
-    except (jwt.InvalidTokenError, KeyError, ValueError) as exc:
-        raise AuthenticationError(AuthMessages.INVALID_TOKEN) from exc
+    return parse_token_claims(credentials.credentials, settings)
 
 
 TokenClaimsDep = Annotated[TokenClaims, Depends(get_token_claims)]
@@ -75,20 +71,14 @@ OptionalTokenClaimsDep = Annotated[TokenClaims | None, Depends(get_optional_toke
 
 
 def get_current_user(claims: TokenClaimsDep, db: DbSessionDep) -> User:
-    if not ActiveTokenRepository(db).is_active(claims.jti):
-        raise AuthenticationError(AuthMessages.INVALID_TOKEN)
-    user = UserRepository(db).get_by_id(claims.user_id)
-    if user is None:
-        raise AuthenticationError(AuthMessages.INVALID_TOKEN)
-    return user
+    return TokenAuthenticationService(db).get_user_for_claims(claims)
 
 
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
 
 
 def get_current_active_user(user: CurrentUserDep) -> User:
-    if user.status != UserStatus.ACTIVE:
-        raise AuthorizationError(AuthMessages.ACCOUNT_INACTIVE)
+    ensure_active_user(user)
     return user
 
 
@@ -98,6 +88,24 @@ CurrentActiveUserDep = Annotated[User, Depends(get_current_active_user)]
 def require_permission(permission: str) -> Callable[[User], User]:
     def dependency(user: CurrentActiveUserDep) -> User:
         if not has_permission(user, permission):
+            raise AuthorizationError(AuthMessages.PERMISSION_DENIED)
+        return user
+
+    return dependency
+
+
+def require_super_admin(user: CurrentActiveUserDep) -> User:
+    if not is_super_admin(user):
+        raise AuthorizationError(AuthMessages.PERMISSION_DENIED)
+    return user
+
+
+SuperAdminDep = Annotated[User, Depends(require_super_admin)]
+
+
+def require_any_permission(*permissions: str) -> Callable[[User], User]:
+    def dependency(user: CurrentActiveUserDep) -> User:
+        if not has_any_permission(user, permissions):
             raise AuthorizationError(AuthMessages.PERMISSION_DENIED)
         return user
 
@@ -115,11 +123,11 @@ OptionalActiveUserDep = Annotated[User | None, Depends(get_optional_active_user)
 
 def require_permission_or_guest(
     permission: str,
-) -> Callable[[User | None, Session], User | None]:
-    def dependency(user: OptionalActiveUserDep, db: DbSessionDep) -> User | None:
+) -> Callable[[User | None], User | None]:
+    def dependency(user: OptionalActiveUserDep) -> User | None:
         if user is not None and has_permission(user, permission):
             return user
-        if guest_has_permission(db, permission):
+        if guest_has_permission(permission):
             return user
         if user is None:
             raise AuthenticationError(AuthMessages.MISSING_TOKEN)
@@ -164,13 +172,3 @@ def get_activity_request_meta(request: Request) -> ActivityRequestMeta:
 
 
 ActivityRequestMetaDep = Annotated[ActivityRequestMeta, Depends(get_activity_request_meta)]
-
-
-def apply_datetime_formats(db: DbSessionDep) -> None:
-    settings = SettingRepository(db)
-    date_setting = settings.get_by_key(APP_DATE_FORMAT_SETTING_KEY)
-    time_setting = settings.get_by_key(APP_TIME_FORMAT_SETTING_KEY)
-    set_datetime_formats(
-        date_setting.value if date_setting and date_setting.value else DEFAULT_APP_DATE_FORMAT,
-        time_setting.value if time_setting and time_setting.value else DEFAULT_APP_TIME_FORMAT,
-    )

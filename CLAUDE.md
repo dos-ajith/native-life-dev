@@ -131,13 +131,30 @@ Router (app/api/v1/<module>/)   -- thin: HTTP in/out, calls a service, returns
 - The `postman/` folder is committed source — never put real tokens/secrets
   in it; use collection/environment variables instead.
 
+## Swagger (`/docs`) grouping
+
+- Swagger groups must mirror the Postman collection folders. Group names are
+  `ApiTag` constants in `app/core/openapi_tags.py` (e.g. `"1.4 Communities · Polls"`),
+  ordered via `OPENAPI_TAGS` passed to `FastAPI(openapi_tags=...)`.
+- Every new endpoint uses an `ApiTag` constant — never a free-text tag like
+  `tags=["admin"]`. Add the constant (matching the Postman folder and its order)
+  in the same change that adds the Postman entry.
+- Set `tags=[ApiTag.X]` on the `APIRouter`; if one router spans several Postman
+  folders, set it per route decorator instead.
+- Verify via `app.openapi()` that every operation's tag is declared in
+  `OPENAPI_TAGS` and none are unused.
+
 ## Testing
 
 - `tests/unit/` — no database, no network.
 - `tests/integration/` — hits a real (test) database.
 - New business logic gets a test. Don't rely on manual testing alone for
   anything beyond a UI/browser check.
-- The `tests/` folder is gitignored and not committed source.
+- The `tests/` folder is gitignored and not committed source, except the plugin
+  framework's tests (`tests/unit/plugins/`, `tests/integration/plugins/` plus the shared
+  `tests/__init__.py`, `tests/conftest.py`, `tests/unit/__init__.py`,
+  `tests/integration/__init__.py` and `tests/integration/conftest.py`) and each plugin's
+  own `tests/` folder, which are committed.
 
 ## Workflow
 

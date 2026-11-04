@@ -4,12 +4,13 @@ from fastapi import APIRouter
 
 from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaginationDep
 from app.core.messages import NotificationMessages
+from app.core.openapi_tags import ApiTag
 from app.schemas.notification import NotificationRead, NotificationUnreadCountRead
 from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
 from app.services.notification_service import NotificationService
 
-router = APIRouter(prefix="/me/notifications", tags=["notifications"])
+router = APIRouter(prefix="/me/notifications", tags=[ApiTag.NOTIFICATIONS])
 
 
 @router.get("", response_model=SuccessResponse[Page[NotificationRead]])

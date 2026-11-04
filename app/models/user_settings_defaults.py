@@ -1,4 +1,9 @@
-from app.models.user_settings_enums import AIResponseStyle, ProfileVisibility, VisibilityLevel
+from app.models.user_settings_enums import (
+    AIResponseStyle,
+    MessagePermission,
+    ProfileVisibility,
+    VisibilityLevel,
+)
 
 
 class UserSettingsDefaults:
@@ -24,7 +29,9 @@ class UserSettingsDefaults:
     LOCATION_VISIBILITY = VisibilityLevel.FOLLOWERS
     ACTIVITY_VISIBILITY = VisibilityLevel.PUBLIC
     ALLOW_MESSAGES = True
+    WHO_CAN_MESSAGE = MessagePermission.EVERYONE
     ALLOW_MENTIONS = True
 
     HIDE_SENSITIVE_CONTENT = True
     PERSONALIZED_FEED = True
+    NEARBY_RADIUS_KM = 30

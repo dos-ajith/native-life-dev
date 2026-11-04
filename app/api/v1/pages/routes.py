@@ -11,6 +11,7 @@ from app.api.deps import (
     require_permission,
 )
 from app.core.messages import PageMessages
+from app.core.openapi_tags import ApiTag
 from app.core.permissions import PermissionName
 from app.models.page import PageStatus
 from app.models.user import User
@@ -19,7 +20,7 @@ from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
 from app.services.page_service import PageService
 
-router = APIRouter(prefix="/admin/pages", tags=["pages"])
+router = APIRouter(prefix="/admin/pages", tags=[ApiTag.ADMIN_PAGES])
 
 PageCreateDep = Annotated[User, Depends(require_permission(PermissionName.PAGE_CREATE))]
 PageViewDep = Annotated[User, Depends(require_permission(PermissionName.PAGE_VIEW))]
@@ -64,9 +65,7 @@ def edit_page(page_id: UUID, db: DbSessionDep, _: PageViewDep) -> SuccessRespons
 
 
 @router.get("/slug/{slug}", response_model=SuccessResponse[PageRead])
-def get_page_by_slug(
-    slug: str, db: DbSessionDep, _: PageViewDep
-) -> SuccessResponse[PageRead]:
+def get_page_by_slug(slug: str, db: DbSessionDep, _: PageViewDep) -> SuccessResponse[PageRead]:
     page = PageService(db).get_by_slug(slug)
     return SuccessResponse(message=PageMessages.RETRIEVED, data=PageRead.model_validate(page))
 

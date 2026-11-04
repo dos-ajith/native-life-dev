@@ -1,10 +1,18 @@
+import enum
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, Index, UniqueConstraint, func
+from sqlalchemy import Enum, ForeignKey, Index, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, UUIDPrimaryKeyMixin
+
+
+class ReactionType(enum.StrEnum):
+    LIKE = "like"
+    LOVE = "love"
+    LAUGH = "laugh"
+    WOW = "wow"
 
 
 class PostLike(Base, UUIDPrimaryKeyMixin):
@@ -17,4 +25,14 @@ class PostLike(Base, UUIDPrimaryKeyMixin):
 
     post_id: Mapped[UUID] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"))
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    reaction_type: Mapped[ReactionType] = mapped_column(
+        Enum(
+            ReactionType,
+            name="post_reaction_type",
+            native_enum=True,
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+        ),
+        default=ReactionType.LIKE,
+        server_default=ReactionType.LIKE.value,
+    )
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

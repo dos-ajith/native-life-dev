@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Form, status
 
 from app.api.deps import DbSessionDep, PaginationDep, require_permission
 from app.core.messages import PermissionMessages
+from app.core.openapi_tags import ApiTag
 from app.core.permissions import PermissionName
 from app.models.user import User
 from app.schemas.pagination import Page
@@ -12,7 +13,7 @@ from app.schemas.permission import PermissionCreate, PermissionRead, PermissionU
 from app.schemas.response import SuccessResponse
 from app.services.permission_service import PermissionService
 
-router = APIRouter(prefix="/admin/permissions", tags=["permissions"])
+router = APIRouter(prefix="/admin/permissions", tags=[ApiTag.ADMIN_PERMISSIONS])
 
 PermissionCreateDep = Annotated[User, Depends(require_permission(PermissionName.PERMISSION_CREATE))]
 PermissionViewDep = Annotated[User, Depends(require_permission(PermissionName.PERMISSION_VIEW))]

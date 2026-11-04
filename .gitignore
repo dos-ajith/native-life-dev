@@ -29,12 +29,32 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Credentials (Firebase service account keys and similar)
+/secrets/
+*-firebase-adminsdk-*.json
+firebase-service-account*.json
+
 # Uploaded user content (local filesystem storage)
 /uploads/*
 !/uploads/.gitkeep
 
-# Tests
-tests/
+# Privately stored uploads (not served via the public /media static mount)
+/private_uploads/*
+!/private_uploads/.gitkeep
+
+# Tests (only the plugin framework's tests are tracked; plugin packages track their own tests/)
+/tests/*
+!/tests/__init__.py
+!/tests/conftest.py
+!/tests/unit/
+/tests/unit/*
+!/tests/unit/__init__.py
+!/tests/unit/plugins/
+!/tests/integration/
+/tests/integration/*
+!/tests/integration/__init__.py
+!/tests/integration/conftest.py
+!/tests/integration/plugins/
 
 # Local schema scratch file
-docs/schema.dbml
+# docs/schema.dbml

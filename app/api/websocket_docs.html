@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Native Life — WebSocket API Documentation</title>
+  <style>
+    :root {
+      --bg: #ffffff; --fg: #1f2933; --muted: #52606d; --border: #d9e2ec;
+      --code-bg: #f4f6f8; --accent: #0b6bcb; --nav-bg: #f8fafc; --quote: #e8f1fb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12161c; --fg: #e4e7eb; --muted: #9aa5b1; --border: #2d3640;
+        --code-bg: #1b222b; --accent: #5aa9f0; --nav-bg: #161b22; --quote: #1a2a3a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg);
+      font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .layout { display: flex; min-height: 100vh; }
+    nav { width: 300px; flex-shrink: 0; position: sticky; top: 0; align-self: flex-start;
+      height: 100vh; overflow-y: auto; padding: 24px 16px; background: var(--nav-bg);
+      border-right: 1px solid var(--border); font-size: 14px; }
+    nav .brand { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    nav .links { margin-bottom: 16px; color: var(--muted); }
+    nav ul { list-style: none; margin: 0; padding: 0; }
+    nav li.h3 { padding-left: 14px; font-size: 13px; }
+    nav a { display: block; padding: 3px 0; color: var(--fg); text-decoration: none; }
+    nav a:hover { color: var(--accent); }
+    main { flex: 1; min-width: 0; max-width: 980px; padding: 32px 40px 80px; }
+    a { color: var(--accent); }
+    h1, h2, h3 { line-height: 1.25; scroll-margin-top: 16px; }
+    h1 { margin-top: 0; }
+    h2 { margin-top: 2.2em; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    h3 { margin-top: 1.8em; }
+    code { background: var(--code-bg); padding: 2px 5px; border-radius: 4px;
+      font: 0.88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre { background: var(--code-bg); padding: 14px 16px; border-radius: 6px; overflow-x: auto;
+      border: 1px solid var(--border); line-height: 1.45; }
+    pre code { background: none; padding: 0; font-size: 13.5px; }
+    pre.mermaid { background: transparent; border: none; text-align: center; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; display: block; overflow-x: auto; }
+    th, td { border: 1px solid var(--border); padding: 7px 12px; text-align: left; vertical-align: top; }
+    th { background: var(--code-bg); }
+    blockquote { margin: 16px 0; padding: 8px 16px; border-left: 4px solid var(--accent);
+      background: var(--quote); border-radius: 0 6px 6px 0; }
+    blockquote p { margin: 6px 0; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+    #error { display: none; padding: 12px 16px; border: 1px solid #d64545; border-radius: 6px;
+      margin-bottom: 16px; }
+    @media (max-width: 860px) {
+      .layout { display: block; }
+      nav { position: static; width: auto; height: auto; border-right: none;
+        border-bottom: 1px solid var(--border); }
+      main { padding: 20px 16px 60px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <div class="brand">Native Life API</div>
+      <div class="links"><a href="/docs">REST API (Swagger)</a><br>WebSocket API (this page)</div>
+      <ul id="toc"></ul>
+    </nav>
+    <main>
+      <div id="error"></div>
+      <article id="content"></article>
+    </main>
+  </div>
+
+  <script type="application/json" id="markdown-source">__MARKDOWN_JSON__</script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+  <script>
+    (function () {
+      var source = JSON.parse(document.getElementById("markdown-source").textContent);
+      var content = document.getElementById("content");
+
+      if (typeof marked === "undefined") {
+        var error = document.getElementById("error");
+        error.style.display = "block";
+        error.textContent = "Could not load the Markdown renderer from cdn.jsdelivr.net. Showing the raw document.";
+        var raw = document.createElement("pre");
+        raw.textContent = source;
+        content.appendChild(raw);
+        return;
+      }
+
+      content.innerHTML = marked.parse(source, { gfm: true });
+
+      var used = {};
+      function slugify(text) {
+        var base = text.toLowerCase().trim().replace(/[^\p{L}\p{N}\- _]/gu, "").replace(/ /g, "-");
+        var count = used[base] || 0;
+        used[base] = count + 1;
+        return count ? base + "-" + count : base;
+      }
+
+      var toc = document.getElementById("toc");
+      content.querySelectorAll("h1, h2, h3").forEach(function (heading) {
+        heading.id = slugify(heading.textContent);
+        if (heading.tagName === "H1") { return; }
+        var item = document.createElement("li");
+        item.className = heading.tagName.toLowerCase();
+        var link = document.createElement("a");
+        link.href = "#" + heading.id;
+        link.textContent = heading.textContent;
+        item.appendChild(link);
+        toc.appendChild(item);
+      });
+
+      document.title = "Native Life — WebSocket API Documentation";
+
+      if (typeof mermaid !== "undefined") {
+        content.querySelectorAll("code.language-mermaid").forEach(function (code) {
+          var block = document.createElement("pre");
+          block.className = "mermaid";
+          block.textContent = code.textContent;
+          code.parentElement.replaceWith(block);
+        });
+        var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "default" });
+        mermaid.run({ querySelector: "pre.mermaid" }).then(function () {
+          if (location.hash) {
+            var target = document.getElementById(location.hash.slice(1));
+            if (target) { target.scrollIntoView(); }
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

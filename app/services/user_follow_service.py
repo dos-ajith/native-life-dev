@@ -1,3 +1,6 @@
+import logging
+from collections.abc import Callable
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -7,24 +10,30 @@ from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.core.messages import UserFollowMessages
 from app.models.user import User
 from app.models.user_settings_enums import ProfileVisibility
+from app.realtime.events import RealtimeEvent, RealtimeEventType
+from app.realtime.publisher import RealtimePublisher, get_realtime_publisher
 from app.repositories.user_follow_repository import UserFollowRepository
 from app.repositories.user_follow_request_repository import UserFollowRequestRepository
 from app.repositories.user_privacy_settings_repository import UserPrivacySettingsRepository
 from app.schemas.pagination import PaginationParams
+from app.schemas.user import UserSummaryRead
 from app.schemas.user_follow import FollowCountsRead, FollowStatusRead
 from app.services.activity_log_service import ActivityLogService
 from app.services.notification_service import NotificationService
 from app.services.user_service import UserService
 
+logger = logging.getLogger("app.follow")
+
 
 class UserFollowService:
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, publisher: RealtimePublisher | None = None) -> None:
+        self._publisher = publisher or get_realtime_publisher()
         self._follows = UserFollowRepository(db)
         self._requests = UserFollowRequestRepository(db)
         self._privacy = UserPrivacySettingsRepository(db)
         self._users = UserService(db)
         self._activity_logs = ActivityLogService(db)
-        self._notifications = NotificationService(db)
+        self._notifications = NotificationService(db, self._publisher)
 
     def follow(self, target_id: UUID, actor: User) -> FollowStatusRead:
         if target_id == actor.id:
@@ -56,10 +65,12 @@ class UserFollowService:
                 entity_type="user",
                 entity_id=target_id,
             )
+            self._publish_request_removed(recipient_id=target_id, requester_id=actor.id)
             return True
         raise NotFoundError(UserFollowMessages.NOT_FOLLOWING_OR_REQUESTED)
 
     def accept(self, requester_id: UUID, actor: User) -> None:
+        self._users.get(requester_id)
         if not self._requests.delete(requester_id, actor.id):
             raise NotFoundError(UserFollowMessages.REQUEST_NOT_FOUND)
         if not self._follows.create(requester_id, actor.id):
@@ -71,6 +82,8 @@ class UserFollowService:
             entity_id=requester_id,
         )
         self._notifications.notify_follow_request_accepted(target=actor, requester_id=requester_id)
+        self._publish_request_accepted(requester_id=requester_id, accepted_by=actor)
+        self._publish_request_removed(recipient_id=actor.id, requester_id=requester_id)
 
     def decline(self, requester_id: UUID, actor: User) -> None:
         if not self._requests.delete(requester_id, actor.id):
@@ -81,6 +94,7 @@ class UserFollowService:
             entity_type="user",
             entity_id=requester_id,
         )
+        self._publish_request_removed(recipient_id=actor.id, requester_id=requester_id)
 
     def accept_all_pending(self, target: User) -> None:
         requester_ids = self._requests.delete_all_for_target(target.id)
@@ -97,6 +111,8 @@ class UserFollowService:
             self._notifications.notify_follow_request_accepted(
                 target=target, requester_id=requester_id
             )
+            self._publish_request_accepted(requester_id=requester_id, accepted_by=target)
+            self._publish_request_removed(recipient_id=target.id, requester_id=requester_id)
 
     def status(self, target_id: UUID, actor: User) -> FollowStatusRead:
         target = self._users.get(target_id)
@@ -162,3 +178,39 @@ class UserFollowService:
             entity_id=target.id,
         )
         self._notifications.notify_follow_requested(requester=actor, target_id=target.id)
+        self._publish_request_created(target_id=target.id, requester=actor)
+
+    def _publish_request_created(self, target_id: UUID, requester: User) -> None:
+        self._publish_if_connected(
+            target_id,
+            RealtimeEventType.FOLLOW_REQUEST_CREATED,
+            lambda: {"user": UserSummaryRead.model_validate(requester).model_dump(mode="json")},
+        )
+
+    def _publish_request_accepted(self, requester_id: UUID, accepted_by: User) -> None:
+        self._publish_if_connected(
+            requester_id,
+            RealtimeEventType.FOLLOW_REQUEST_ACCEPTED,
+            lambda: {"user": UserSummaryRead.model_validate(accepted_by).model_dump(mode="json")},
+        )
+
+    def _publish_request_removed(self, recipient_id: UUID, requester_id: UUID) -> None:
+        self._publish_if_connected(
+            recipient_id,
+            RealtimeEventType.FOLLOW_REQUEST_REMOVED,
+            lambda: {"user_id": str(requester_id)},
+        )
+
+    def _publish_if_connected(
+        self,
+        recipient_id: UUID,
+        event_type: RealtimeEventType,
+        build_data: Callable[[], dict[str, Any]],
+    ) -> None:
+        try:
+            if self._publisher.has_connections(recipient_id):
+                self._publisher.publish_to_user(
+                    recipient_id, RealtimeEvent(type=event_type, data=build_data())
+                )
+        except Exception:
+            logger.exception("Failed to publish %s to user %s", event_type, recipient_id)

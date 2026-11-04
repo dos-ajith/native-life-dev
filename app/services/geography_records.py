@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from shapely.geometry import MultiPolygon
 
@@ -33,6 +33,8 @@ class VillageRecord:
     district_name: str
     taluk_lgd_code: str
     taluk_name: str
+    village_lgd_code: str
+    village_name: str
     geom: MultiPolygon
 
 
@@ -41,3 +43,4 @@ class AdminBoundaries:
     states: list[StateRecord]
     districts: list[DistrictRecord]
     taluks: list[TalukRecord]
+    villages: list[VillageRecord] = field(default_factory=list)

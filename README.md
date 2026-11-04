@@ -45,6 +45,7 @@ app/
         service.py    # orchestrates the client + tool registry + activity logging
         exceptions.py # AI-specific AppError subclasses
         tools/        # read-only tool definitions, calling existing services only
+    realtime/     # WebSocket connection manager, publisher, event envelope (see docs/websocket.md)
     models/       # SQLAlchemy ORM models
     schemas/      # Pydantic request/response schemas
     repositories/ # database query logic
@@ -87,12 +88,65 @@ other layer:
 If neither key is configured for the selected provider, `/api/v1/ai/ask`
 returns a 503 rather than the app failing to start.
 
+### Authentication
+
+Three sign-in methods share one `users` table and one session model. Every
+successful sign-in returns the same `TokenResponse`: a 30-minute access token
+(sent as `Authorization: Bearer ...`) and a refresh token. `POST /auth/refresh`
+rotates both, and a refresh token works only once. `POST /auth/logout` revokes
+the current pair.
+
+| Method | Endpoints |
+|---|---|
+| Email + password | `POST /users/register`, `POST /auth/verify-email`, `POST /auth/login` |
+| Phone OTP | `POST /auth/phone/request-otp` -> `POST /auth/phone/verify-otp` -> (new users) `POST /auth/phone/register` |
+| Google | `POST /auth/google/sign-in` -> (new users) `POST /auth/google/register`; signed-in users: `POST /auth/google/link` |
+
+`verify-otp` and `google/sign-in` return `data.status`:
+
+- `authenticated` — tokens and the user, for an existing active account.
+- `registration_required` — a 15-minute `registration_token`. The app must
+  collect `first_name`, `last_name` and `accept_terms: true` and call the
+  matching `register` endpoint. No tokens are issued before that.
+
+Rules:
+
+- Only a **verified** phone number signs in. Numbers typed during email
+  registration are unverified and never grant access.
+- Google accounts are matched on Google's stable `sub`, never on email. If the
+  Google email already belongs to an account, sign-in returns 409
+  `account_exists_sign_in_to_link`. The user signs in with their existing
+  method and calls `POST /auth/google/link`. Accounts are never merged
+  automatically.
+- Errors that the app should branch on carry `errors[0].code`.
+
+**SMS provider** (`SMS_PROVIDER`): `disabled` (default, phone endpoints return
+503), `console` (local development only; the code is written to the server log
+and the app refuses to start with it when `APP_ENV=production`), or `twilio`
+(set `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY_SID`, `TWILIO_API_KEY_SECRET`,
+`TWILIO_FROM_NUMBER`). Twilio trial accounts can only send to numbers verified
+in the Twilio console. Sending to Indian numbers on the domestic route requires
+DLT registration (entity, sender ID and the OTP message template from
+`app/core/sms_templates.py`) before going live.
+
+**Google** (`GOOGLE_CLIENT_IDS`): a JSON array with every OAuth client ID that
+the apps request ID tokens for (Android, iOS, web). Empty disables Google
+sign-in (503).
+
+For console URLs, environment variables, how to get a Google ID token for
+Postman, and the manual test flow, see
+[docs/SSO_SETUP_GUIDE.md](docs/SSO_SETUP_GUIDE.md).
+
+Phone OTP limits are per phone and per client IP. Behind a reverse proxy, run
+Uvicorn with `--proxy-headers --forwarded-allow-ips=<proxy ip>`. Otherwise
+every request appears to come from the proxy.
+
 ## Local setup
 
 ### Prerequisites
 
 - Python 3.12+ (`py -V:3.12`)
-- PostgreSQL running locally (or via Docker later)
+- PostgreSQL running locally
 
 ### 1. Virtual environment
 
@@ -208,25 +262,54 @@ python -m scripts.seed
 ```
 
 This runs `scripts/seed.py`, which seeds (in order): permissions and roles,
-one dev user per role, and default app settings. It's idempotent — safe to
-re-run, existing rows are left as-is. Seeded users all use the password
+one dev user per role, and default app settings. The seeder is the source of
+truth for roles: it creates exactly the six roles in
+[docs/roles-and-permissions.md](docs/roles-and-permissions.md), matched by
+slug, sets each role's display name and permission set to match the code
+(adding and removing permissions), and deletes any other role that has no
+users. If a role outside the final six still has users, it stops and asks you
+to run `alembic upgrade head` first. It's idempotent — safe to re-run, and
+always run it after migrating. Seeded users all use the password
 `Password123!`, e.g. `dev@nativelife.com` for the Super Admin role.
 
-### 8. Docker (optional, not required for local dev)
+Deals settings seeded here (both editable later under `/api/v1/admin/settings`):
 
-A `Dockerfile` and `docker-compose.yml` exist for later/deployment use, but
-local development in this project currently runs directly against a
-locally-installed PostgreSQL, not containers. To use Docker once you have it
-installed:
+- `deal_accepting_roles` — JSON array with exactly one role slug that may accept
+  deals, seeded as `["promoter"]` (resolved from the roles table). An existing
+  value is never overwritten. If the `promoter` role is missing the seeder stops
+  with an error; until the setting is valid, deal submission and acceptance
+  return 503 instead of falling back to another role.
+- `deal_acceptance_timeout_hours` — how long a submitted deal waits for
+  acceptance before it expires (default `72`, allowed 1–720). The deadline is
+  fixed when the deal is first submitted.
+
+Delivery timing settings (also editable under `/api/v1/admin/settings`; if a row
+is missing the default is used):
+
+- `delivery_response_minutes` — how long the deal's own promoter has to answer
+  a delivery request (default `30`, allowed 1–1440). If they reject it or the
+  time runs out, the request opens to the other promoters serving that area.
+- `delivery_claim_minutes` — how long the other promoters have to claim an
+  opened request, first to accept wins (default `60`, allowed 1–1440). After
+  that the request expires and the customer is notified.
+
+Expired deals are enforced at request time; to also mark them expired and notify
+creators without waiting for traffic, schedule this (e.g. hourly cron):
 
 ```powershell
-docker compose up --build
+python -m scripts.expire_deals
 ```
 
-Note: inside `docker-compose.yml`, the `api` service overrides `DATABASE_URL`
-to point at `db:5432` (the container's network name) instead of `localhost`,
-since `localhost` inside a container means the container itself, not your
-host machine.
+### Reset local database
+
+Wipe all tables, rebuild the schema, and re-seed (local dev only — this
+destroys all data):
+
+```powershell
+alembic downgrade base
+alembic upgrade head
+python -m scripts.seed
+```
 
 ## Testing
 
@@ -237,11 +320,37 @@ pytest
 Full fixture/test-database setup lands in Phase 8 — for now, tests rely on
 your local `.env` being populated (see below for a known gap).
 
+Authentication tests live in `tests/auth/` (`unit/`, `integration/`, `live/`)
+with their own fixtures. Integration tests create and drop a throwaway
+`test_auth_*` schema in the database from `.env`. SMS and Google are faked:
+
+```powershell
+pytest tests/auth
+```
+
+`tests/auth/live/` is skipped unless configured. `LIVE_SMS_TO_PHONE=+91...`
+sends one real SMS with the Twilio settings in `.env`.
+`LIVE_GOOGLE_CLIENT_ID` plus `LIVE_GOOGLE_ID_TOKEN` (a fresh token from the
+app) verifies against Google.
+
+## Business plugins
+
+Optional features for the Business / Service Provider role live in `plugins/` and are
+loaded by the framework in `app/plugins/`. A plugin only runs after it has been applied and
+the app restarted; Super Admin then enables it under `/api/v1/admin/plugins`.
+
+```powershell
+python -m app.plugins.cli validate          # check manifests, no database
+python -m app.plugins.cli apply --key hello # register metadata and permissions
+```
+
+See [docs/plugins.md](docs/plugins.md).
+
 ## Linting & type checking
 
 ```powershell
 ruff check .
-mypy app
+mypy app plugins
 ```
 
 ## How to add a new module *(pending — filled in once Users module exists)*

@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>API Tester</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; display: grid; grid-template-columns: 320px 1fr; font: 13px system-ui, sans-serif; }
+  aside { border-right: 1px solid #ccc; overflow: auto; padding: 8px; }
+  main { overflow: auto; padding: 12px; }
+  input, textarea, select, button { font: inherit; }
+  input[type=text], textarea, select { border: 1px solid #bbb; padding: 4px 6px; }
+  textarea, pre, .mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  textarea { width: 100%; min-height: 90px; }
+  #search { width: 100%; margin-bottom: 8px; }
+  details > details, details > .leaf, details > .group { margin-left: 12px; }
+  summary { cursor: pointer; padding: 2px 0; }
+  .leaf { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 2px 4px; cursor: pointer; }
+  .leaf.active { background: #ddd; }
+  .row { display: flex; gap: 6px; margin-bottom: 8px; }
+  .row input[type=text] { flex: 1; }
+  .section { margin: 10px 0; }
+  .label { font-weight: 600; margin-bottom: 4px; }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 2px 4px 2px 0; }
+  td input[type=text] { width: 100%; }
+  pre { margin: 0; padding: 8px; background: #f4f4f4; overflow: auto; max-height: 60vh; white-space: pre-wrap; word-break: break-word; }
+  #status { margin: 8px 0; }
+  .bad { color: #b00020; }
+  .path { color: #666; margin-bottom: 6px; }
+  .desc { white-space: pre-wrap; margin: 4px 0; color: #333; }
+</style>
+</head>
+<body>
+<aside>
+  <input id="search" type="text" placeholder="Search name, path or method">
+  <div id="tree"></div>
+</aside>
+<main>
+  <details id="vars-panel">
+    <summary>Variables</summary>
+    <div class="row section">
+      <button id="reset-vars" type="button">Reset to collection defaults</button>
+    </div>
+    <table id="vars"></table>
+  </details>
+  <div id="loader" hidden>
+    <p>Could not load the collection automatically. Pick the file:</p>
+    <input id="collection-file" type="file" accept=".json">
+  </div>
+  <div id="editor"></div>
+  <div id="status"></div>
+  <div id="response"></div>
+</main>
+<script>
+const COLLECTION_URL = '../../postman/native-life-api.postman_collection.json';
+const STORE_VARS = 'api-tester:vars';
+const STORE_LAST = 'api-tester:last';
+const BODYLESS_METHODS = ['GET', 'HEAD'];
+
+const AUTH_FOLDER = '0.2 Authentication';
+const FLOW_FIELD_DEFAULTS = {
+  email: 'new.user@example.com',
+  password: 'Password123!',
+  otp: '123456',
+  first_name: 'New',
+  last_name: 'User',
+};
+const FLOWS = [
+  {
+    name: 'Register with email',
+    fields: ['email', 'password', 'first_name', 'last_name', 'otp'],
+    steps: [
+      { request: 'Register', form: { first_name: '{{first_name}}', last_name: '{{last_name}}', email: '{{email}}', phone: '', password: '{{password}}' } },
+      { request: 'Verify Email', body: { email: '{{email}}', otp: '{{otp}}' } },
+      { request: 'Login', body: { email: '{{email}}', password: '{{password}}' } },
+      { request: 'Me' },
+    ],
+  },
+  {
+    name: 'Register with phone',
+    fields: ['phone', 'otp', 'first_name', 'last_name'],
+    steps: [
+      { request: 'Request Phone OTP', body: { phone: '{{phone}}' } },
+      { request: 'Verify Phone OTP', body: { phone: '{{phone}}', otp: '{{otp}}' } },
+      { request: 'Register With Phone', body: { registration_token: '{{registration_token}}', first_name: '{{first_name}}', last_name: '{{last_name}}', accept_terms: true, gender: 'male', date_of_birth: '2000-01-31' } },
+      { request: 'Me' },
+    ],
+  },
+  {
+    name: 'Register with Google',
+    fields: ['google_id_token', 'first_name', 'last_name'],
+    steps: [
+      { request: 'Google Sign-In', body: { id_token: '{{google_id_token}}' } },
+      { request: 'Register With Google', body: { registration_token: '{{registration_token}}', first_name: '{{first_name}}', last_name: '{{last_name}}', accept_terms: true, gender: 'male', date_of_birth: '2000-01-31' } },
+      { request: 'Me' },
+    ],
+  },
+];
+
+let flows = [];
+let defaults = {};
+let vars = {};
+let leaves = [];
+let tree = [];
+let current = null;
+let ui = null;
+
+function h(tag, props = {}, ...children) {
+  const el = document.createElement(tag);
+  Object.assign(el, props);
+  children.flat().forEach((c) => el.append(c));
+  return el;
+}
+
+function resolve(text) {
+  return text.replace(/\{\{([^}]+)\}\}/g, (match, key) => (key in vars ? vars[key] : match));
+}
+
+function saveVars() {
+  localStorage.setItem(STORE_VARS, JSON.stringify(vars));
+}
+
+function normalizeUrl(request) {
+  return typeof request.url === 'string' ? { raw: request.url } : request.url || { raw: '' };
+}
+
+function buildTree(items, trail) {
+  return items.map((item) => {
+    if (item.item) {
+      return { name: item.name, children: buildTree(item.item, [...trail, item.name]) };
+    }
+    const url = normalizeUrl(item.request);
+    const leaf = {
+      name: item.name,
+      trail,
+      method: item.request.method,
+      request: item.request,
+      events: item.event || [],
+      search: `${item.request.method} ${[...trail, item.name].join(' ')} ${url.raw}`.toLowerCase(),
+    };
+    leaves.push(leaf);
+    return leaf;
+  });
+}
+
+function leafButton(leaf) {
+  const button = h('button', { className: 'leaf', type: 'button', textContent: leaf.label || `${leaf.method} ${leaf.name}` });
+  button.dataset.key = leaf.search;
+  button.onclick = () => selectLeaf(leaf);
+  return button;
+}
+
+function renderNodes(nodes) {
+  return nodes.map((node) => (node.children
+    ? h('details', {}, h('summary', { textContent: node.name }), h('div', { className: 'group' }, renderNodes(node.children)))
+    : leafButton(node)));
+}
+
+function renderSidebar() {
+  const query = document.getElementById('search').value.trim().toLowerCase();
+  const target = document.getElementById('tree');
+  target.replaceChildren();
+  if (!query) {
+    flows.forEach((flow) => target.append(h('details', { open: true }, h('summary', { textContent: flow.name }), h('div', { className: 'group' }, flow.leaves.map(leafButton)))));
+    renderNodes(tree).forEach((n) => target.append(n));
+    return;
+  }
+  leaves.filter((l) => l.search.includes(query)).forEach((l) => target.append(leafButton(l)));
+}
+
+function buildFlows() {
+  flows = FLOWS.map((flow, flowIndex) => ({
+    ...flow,
+    leaves: flow.steps.map((step, stepIndex) => {
+      const base = leaves.find((l) => l.trail[1] === AUTH_FOLDER && l.name === step.request);
+      return { ...base, step, flow, label: `${stepIndex + 1}. ${step.request}`, search: `flow:${flowIndex}:${stepIndex}` };
+    }),
+  }));
+  FLOWS.flatMap((f) => f.fields).forEach((key) => {
+    if (!(key in vars) && key in FLOW_FIELD_DEFAULTS) vars[key] = FLOW_FIELD_DEFAULTS[key];
+  });
+}
+
+function flowFields(flow) {
+  const table = h('table', {}, flow.fields.map((key) => {
+    const input = h('input', { type: 'text', value: vars[key] ?? '' });
+    input.oninput = () => {
+      vars[key] = input.value;
+      saveVars();
+      renderVars();
+    };
+    return h('tr', {}, h('td', { className: 'mono', textContent: key }), h('td', {}, input));
+  }));
+  return h('div', { className: 'section' }, h('div', { className: 'label', textContent: flow.name }), table);
+}
+
+function highlightActive() {
+  document.querySelectorAll('.leaf').forEach((b) => b.classList.toggle('active', current && b.dataset.key === current.search));
+}
+
+function renderVars() {
+  const table = document.getElementById('vars');
+  table.replaceChildren();
+  const keys = [...new Set([...Object.keys(defaults), ...Object.keys(vars)])];
+  keys.forEach((key) => {
+    const input = h('input', { type: 'text', value: vars[key] ?? '' });
+    input.oninput = () => {
+      vars[key] = input.value;
+      saveVars();
+    };
+    table.append(h('tr', {}, h('td', { className: 'mono', textContent: key }), h('td', {}, input)));
+  });
+}
+
+function initialUrl(request) {
+  const url = normalizeUrl(request);
+  let raw = url.raw || '';
+  (url.variable || []).forEach((v) => {
+    const value = v.value || (v.key in vars ? `{{${v.key}}}` : '');
+    if (value) raw = raw.replace(new RegExp(`:${v.key}(?!\\w)`), value);
+  });
+  return raw;
+}
+
+function headerLines(request) {
+  return (request.header || []).filter((x) => !x.disabled).map((x) => `${x.key}: ${x.value}`).join('\n');
+}
+
+function formRow(field) {
+  const enabled = h('input', { type: 'checkbox', checked: !field.disabled });
+  const key = h('input', { type: 'text', value: field.key || '' });
+  const isFile = field.type === 'file';
+  const value = isFile
+    ? h('input', { type: 'file' })
+    : h('input', { type: 'text', value: field.value || '' });
+  const row = h('tr', { title: field.description || '' }, h('td', {}, enabled), h('td', {}, key), h('td', {}, value));
+  return { row, enabled, key, value, isFile };
+}
+
+function buildEditor(leaf) {
+  const request = leaf.request;
+  const method = h('select', {}, ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map((m) => h('option', { value: m, textContent: m, selected: m === request.method })));
+  const url = h('input', { type: 'text', value: initialUrl(request) });
+  const send = h('button', { type: 'button', textContent: 'Send' });
+  const headers = h('textarea', { value: headerLines(request), rows: 3 });
+  const editor = document.getElementById('editor');
+  const step = leaf.step || {};
+  editor.replaceChildren(
+    leaf.flow ? flowFields(leaf.flow) : '',
+    h('div', { className: 'path', textContent: [...leaf.trail, leaf.name].join(' / ') }),
+    h('div', { className: 'row' }, method, url, send),
+    request.description ? h('details', {}, h('summary', { textContent: 'Description' }), h('div', { className: 'desc', textContent: request.description })) : '',
+    h('div', { className: 'section' }, h('div', { className: 'label', textContent: 'Headers' }), headers),
+  );
+
+  const body = request.body || {};
+  let bodyEl = null;
+  let formRows = [];
+  if (body.mode === 'raw') {
+    bodyEl = h('textarea', { value: step.body ? JSON.stringify(step.body, null, 2) : body.raw || '', rows: 10 });
+    editor.append(h('div', { className: 'section' }, h('div', { className: 'label', textContent: 'Body (raw)' }), bodyEl));
+  } else if (body.mode === 'formdata') {
+    formRows = (body.formdata || []).map((field) => formRow(step.form && field.key in step.form ? { ...field, value: step.form[field.key] } : field));
+    const table = h('table', {}, formRows.map((r) => r.row));
+    editor.append(h('div', { className: 'section' }, h('div', { className: 'label', textContent: 'Body (form-data)' }), table));
+  }
+
+  send.onclick = () => sendRequest();
+  ui = { method, url, headers, bodyEl, formRows, mode: body.mode };
+}
+
+function selectLeaf(leaf) {
+  current = leaf;
+  localStorage.setItem(STORE_LAST, leaf.search);
+  buildEditor(leaf);
+  document.getElementById('status').textContent = '';
+  document.getElementById('response').replaceChildren();
+  highlightActive();
+}
+
+function buildRequestInit() {
+  const headers = {};
+  ui.headers.value.split('\n').forEach((line) => {
+    const index = line.indexOf(':');
+    if (index > 0) headers[line.slice(0, index).trim()] = resolve(line.slice(index + 1).trim());
+  });
+  const init = { method: ui.method.value, headers };
+  if (BODYLESS_METHODS.includes(init.method)) return init;
+  if (ui.mode === 'raw') {
+    init.body = resolve(ui.bodyEl.value);
+  } else if (ui.mode === 'formdata') {
+    const form = new FormData();
+    ui.formRows.filter((r) => r.enabled.checked).forEach((r) => {
+      if (r.isFile) {
+        if (r.value.files[0]) form.append(r.key.value, r.value.files[0]);
+      } else {
+        form.append(r.key.value, resolve(r.value.value));
+      }
+    });
+    Object.keys(headers).filter((k) => k.toLowerCase() === 'content-type').forEach((k) => delete headers[k]);
+    init.body = form;
+  }
+  return init;
+}
+
+function runTestScripts(leaf, status, text) {
+  const before = { ...vars };
+  const pm = {
+    response: { code: status, json: () => JSON.parse(text) },
+    collectionVariables: {
+      set: (key, value) => { vars[key] = String(value); },
+      get: (key) => vars[key],
+      unset: (key) => { delete vars[key]; },
+    },
+  };
+  const errors = [];
+  leaf.events.filter((e) => e.listen === 'test').forEach((e) => {
+    try {
+      new Function('pm', e.script.exec.join('\n'))(pm);
+    } catch (error) {
+      errors.push(error.message);
+    }
+  });
+  const changed = Object.keys(vars).filter((k) => vars[k] !== before[k]);
+  if (changed.length) {
+    saveVars();
+    renderVars();
+  }
+  return { changed, errors };
+}
+
+function showResponse(res, text, ms, leaf) {
+  const statusEl = document.getElementById('status');
+  const parts = [`${res.status} ${res.statusText}`, `${ms} ms`, `${text.length} bytes`];
+  const { changed, errors } = runTestScripts(leaf, res.status, text);
+  if (changed.length) parts.push(`saved: ${changed.join(', ')}`);
+  statusEl.className = res.ok ? '' : 'bad';
+  statusEl.textContent = parts.join(' · ');
+
+  let pretty = text;
+  try {
+    pretty = JSON.stringify(JSON.parse(text), null, 2);
+  } catch (error) {
+    pretty = text;
+  }
+  const headerText = [...res.headers.entries()].map(([k, v]) => `${k}: ${v}`).join('\n');
+  document.getElementById('response').replaceChildren(
+    h('pre', { textContent: pretty }),
+    h('details', {}, h('summary', { textContent: 'Response headers' }), h('pre', { textContent: headerText })),
+    errors.length ? h('pre', { className: 'bad', textContent: `Test script errors:\n${errors.join('\n')}` }) : '',
+  );
+}
+
+async function sendRequest() {
+  const leaf = current;
+  if (!leaf) return;
+  const statusEl = document.getElementById('status');
+  const url = resolve(ui.url.value);
+  const unresolved = url.match(/\{\{[^}]+\}\}|\/:\w+/);
+  if (unresolved) {
+    statusEl.className = 'bad';
+    statusEl.textContent = `Unresolved value in URL: ${unresolved[0]}`;
+    return;
+  }
+  if (!/^https?:\/\//.test(url)) {
+    statusEl.className = 'bad';
+    statusEl.textContent = `URL must start with http:// or https:// (got "${url}"). Check base_url in Variables.`;
+    return;
+  }
+  statusEl.className = '';
+  statusEl.textContent = 'Sending…';
+  const started = performance.now();
+  try {
+    const res = await fetch(url, buildRequestInit());
+    const text = await res.text();
+    showResponse(res, text, Math.round(performance.now() - started), leaf);
+  } catch (error) {
+    statusEl.className = 'bad';
+    statusEl.textContent = `${error.message} — API down, or this page's origin (${location.origin}) is missing from CORS_ORIGINS in .env`;
+  }
+}
+
+function loadCollection(collection) {
+  defaults = Object.fromEntries((collection.variable || []).map((v) => [v.key, v.value ?? '']));
+  vars = { ...defaults, ...JSON.parse(localStorage.getItem(STORE_VARS) || '{}') };
+  if (!vars.base_url) vars.base_url = defaults.base_url;
+  leaves = [];
+  tree = buildTree(collection.item, []);
+  document.getElementById('loader').hidden = true;
+  buildFlows();
+  renderSidebar();
+  renderVars();
+  const last = localStorage.getItem(STORE_LAST);
+  const remembered = [...flows.flatMap((f) => f.leaves), ...leaves].find((l) => l.search === last);
+  if (remembered) selectLeaf(remembered);
+}
+
+async function boot() {
+  try {
+    const res = await fetch(COLLECTION_URL);
+    if (!res.ok) throw new Error(res.statusText);
+    loadCollection(await res.json());
+  } catch (error) {
+    document.getElementById('loader').hidden = false;
+  }
+}
+
+document.getElementById('collection-file').onchange = async (event) => {
+  const file = event.target.files[0];
+  if (file) loadCollection(JSON.parse(await file.text()));
+};
+document.getElementById('search').oninput = () => {
+  renderSidebar();
+  highlightActive();
+};
+document.getElementById('reset-vars').onclick = () => {
+  vars = { ...defaults };
+  saveVars();
+  renderVars();
+};
+document.addEventListener('keydown', (event) => {
+  if (event.ctrlKey && event.key === 'Enter') sendRequest();
+});
+
+boot();
+</script>
+</body>
+</html>

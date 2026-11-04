@@ -1,8 +1,10 @@
+import re
 import shutil
 import stat
 import tempfile
 import zipfile
 from collections.abc import Mapping
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
@@ -26,10 +28,14 @@ from app.core.messages import GeographyMessages
 from app.models.gis_district import GisDistrict
 from app.models.gis_state import GisState
 from app.models.gis_taluk import GisTaluk
+from app.models.gis_village import GisVillage
 from app.models.user import User
 from app.schemas.geography import GeographyImportSummary
 from app.services.activity_log_service import ActivityLogService
-from app.services.geography_boundary_derivation import derive_admin_boundaries
+from app.services.geography_boundary_derivation import (
+    derive_admin_boundaries,
+    merge_village_parts,
+)
 from app.services.geography_layer_detector import (
     AdminField,
     AdminLevel,
@@ -46,13 +52,16 @@ from app.services.geography_records import (
 )
 
 TARGET_SRID = 4326
-KERALA_STATE_LGD = "32"
+LEGACY_STATE_LAYER_LGD = "32"
 MIN_LONGITUDE, MAX_LONGITUDE = -180.0, 180.0
 MIN_LATITUDE, MAX_LATITUDE = -90.0, 90.0
 
 UPLOAD_CHUNK_BYTES = 1024 * 1024
 MAX_UNCOMPRESSED_SIZE_MULTIPLIER = 20
 GEOGRAPHY_IMPORT_ENTITY_TYPE = "geography_import"
+VILLAGE_INSERT_BATCH_SIZE = 200
+TRAILING_QUALIFIERS_PATTERN = re.compile(r"(\s*\([^)]*\))+\s*$")
+WHITESPACE_PATTERN = re.compile(r"\s+")
 
 
 def _validate_filename(filename: str | None) -> None:
@@ -125,10 +134,15 @@ def _require_non_blank(value: object, field: str, layer_name: str) -> str:
     return text
 
 
-def _require_state_lgd(value: str, layer_name: str) -> None:
-    if value != KERALA_STATE_LGD:
+def _clean_village_name(raw: str) -> str:
+    without_qualifiers = TRAILING_QUALIFIERS_PATTERN.sub("", raw)
+    return WHITESPACE_PATTERN.sub(" ", without_qualifiers).strip()
+
+
+def _require_known_state_lgd(value: str, state_lgd_codes: set[str], layer_name: str) -> None:
+    if value not in state_lgd_codes:
         raise BusinessRuleError(
-            GeographyMessages.INVALID_STATE_LGD.format(expected=KERALA_STATE_LGD, actual=value)
+            GeographyMessages.INVALID_STATE_LGD.format(layer=layer_name, actual=value)
         )
 
 
@@ -185,6 +199,13 @@ def _field_value(fields: dict[str, Any], layer: LayerProfile, admin_field: Admin
     return _require_non_blank(fields.get(source_name), source_name, layer.name)
 
 
+def _optional_field_value(
+    fields: dict[str, Any], layer: LayerProfile, admin_field: AdminField
+) -> str:
+    value = fields.get(layer.field_map[admin_field])
+    return str(value).strip() if value is not None else ""
+
+
 def _read_state_layer(layer: LayerProfile, transformer: Transformer) -> list[StateRecord]:
     lgd_field = layer.field_map.get(AdminField.STATE_LGD)
     with shapefile.Reader(str(layer.path)) as reader:
@@ -193,13 +214,15 @@ def _read_state_layer(layer: LayerProfile, transformer: Transformer) -> list[Sta
             fields = shape_record.record.as_dict()
             name = _field_value(fields, layer, AdminField.STATE_NAME)
             raw_lgd = fields.get(lgd_field) if lgd_field is not None else None
-            lgd_code = str(raw_lgd).strip() if raw_lgd not in (None, "") else KERALA_STATE_LGD
+            lgd_code = str(raw_lgd).strip() if raw_lgd not in (None, "") else LEGACY_STATE_LAYER_LGD
             geom = _to_wgs84_multipolygon(shape_record.shape, transformer, layer.name, name)
             records.append(StateRecord(lgd_code=lgd_code, name=name, geom=geom))
         return records
 
 
-def _read_district_layer(layer: LayerProfile, transformer: Transformer) -> list[DistrictRecord]:
+def _read_district_layer(
+    layer: LayerProfile, transformer: Transformer, state_lgd_codes: set[str]
+) -> list[DistrictRecord]:
     with shapefile.Reader(str(layer.path)) as reader:
         records: list[DistrictRecord] = []
         for shape_record in reader.iterShapeRecords():
@@ -207,13 +230,15 @@ def _read_district_layer(layer: LayerProfile, transformer: Transformer) -> list[
             state_lgd = _field_value(fields, layer, AdminField.STATE_LGD)
             name = _field_value(fields, layer, AdminField.DISTRICT_NAME)
             lgd_code = _field_value(fields, layer, AdminField.DISTRICT_LGD)
-            _require_state_lgd(state_lgd, layer.name)
+            _require_known_state_lgd(state_lgd, state_lgd_codes, layer.name)
             geom = _to_wgs84_multipolygon(shape_record.shape, transformer, layer.name, lgd_code)
             records.append(DistrictRecord(lgd_code=lgd_code, name=name, geom=geom))
         return records
 
 
-def _read_taluk_layer(layer: LayerProfile, transformer: Transformer) -> list[TalukRecord]:
+def _read_taluk_layer(
+    layer: LayerProfile, transformer: Transformer, state_lgd_codes: set[str]
+) -> list[TalukRecord]:
     with shapefile.Reader(str(layer.path)) as reader:
         records: list[TalukRecord] = []
         for shape_record in reader.iterShapeRecords():
@@ -222,12 +247,10 @@ def _read_taluk_layer(layer: LayerProfile, transformer: Transformer) -> list[Tal
             district_lgd = _field_value(fields, layer, AdminField.DISTRICT_LGD)
             name = _field_value(fields, layer, AdminField.TALUK_NAME)
             lgd_code = _field_value(fields, layer, AdminField.TALUK_LGD)
-            _require_state_lgd(state_lgd, layer.name)
+            _require_known_state_lgd(state_lgd, state_lgd_codes, layer.name)
             geom = _to_wgs84_multipolygon(shape_record.shape, transformer, layer.name, lgd_code)
             records.append(
-                TalukRecord(
-                    lgd_code=lgd_code, district_lgd_code=district_lgd, name=name, geom=geom
-                )
+                TalukRecord(lgd_code=lgd_code, district_lgd_code=district_lgd, name=name, geom=geom)
             )
         return records
 
@@ -237,16 +260,18 @@ def _read_village_layer(layer: LayerProfile, transformer: Transformer) -> list[V
         records: list[VillageRecord] = []
         for record_number, shape_record in enumerate(reader.iterShapeRecords(), start=1):
             fields = shape_record.record.as_dict()
-            state_lgd = _field_value(fields, layer, AdminField.STATE_LGD)
-            _require_state_lgd(state_lgd, layer.name)
             records.append(
                 VillageRecord(
-                    state_lgd_code=state_lgd,
+                    state_lgd_code=_field_value(fields, layer, AdminField.STATE_LGD),
                     state_name=_field_value(fields, layer, AdminField.STATE_NAME),
                     district_lgd_code=_field_value(fields, layer, AdminField.DISTRICT_LGD),
                     district_name=_field_value(fields, layer, AdminField.DISTRICT_NAME),
                     taluk_lgd_code=_field_value(fields, layer, AdminField.TALUK_LGD),
                     taluk_name=_field_value(fields, layer, AdminField.TALUK_NAME),
+                    village_lgd_code=_optional_field_value(fields, layer, AdminField.VILLAGE_LGD),
+                    village_name=_clean_village_name(
+                        _field_value(fields, layer, AdminField.VILLAGE_NAME)
+                    ),
                     geom=_to_wgs84_multipolygon(
                         shape_record.shape, transformer, layer.name, f"#{record_number}"
                     ),
@@ -259,18 +284,28 @@ def _read_direct_boundaries(layers: Mapping[AdminLevel, LayerProfile]) -> AdminB
     state_layer = layers[AdminLevel.STATE]
     district_layer = layers[AdminLevel.DISTRICT]
     taluk_layer = layers[AdminLevel.TALUK]
+    states = _read_state_layer(state_layer, _build_transformer(state_layer))
+    state_lgd_codes = {state.lgd_code for state in states}
     return AdminBoundaries(
-        states=_read_state_layer(state_layer, _build_transformer(state_layer)),
-        districts=_read_district_layer(district_layer, _build_transformer(district_layer)),
-        taluks=_read_taluk_layer(taluk_layer, _build_transformer(taluk_layer)),
+        states=states,
+        districts=_read_district_layer(
+            district_layer, _build_transformer(district_layer), state_lgd_codes
+        ),
+        taluks=_read_taluk_layer(taluk_layer, _build_transformer(taluk_layer), state_lgd_codes),
     )
 
 
-def _read_boundaries(source: DetectedSource) -> tuple[AdminBoundaries, int | None]:
+def _read_boundaries(source: DetectedSource) -> tuple[AdminBoundaries, int | None, int]:
     if source.village_layer is None:
-        return _read_direct_boundaries(source.admin_layers), None
+        return _read_direct_boundaries(source.admin_layers), None, 0
     villages = _read_village_layer(source.village_layer, _build_transformer(source.village_layer))
-    return derive_admin_boundaries(villages), len(villages)
+    boundaries = derive_admin_boundaries(villages)
+    coded_villages = [village for village in villages if village.village_lgd_code]
+    return (
+        replace(boundaries, villages=merge_village_parts(coded_villages)),
+        len(villages),
+        len(villages) - len(coded_villages),
+    )
 
 
 def _validate_records(
@@ -282,7 +317,6 @@ def _validate_records(
         raise BusinessRuleError(
             GeographyMessages.UNEXPECTED_STATE_RECORD_COUNT.format(count=len(state_records))
         )
-    _require_state_lgd(state_records[0].lgd_code, AdminLevel.STATE.value)
 
     seen_district_codes: set[str] = set()
     for district in district_records:
@@ -359,9 +393,9 @@ def _upsert_districts(
 
 def _upsert_taluks(
     db: Session, records: list[TalukRecord], district_id_by_lgd_code: dict[str, UUID]
-) -> tuple[int, int]:
+) -> tuple[dict[str, UUID], int, int]:
     if not records:
-        return 0, 0
+        return {}, 0, 0
     values = [
         {
             "district_id": district_id_by_lgd_code[record.district_lgd_code],
@@ -380,10 +414,41 @@ def _upsert_taluks(
             "geom": insert_stmt.excluded.geom,
             "updated_at": func.now(),
         },
-    ).returning(literal_column("(xmax = 0)").label("inserted"))
+    ).returning(GisTaluk.id, GisTaluk.lgd_code, literal_column("(xmax = 0)").label("inserted"))
     rows = db.execute(upsert_stmt).all()
+    id_by_lgd_code = {row.lgd_code: row.id for row in rows}
     created = sum(1 for row in rows if row.inserted)
-    return created, len(rows) - created
+    return id_by_lgd_code, created, len(rows) - created
+
+
+def _upsert_villages(
+    db: Session, records: list[VillageRecord], taluk_id_by_lgd_code: dict[str, UUID]
+) -> tuple[int, int]:
+    created = 0
+    for start in range(0, len(records), VILLAGE_INSERT_BATCH_SIZE):
+        batch = records[start : start + VILLAGE_INSERT_BATCH_SIZE]
+        values = [
+            {
+                "taluk_id": taluk_id_by_lgd_code[record.taluk_lgd_code],
+                "lgd_code": record.village_lgd_code,
+                "name": record.village_name,
+                "geom": from_shape(record.geom, srid=TARGET_SRID),
+            }
+            for record in batch
+        ]
+        insert_stmt = pg_insert(GisVillage).values(values)
+        upsert_stmt: Any = insert_stmt.on_conflict_do_update(
+            index_elements=[GisVillage.lgd_code],
+            set_={
+                "taluk_id": insert_stmt.excluded.taluk_id,
+                "name": insert_stmt.excluded.name,
+                "geom": insert_stmt.excluded.geom,
+                "updated_at": func.now(),
+            },
+        ).returning(literal_column("(xmax = 0)").label("inserted"))
+        rows = db.execute(upsert_stmt).all()
+        created += sum(1 for row in rows if row.inserted)
+    return created, len(records) - created
 
 
 def _failure_reason(error: Exception) -> str:
@@ -420,9 +485,7 @@ class GeographyImportService:
             raise
         return summary
 
-    def _log(
-        self, actor: User, action: str, import_id: UUID, metadata: dict[str, Any]
-    ) -> None:
+    def _log(self, actor: User, action: str, import_id: UUID, metadata: dict[str, Any]) -> None:
         self._activity_logs.log(
             actor=actor,
             action=action,
@@ -448,7 +511,7 @@ class GeographyImportService:
             )
 
             source = detect_source(extract_dir)
-            boundaries, villages_processed = _read_boundaries(source)
+            boundaries, villages_processed, villages_skipped = _read_boundaries(source)
             state_records = boundaries.states
             district_records = boundaries.districts
             taluk_records = boundaries.taluks
@@ -459,8 +522,11 @@ class GeographyImportService:
             district_id_by_lgd_code, districts_created, districts_updated = _upsert_districts(
                 self._db, district_records, state_id
             )
-            taluks_created, taluks_updated = _upsert_taluks(
+            taluk_id_by_lgd_code, taluks_created, taluks_updated = _upsert_taluks(
                 self._db, taluk_records, district_id_by_lgd_code
+            )
+            villages_created, villages_updated = _upsert_villages(
+                self._db, boundaries.villages, taluk_id_by_lgd_code
             )
 
         return GeographyImportSummary(
@@ -469,7 +535,14 @@ class GeographyImportService:
             state_count=len(state_records),
             district_count=len(district_records),
             taluk_count=len(taluk_records),
-            created=(1 if state_inserted else 0) + districts_created + taluks_created,
-            updated=(0 if state_inserted else 1) + districts_updated + taluks_updated,
-            failed=0,
+            village_count=len(boundaries.villages),
+            created=(1 if state_inserted else 0)
+            + districts_created
+            + taluks_created
+            + villages_created,
+            updated=(0 if state_inserted else 1)
+            + districts_updated
+            + taluks_updated
+            + villages_updated,
+            failed=villages_skipped,
         )

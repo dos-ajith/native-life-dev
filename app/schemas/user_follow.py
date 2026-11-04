@@ -1,4 +1,12 @@
+import enum
+
 from pydantic import BaseModel
+
+
+class FollowRelationship(enum.StrEnum):
+    NONE = "none"
+    PENDING = "pending"
+    ACCEPTED = "accepted"
 
 
 class FollowStatusRead(BaseModel):

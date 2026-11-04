@@ -15,6 +15,17 @@ class PostStatus(enum.StrEnum):
     DRAFT = "draft"
     SCHEDULED = "scheduled"
     PUBLISHED = "published"
+    BLOCKED = "blocked"
+
+
+class PostAudience(enum.StrEnum):
+    EVERYONE = "everyone"
+    ADULTS_ONLY = "adults_only"
+
+
+class PostVisibility(enum.StrEnum):
+    PUBLIC = "public"
+    PRIVATE = "private"
 
 
 class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -24,9 +35,20 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         Index("ix_posts_status", "status"),
         Index("ix_posts_deleted_at", "deleted_at"),
         Index("ix_posts_published_by", "published_by"),
+        Index("ix_posts_community_id_created_at", "community_id", "created_at"),
+        Index(
+            "ix_posts_user_id_title_active",
+            "user_id",
+            "title",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL AND title IS NOT NULL"),
+        ),
     )
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    community_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("communities.id", ondelete="CASCADE")
+    )
     slug: Mapped[str] = mapped_column(String(280), unique=True)
     title: Mapped[str | None] = mapped_column(String(255))
     content: Mapped[str | None] = mapped_column(Text())
@@ -38,6 +60,26 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
             values_callable=lambda enum_cls: [member.value for member in enum_cls],
         ),
         default=PostStatus.DRAFT,
+    )
+    audience: Mapped[PostAudience] = mapped_column(
+        Enum(
+            PostAudience,
+            name="post_audience",
+            native_enum=True,
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+        ),
+        default=PostAudience.EVERYONE,
+        server_default=PostAudience.EVERYONE.value,
+    )
+    visibility: Mapped[PostVisibility] = mapped_column(
+        Enum(
+            PostVisibility,
+            name="post_visibility",
+            native_enum=True,
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+        ),
+        default=PostVisibility.PUBLIC,
+        server_default=PostVisibility.PUBLIC.value,
     )
     location: Mapped[Any | None] = mapped_column(
         Geometry(geometry_type="POINT", srid=4326, spatial_index=False)
@@ -51,6 +93,8 @@ class Post(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     shares_count: Mapped[int] = mapped_column(Integer(), server_default=text("0"), default=0)
     saved_count: Mapped[int] = mapped_column(Integer(), server_default=text("0"), default=0)
     deleted_at: Mapped[datetime | None] = mapped_column(default=None)
+    removed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    removal_reason: Mapped[str | None] = mapped_column(Text())
 
     @property
     def latitude(self) -> float | None:

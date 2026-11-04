@@ -21,6 +21,9 @@ dependencies = [
     "shapely>=2.0",
     "pyproj>=3.6",
     "openai>=1.54",
+    "phonenumbers>=8.13",
+    "google-auth[requests]>=2.30",
+    "twilio>=9.0",
 ]
 
 [project.optional-dependencies]

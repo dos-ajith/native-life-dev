@@ -1,4 +1,3 @@
-from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -8,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.core.messages import PageMessages
 from app.core.storage import delete_media_file, save_profile_image
+from app.core.timezone import app_now
 from app.models.page import Page, PageStatus
 from app.models.user import User
 from app.repositories.page_repository import PageRepository
@@ -31,7 +31,7 @@ class PageService:
             status=payload.status,
             created_by=acting_user.id,
             updated_by=acting_user.id,
-            published_at=datetime.now(UTC) if payload.status == PageStatus.PUBLISHED else None,
+            published_at=app_now() if payload.status == PageStatus.PUBLISHED else None,
         )
         return self._pages.add(page)
 
@@ -61,7 +61,7 @@ class PageService:
         data: dict[str, Any] = payload.model_dump(exclude_none=True)
         status = data.get("status")
         if status == PageStatus.PUBLISHED and page.status != PageStatus.PUBLISHED:
-            page.published_at = datetime.now(UTC)
+            page.published_at = app_now()
         for field, value in data.items():
             setattr(page, field, value)
         page.updated_by = acting_user.id

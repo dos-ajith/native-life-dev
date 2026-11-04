@@ -3,11 +3,17 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import AfterValidator, BaseModel, ConfigDict
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
-from app.models.user_settings_enums import AIResponseStyle, ProfileVisibility, VisibilityLevel
+from app.models.user_settings_enums import (
+    AIResponseStyle,
+    MessagePermission,
+    ProfileVisibility,
+    VisibilityLevel,
+)
 from app.schemas.base import BaseReadSchema
 from app.schemas.geography import GisDistrictRead
+from app.schemas.post import MAX_NEARBY_RADIUS_KM
 from app.schemas.tag import TagRead
 
 _LANGUAGE_CODE_PATTERN = re.compile(r"^[a-z]{2,3}(-[a-z]{2})?$")
@@ -26,6 +32,7 @@ def _deduplicate_preserving_order(values: list[UUID]) -> list[UUID]:
 
 LanguageCode = Annotated[str, AfterValidator(_validate_language_code)]
 UniqueIdList = Annotated[list[UUID], AfterValidator(_deduplicate_preserving_order)]
+NearbyRadiusSetting = Annotated[int, Field(ge=1, le=MAX_NEARBY_RADIUS_KM)]
 
 
 class GeneralSettingsRead(BaseReadSchema):
@@ -97,6 +104,7 @@ class PrivacySettingsRead(BaseReadSchema):
     location_visibility: VisibilityLevel
     activity_visibility: VisibilityLevel
     allow_messages: bool
+    who_can_message: MessagePermission
     allow_mentions: bool
     created_at: datetime
     updated_at: datetime
@@ -109,6 +117,7 @@ class PrivacySettingsUpdate(BaseModel):
     location_visibility: VisibilityLevel | None = None
     activity_visibility: VisibilityLevel | None = None
     allow_messages: bool | None = None
+    who_can_message: MessagePermission | None = None
     allow_mentions: bool | None = None
 
 
@@ -119,6 +128,7 @@ class ContentSettingsRead(BaseReadSchema):
     language_filter: str | None
     hide_sensitive_content: bool
     personalized_feed: bool
+    nearby_radius_km: int
     created_at: datetime
     updated_at: datetime
 
@@ -131,6 +141,7 @@ class ContentSettingsUpdate(BaseModel):
     language_filter: LanguageCode | None = None
     hide_sensitive_content: bool | None = None
     personalized_feed: bool | None = None
+    nearby_radius_km: NearbyRadiusSetting | None = None
 
 
 class UserSettingsRead(BaseModel):

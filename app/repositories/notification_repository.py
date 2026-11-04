@@ -1,10 +1,11 @@
-from datetime import UTC, datetime
+from collections.abc import Sequence
 from uuid import UUID
 
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
-from app.models.notification import Notification
+from app.core.timezone import app_now
+from app.models.notification import Notification, NotificationType
 from app.schemas.pagination import PaginationParams
 
 
@@ -17,6 +18,53 @@ class NotificationRepository:
         self._db.commit()
         self._db.refresh(notification)
         return notification
+
+    def exists_from_actor(
+        self,
+        recipient_id: UUID,
+        actor_id: UUID,
+        entity_id: UUID,
+        types: Sequence[NotificationType],
+    ) -> bool:
+        return (
+            self._db.scalar(
+                select(func.count())
+                .select_from(Notification)
+                .where(
+                    Notification.recipient_id == recipient_id,
+                    Notification.actor_id == actor_id,
+                    Notification.entity_id == entity_id,
+                    Notification.type.in_(types),
+                )
+            )
+            or 0
+        ) > 0
+
+    def list_recipient_ids_for_entity(
+        self, entity_id: UUID, types: Sequence[NotificationType]
+    ) -> list[UUID]:
+        return list(
+            self._db.scalars(
+                select(Notification.recipient_id)
+                .where(Notification.entity_id == entity_id, Notification.type.in_(types))
+                .distinct()
+            )
+        )
+
+    def list_actor_ids_for_entity(
+        self, entity_id: UUID, types: Sequence[NotificationType]
+    ) -> list[UUID]:
+        return list(
+            self._db.scalars(
+                select(Notification.actor_id)
+                .where(
+                    Notification.entity_id == entity_id,
+                    Notification.type.in_(types),
+                    Notification.actor_id.is_not(None),
+                )
+                .distinct()
+            )
+        )
 
     def get_by_id_for_recipient(
         self, notification_id: UUID, recipient_id: UUID
@@ -36,8 +84,7 @@ class NotificationRepository:
             conditions.append(Notification.is_read.is_(False))
 
         total = (
-            self._db.scalar(select(func.count()).select_from(Notification).where(*conditions))
-            or 0
+            self._db.scalar(select(func.count()).select_from(Notification).where(*conditions)) or 0
         )
         offset = (params.page - 1) * params.page_size
         items = self._db.scalars(
@@ -66,18 +113,20 @@ class NotificationRepository:
         if notification.is_read:
             return notification
         notification.is_read = True
-        notification.read_at = datetime.now(UTC)
+        notification.read_at = app_now()
         self._db.commit()
         self._db.refresh(notification)
         return notification
 
-    def mark_all_read(self, recipient_id: UUID) -> None:
-        self._db.execute(
+    def mark_all_read(self, recipient_id: UUID) -> int:
+        updated_ids = self._db.scalars(
             update(Notification)
             .where(
                 Notification.recipient_id == recipient_id,
                 Notification.is_read.is_(False),
             )
             .values(is_read=True, read_at=func.now())
-        )
+            .returning(Notification.id)
+        ).all()
         self._db.commit()
+        return len(updated_ids)

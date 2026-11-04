@@ -26,6 +26,8 @@ class AdminField(StrEnum):
     DISTRICT_LGD = "district_lgd"
     TALUK_NAME = "taluk_name"
     TALUK_LGD = "taluk_lgd"
+    VILLAGE_NAME = "village_name"
+    VILLAGE_LGD = "village_lgd"
 
 
 FIELD_ALIASES: dict[AdminField, tuple[str, ...]] = {
@@ -35,6 +37,8 @@ FIELD_ALIASES: dict[AdminField, tuple[str, ...]] = {
     AdminField.DISTRICT_LGD: ("DIST_LGD", "DISTRICT_LGD"),
     AdminField.TALUK_NAME: ("SUB_DIST", "SUBDIST", "SUB_DIST_NAME", "TALUK"),
     AdminField.TALUK_LGD: ("SUBDIS_LGD", "SUBDIST_LGD", "SUB_DIST_LGD", "TALUK_LGD"),
+    AdminField.VILLAGE_NAME: ("VILL_NAME", "VILLAGE", "VILLAGE_NAME"),
+    AdminField.VILLAGE_LGD: ("VILL_LGD", "VILLAGE_LGD"),
 }
 
 VILLAGE_FIELD_ALIASES = ("VILL_LGD", "VILL_NAME", "VILLAGE", "VILLAGE_LGD")
@@ -46,6 +50,8 @@ VILLAGE_SOURCE_REQUIRED_FIELDS = (
     AdminField.DISTRICT_NAME,
     AdminField.TALUK_LGD,
     AdminField.TALUK_NAME,
+    AdminField.VILLAGE_LGD,
+    AdminField.VILLAGE_NAME,
 )
 
 LEGACY_LAYER_NAMES: dict[AdminLevel, str] = {
@@ -337,9 +343,7 @@ def _select_level(
     level: AdminLevel, classifications: list[LayerClassification]
 ) -> LayerProfile | None:
     candidates = [
-        item.profile
-        for item in classifications
-        if item.level == level and item.profile is not None
+        item.profile for item in classifications if item.level == level and item.profile is not None
     ]
     if len(candidates) > 1:
         legacy_matches = [
@@ -357,9 +361,7 @@ def _select_level(
 
 
 def _select_village_layer(classifications: list[LayerClassification]) -> LayerProfile | None:
-    candidates = [
-        item.profile for item in classifications if item.village_source and item.profile
-    ]
+    candidates = [item.profile for item in classifications if item.village_source and item.profile]
     if len(candidates) > 1:
         raise BusinessRuleError(
             GeographyMessages.AMBIGUOUS_LAYER.format(

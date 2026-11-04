@@ -4,17 +4,16 @@ from fastapi import APIRouter, Depends
 
 from app.api.deps import DbSessionDep, require_permission_or_guest
 from app.core.messages import PageMessages
+from app.core.openapi_tags import ApiTag
 from app.core.permissions import PermissionName
 from app.models.user import User
 from app.schemas.page import PublishedPageRead
 from app.schemas.response import SuccessResponse
 from app.services.page_service import PageService
 
-router = APIRouter(prefix="/pages", tags=["pages"])
+router = APIRouter(prefix="/pages", tags=[ApiTag.PAGES])
 
-PageReadDep = Annotated[
-    User | None, Depends(require_permission_or_guest(PermissionName.PAGE_READ))
-]
+PageReadDep = Annotated[User | None, Depends(require_permission_or_guest(PermissionName.PAGE_READ))]
 
 
 @router.get("/{slug}", response_model=SuccessResponse[PublishedPageRead])

@@ -3,9 +3,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.validators import NonBlankStr
+from app.schemas.validators import NameStr
 
-SettingKey = Annotated[NonBlankStr, Field(max_length=150)]
+SettingKey = Annotated[NameStr, Field(max_length=150)]
 
 
 class SettingRead(BaseModel):

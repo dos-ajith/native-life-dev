@@ -1,0 +1,1202 @@
+{
+  "info": {
+    "name": "Native Life Plugin · E-commerce",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "E-commerce plugin v1.2.2. Flow: import the ZIP (installs it), enable it globally (admin), enable it for the business (owner), grant plugin.ecommerce.* permissions, then use the folders below. Folder 7 lists expected error responses; the status assertions only pass in the matching state."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api/v1"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "limited_access_token",
+      "value": ""
+    },
+    {
+      "key": "plugin_key",
+      "value": "ecommerce"
+    },
+    {
+      "key": "business_id",
+      "value": ""
+    },
+    {
+      "key": "product_id",
+      "value": ""
+    },
+    {
+      "key": "image_id",
+      "value": ""
+    },
+    {
+      "key": "other_business_category_id",
+      "value": ""
+    },
+    {
+      "key": "other_business_product_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Platform App (Mobile)",
+      "item": [
+        {
+          "name": "1.2 Explore",
+          "item": [
+            {
+              "name": "5. Products (E-commerce)",
+              "description": "Requires the E-commerce plugin enabled.",
+              "item": [
+                {
+                  "name": "Explore products",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/ecommerce/explore/products?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "ecommerce",
+                        "explore",
+                        "products"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        },
+                        {
+                          "key": "q",
+                          "value": "",
+                          "description": "Optional. Matches product name, description or category name.",
+                          "disabled": true
+                        },
+                        {
+                          "key": "category_id",
+                          "value": "",
+                          "description": "Optional product category UUID (from Explore categories).",
+                          "disabled": true
+                        },
+                        {
+                          "key": "business_id",
+                          "value": "",
+                          "description": "Optional. Only products of this nearby business.",
+                          "disabled": true
+                        },
+                        {
+                          "key": "min_price",
+                          "value": "",
+                          "description": "Optional lowest selling price.",
+                          "disabled": true
+                        },
+                        {
+                          "key": "max_price",
+                          "value": "",
+                          "description": "Optional highest selling price.",
+                          "disabled": true
+                        },
+                        {
+                          "key": "sort",
+                          "value": "",
+                          "description": "Optional. nearest (default), newest, price_low or price_high.",
+                          "disabled": true
+                        },
+                        {
+                          "key": "in_stock_only",
+                          "value": "",
+                          "description": "Optional, default true. Send false to include sold-out products.",
+                          "disabled": true
+                        },
+                        {
+                          "key": "village_id",
+                          "value": "",
+                          "description": "Optional village UUID. Explore this village instead of your native places.",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Mobile (any signed-in user). Lists published (active) products from businesses near the caller's native places (primary + secondary, within the user's nearby radius setting) that have the E-commerce plugin enabled. Nearest business first by default. `has_native_place` is false when the user has not set a native place, so the app can prompt them. Each item carries `business` (id, name, distance_km), `currency`, `in_stock` and `available_quantity`. To buy: `POST /businesses/{business.id}/orders` with the product id and quantity."
+                  }
+                },
+                {
+                  "name": "Explore product categories",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/ecommerce/explore/categories",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "ecommerce",
+                        "explore",
+                        "categories"
+                      ],
+                      "query": [
+                        {
+                          "key": "village_id",
+                          "value": "",
+                          "description": "Optional village UUID. Explore this village instead of your native places.",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Mobile. Product categories that currently have in-stock published products near the caller, with `product_count`, for the filter chips."
+                  }
+                },
+                {
+                  "name": "Get explore product",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/ecommerce/explore/products/{{product_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "ecommerce",
+                        "explore",
+                        "products",
+                        "{{product_id}}"
+                      ],
+                      "query": [
+                        {
+                          "key": "village_id",
+                          "value": "",
+                          "description": "Optional village UUID. Explore this village instead of your native places.",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Mobile. Full detail of one published product from a nearby business. Returns 404 if the product is inactive or its business is outside the caller's native area."
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "1.5 Businesses",
+          "item": [
+            {
+              "name": "E-commerce",
+              "item": [
+                {
+                  "name": "0. Setup (core endpoints)",
+                  "item": [
+                    {
+                      "name": "Import and install plugin ZIP (admin)",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/admin/plugins/import",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "admin",
+                            "plugins",
+                            "import"
+                          ]
+                        },
+                        "body": {
+                          "mode": "formdata",
+                          "formdata": [
+                            {
+                              "key": "file",
+                              "type": "file",
+                              "src": "plugin_packages/ecommerce/ecommerce-1.2.2.zip"
+                            }
+                          ]
+                        },
+                        "description": "Extracts and installs the package; the plugin key is read from its manifest. Does not enable it."
+                      }
+                    },
+                    {
+                      "name": "Upgrade plugin ZIP (admin)",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/admin/plugins/upgrade",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "admin",
+                            "plugins",
+                            "upgrade"
+                          ]
+                        },
+                        "body": {
+                          "mode": "formdata",
+                          "formdata": [
+                            {
+                              "key": "file",
+                              "type": "file",
+                              "src": "plugin_packages/ecommerce/ecommerce-1.2.2.zip"
+                            }
+                          ]
+                        },
+                        "description": "Use when 1.0.0 is already installed. Restart the application afterwards; routes return 503 until then."
+                      }
+                    },
+                    {
+                      "name": "Enable plugin globally (admin)",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/admin/plugins/{{plugin_key}}/enable",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "admin",
+                            "plugins",
+                            "{{plugin_key}}",
+                            "enable"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "Disable plugin globally (admin)",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/admin/plugins/{{plugin_key}}/disable",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "admin",
+                            "plugins",
+                            "{{plugin_key}}",
+                            "disable"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "Enable plugin for business",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/me/businesses/{{business_id}}/plugins/{{plugin_key}}",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "me",
+                            "businesses",
+                            "{{business_id}}",
+                            "plugins",
+                            "{{plugin_key}}"
+                          ]
+                        },
+                        "description": "Business owner (or business.update_any). Works for any business whose category is under Business > Product."
+                      }
+                    },
+                    {
+                      "name": "Disable plugin for business",
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/me/businesses/{{business_id}}/plugins/{{plugin_key}}",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "me",
+                            "businesses",
+                            "{{business_id}}",
+                            "plugins",
+                            "{{plugin_key}}"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "List plugins available for business",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/me/businesses/{{business_id}}/plugins/available",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "me",
+                            "businesses",
+                            "{{business_id}}",
+                            "plugins",
+                            "available"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "1. Products",
+                  "item": [
+                    {
+                      "name": "List products",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/products?page=1&page_size=20&q=&category_id=&is_active=true",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "products"
+                          ],
+                          "query": [
+                            {
+                              "key": "page",
+                              "value": "1"
+                            },
+                            {
+                              "key": "page_size",
+                              "value": "20"
+                            },
+                            {
+                              "key": "q",
+                              "value": ""
+                            },
+                            {
+                              "key": "category_id",
+                              "value": ""
+                            },
+                            {
+                              "key": "is_active",
+                              "value": "true"
+                            }
+                          ]
+                        },
+                        "description": "Pagination (page, page_size), search by name or SKU (q), category_id and is_active filters. Empty values are ignored by Postman if you untick them."
+                      }
+                    },
+                    {
+                      "name": "Create product",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/products",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "products"
+                          ]
+                        },
+                        "body": {
+                          "mode": "formdata",
+                          "formdata": [
+                            {
+                              "key": "name",
+                              "value": "Cotton T-shirt",
+                              "type": "text"
+                            },
+                            {
+                              "key": "sku",
+                              "value": "TSHIRT-001",
+                              "type": "text"
+                            },
+                            {
+                              "key": "selling_price",
+                              "value": "499.00",
+                              "type": "text",
+                              "description": "Selling price"
+                            },
+                            {
+                              "key": "original_price",
+                              "value": "599.00",
+                              "type": "text",
+                              "description": "Original price (MRP); defaults to selling_price. Must be >= selling_price"
+                            },
+                            {
+                              "key": "description",
+                              "value": "Plain cotton tee",
+                              "type": "text"
+                            },
+                            {
+                              "key": "category_id",
+                              "value": "",
+                              "type": "text",
+                              "disabled": true
+                            },
+                            {
+                              "key": "is_active",
+                              "value": "true",
+                              "type": "text"
+                            },
+                            {
+                              "key": "is_bulk_promotable",
+                              "value": "false",
+                              "type": "text",
+                              "description": "Included in the business-wide bulk promotion (default false)"
+                            },
+                            {
+                              "key": "is_individually_promotable",
+                              "value": "false",
+                              "type": "text",
+                              "description": "Can be picked by a promoter for an individual product promotion (default false)"
+                            },
+                            {
+                              "key": "quantity",
+                              "value": "20",
+                              "type": "text"
+                            },
+                            {
+                              "key": "low_stock_threshold",
+                              "value": "5",
+                              "type": "text"
+                            },
+                            {
+                              "key": "images",
+                              "type": "file",
+                              "src": []
+                            },
+                            {
+                              "key": "images",
+                              "type": "file",
+                              "src": []
+                            }
+                          ]
+                        },
+                        "description": "Creates a product with its initial stock and optional images in one multipart request. Form fields: `name`, `sku`, `selling_price` (required); `original_price` (defaults to selling_price; 422 if lower than selling_price), `description`, `category_id`, `is_active` (default true), `is_bulk_promotable` and `is_individually_promotable` (default false), `quantity` (default 0), `low_stock_threshold`; `images` (optional file, repeat the key; JPEG, PNG or WebP, max 5MB each, up to 10 per product). Images are shown in the order sent. Errors: 409 SKU already exists; 422 invalid image or too many images."
+                      }
+                    },
+                    {
+                      "name": "Get product",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/products/{{product_id}}",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "products",
+                            "{{product_id}}"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "Update product",
+                      "request": {
+                        "method": "PATCH",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/products/{{product_id}}",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "products",
+                            "{{product_id}}"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"name\": \"Cotton T-shirt (updated)\",\n  \"selling_price\": \"549.00\",\n  \"original_price\": \"699.00\",\n  \"is_bulk_promotable\": true,\n  \"is_individually_promotable\": true,\n  \"description\": \"Updated\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "Activate product",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/products/{{product_id}}/activate",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "products",
+                            "{{product_id}}",
+                            "activate"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "Deactivate product",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/products/{{product_id}}/deactivate",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "products",
+                            "{{product_id}}",
+                            "deactivate"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Product images",
+                  "item": [
+                    {
+                      "name": "List product images",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/products/{{product_id}}/images",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "products",
+                            "{{product_id}}",
+                            "images"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "Upload product image",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/products/{{product_id}}/images",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "products",
+                            "{{product_id}}",
+                            "images"
+                          ]
+                        },
+                        "body": {
+                          "mode": "formdata",
+                          "formdata": [
+                            {
+                              "key": "file",
+                              "type": "file",
+                              "src": "/path/to/photo.jpg",
+                              "description": "JPEG, PNG or WebP, max 5 MB; validated by file content"
+                            },
+                            {
+                              "key": "alt_text",
+                              "type": "text",
+                              "value": "Front view"
+                            },
+                            {
+                              "key": "sort_order",
+                              "type": "text",
+                              "value": "0"
+                            }
+                          ]
+                        },
+                        "description": "multipart/form-data. The stored file is served from the returned url under /media/plugins/ecommerce/<business_id>/."
+                      }
+                    },
+                    {
+                      "name": "Remove product image",
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/products/{{product_id}}/images/{{image_id}}",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "products",
+                            "{{product_id}}",
+                            "images",
+                            "{{image_id}}"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "3. Product categories",
+                  "item": [
+                    {
+                      "name": "List product categories",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/product-categories",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "product-categories"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "Create product category",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/product-categories",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "product-categories"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"name\": \"Accessories\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "4. Inventory",
+                  "item": [
+                    {
+                      "name": "List stock levels",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/inventory?page=1&page_size=20",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "inventory"
+                          ],
+                          "query": [
+                            {
+                              "key": "page",
+                              "value": "1"
+                            },
+                            {
+                              "key": "page_size",
+                              "value": "20"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "List low-stock products",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/inventory/low-stock?page=1&page_size=20",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "inventory",
+                            "low-stock"
+                          ],
+                          "query": [
+                            {
+                              "key": "page",
+                              "value": "1"
+                            },
+                            {
+                              "key": "page_size",
+                              "value": "20"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "Get product stock",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/products/{{product_id}}/stock",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "products",
+                            "{{product_id}}",
+                            "stock"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "Adjust stock",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/products/{{product_id}}/stock-adjustments",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "products",
+                            "{{product_id}}",
+                            "stock-adjustments"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"change\": 10,\n  \"reason\": \"restock\",\n  \"note\": \"Supplier delivery\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "description": "reason: restock, correction, damage, return or other. change may be negative; stock never goes below zero."
+                      }
+                    },
+                    {
+                      "name": "Set low-stock threshold",
+                      "request": {
+                        "method": "PUT",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/products/{{product_id}}/stock/threshold",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "products",
+                            "{{product_id}}",
+                            "stock",
+                            "threshold"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"low_stock_threshold\": 8\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "description": "Send null to fall back to the business default."
+                      }
+                    },
+                    {
+                      "name": "List stock movements (product)",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/products/{{product_id}}/stock-movements?page=1&page_size=20",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "products",
+                            "{{product_id}}",
+                            "stock-movements"
+                          ],
+                          "query": [
+                            {
+                              "key": "page",
+                              "value": "1"
+                            },
+                            {
+                              "key": "page_size",
+                              "value": "20"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "List stock movements (business)",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/inventory/movements?page=1&page_size=20&product_id=",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "inventory",
+                            "movements"
+                          ],
+                          "query": [
+                            {
+                              "key": "page",
+                              "value": "1"
+                            },
+                            {
+                              "key": "page_size",
+                              "value": "20"
+                            },
+                            {
+                              "key": "product_id",
+                              "value": ""
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "5. Settings",
+                  "item": [
+                    {
+                      "name": "Get settings",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/settings",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "settings"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "Update settings",
+                      "request": {
+                        "method": "PUT",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/settings",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "settings"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"currency\": \"INR\",\n  \"default_low_stock_threshold\": 5\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ],
+              "description": "E-commerce plugin v1.2.2. Flow: import the ZIP (installs it), enable it globally (admin), enable it for the business (owner), grant plugin.ecommerce.* permissions, then use the folders below. Folder 7 lists expected error responses; the status assertions only pass in the matching state."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
