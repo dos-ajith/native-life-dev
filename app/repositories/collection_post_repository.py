@@ -15,9 +15,7 @@ class CollectionPostRepository:
         created_id = self._db.scalar(
             insert(CollectionPost)
             .values(collection_id=collection_id, saved_post_id=saved_post_id)
-            .on_conflict_do_nothing(
-                constraint="uq_collection_posts_collection_id_saved_post_id"
-            )
+            .on_conflict_do_nothing(constraint="uq_collection_posts_collection_id_saved_post_id")
             .returning(CollectionPost.id)
         )
         self._db.commit()

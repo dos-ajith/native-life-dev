@@ -1,9 +1,12 @@
+from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
+from app.core.permissions import CANONICAL_ROLE_SLUGS
 from app.models.role import Role
+from app.models.user_has_role import user_has_roles
 from app.schemas.pagination import PaginationParams
 
 
@@ -23,11 +26,37 @@ class RoleRepository:
     def get_by_ids(self, role_ids: list[UUID]) -> list[Role]:
         return list(self._db.scalars(select(Role).where(Role.id.in_(role_ids))))
 
+    def list_by_slugs(self, slugs: Sequence[str]) -> list[Role]:
+        found = self._db.scalars(select(Role).where(Role.slug.in_(slugs)))
+        roles = {role.slug: role for role in found}
+        return [roles[slug] for slug in slugs if slug in roles]
+
+    def list_all(self) -> list[Role]:
+        return list(self._db.scalars(select(Role)))
+
+    def count_holders(self, role_id: UUID) -> int:
+        return (
+            self._db.scalar(
+                select(func.count())
+                .select_from(user_has_roles)
+                .where(user_has_roles.c.role_id == role_id)
+            )
+            or 0
+        )
+
     def list(self, params: PaginationParams) -> tuple[list[Role], int]:
         total = self._db.scalar(select(func.count()).select_from(Role)) or 0
         offset = (params.page - 1) * params.page_size
+        canonical_position = case(
+            {slug: position for position, slug in enumerate(CANONICAL_ROLE_SLUGS)},
+            value=Role.slug,
+            else_=len(CANONICAL_ROLE_SLUGS),
+        )
         items = self._db.scalars(
-            select(Role).order_by(Role.created_at.desc()).offset(offset).limit(params.page_size)
+            select(Role)
+            .order_by(canonical_position, Role.name)
+            .offset(offset)
+            .limit(params.page_size)
         ).all()
         return list(items), total
 

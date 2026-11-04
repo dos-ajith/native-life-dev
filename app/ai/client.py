@@ -3,9 +3,14 @@ from collections.abc import Callable
 from functools import lru_cache
 from typing import Any, Protocol
 
-from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI
+from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI, RateLimitError
 
-from app.ai.exceptions import AIProviderError, AIProviderTimeoutError, AIResponseError
+from app.ai.exceptions import (
+    AIProviderError,
+    AIProviderRateLimitedError,
+    AIProviderTimeoutError,
+    AIResponseError,
+)
 from app.core.config import Settings, get_settings
 from app.core.messages import AIMessages
 
@@ -19,6 +24,8 @@ def _call_with_provider_error_handling(fn: Callable[[], Any]) -> Any:
         return fn()
     except APITimeoutError as exc:
         raise AIProviderTimeoutError(AIMessages.PROVIDER_TIMEOUT) from exc
+    except RateLimitError as exc:
+        raise AIProviderRateLimitedError(AIMessages.PROVIDER_RATE_LIMITED) from exc
     except (APIConnectionError, APIStatusError) as exc:
         raise AIProviderError(AIMessages.PROVIDER_UNAVAILABLE) from exc
 
@@ -59,7 +66,9 @@ class _ResponsesBackend:
         handle_tool_call: ToolCallHandler,
     ) -> str:
         response = self._create_response(
-            instructions=instructions, input=input_text, tools=tool_schemas
+            instructions=instructions,
+            input=input_text,
+            **({"tools": tool_schemas} if tool_schemas else {}),
         )
 
         for iteration in range(self._max_tool_iterations):
@@ -109,12 +118,20 @@ class _ChatCompletionsBackend:
     since Groq does not implement the Responses API."""
 
     def __init__(
-        self, client: OpenAI, model: str, max_output_tokens: int, max_tool_iterations: int
+        self,
+        client: OpenAI,
+        model: str,
+        max_output_tokens: int,
+        max_tool_iterations: int,
+        reasoning_effort: str | None,
     ) -> None:
         self._client = client
         self._model = model
         self._max_output_tokens = max_output_tokens
         self._max_tool_iterations = max_tool_iterations
+        self._extra_params: dict[str, Any] = (
+            {"reasoning_effort": reasoning_effort} if reasoning_effort else {}
+        )
 
     def _to_chat_tools(self, tool_schemas: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return [
@@ -132,7 +149,10 @@ class _ChatCompletionsBackend:
     def _create_completion(self, **kwargs: Any) -> Any:
         return _call_with_provider_error_handling(
             lambda: self._client.chat.completions.create(
-                model=self._model, max_tokens=self._max_output_tokens, **kwargs
+                model=self._model,
+                max_tokens=self._max_output_tokens,
+                **self._extra_params,
+                **kwargs,
             )
         )
 
@@ -153,8 +173,8 @@ class _ChatCompletionsBackend:
             is_forced_answer = iteration == self._max_tool_iterations
             response = self._create_completion(
                 messages=messages,
-                tools=chat_tools,
-                **(_FORCE_TEXT_ANSWER if is_forced_answer else {}),
+                **({"tools": chat_tools} if chat_tools else {}),
+                **(_FORCE_TEXT_ANSWER if is_forced_answer and chat_tools else {}),
             )
             message = response.choices[0].message
             tool_calls = message.tool_calls or []
@@ -205,17 +225,23 @@ def _build_backend(settings: Settings) -> _AIBackend:
             api_key=settings.groq_api_key,
             base_url=settings.groq_base_url,
             timeout=settings.ai_request_timeout_seconds,
+            max_retries=settings.ai_max_retries,
         )
         return _ChatCompletionsBackend(
             client,
             settings.ai_model,
             settings.ai_max_output_tokens,
             settings.ai_max_tool_iterations,
+            settings.ai_reasoning_effort,
         )
 
     if not settings.openai_api_key:
         raise AIProviderError(AIMessages.PROVIDER_UNAVAILABLE)
-    client = OpenAI(api_key=settings.openai_api_key, timeout=settings.ai_request_timeout_seconds)
+    client = OpenAI(
+        api_key=settings.openai_api_key,
+        timeout=settings.ai_request_timeout_seconds,
+        max_retries=settings.ai_max_retries,
+    )
     return _ResponsesBackend(
         client, settings.ai_model, settings.ai_max_output_tokens, settings.ai_max_tool_iterations
     )

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Form, status
 
 from app.api.deps import DbSessionDep, PaginationDep, require_permission
 from app.core.messages import SettingMessages
+from app.core.openapi_tags import ApiTag
 from app.core.permissions import PermissionName
 from app.models.user import User
 from app.schemas.pagination import Page
@@ -12,7 +13,7 @@ from app.schemas.response import SuccessResponse
 from app.schemas.setting import SettingCreate, SettingRead, SettingUpdate
 from app.services.setting_service import SettingService
 
-router = APIRouter(prefix="/admin/settings", tags=["settings"])
+router = APIRouter(prefix="/admin/settings", tags=[ApiTag.ADMIN_SETTINGS])
 
 SettingCreateDep = Annotated[User, Depends(require_permission(PermissionName.SETTING_CREATE))]
 SettingViewDep = Annotated[User, Depends(require_permission(PermissionName.SETTING_VIEW))]
@@ -25,12 +26,12 @@ SettingDeleteDep = Annotated[User, Depends(require_permission(PermissionName.SET
 )
 def create_setting(
     db: DbSessionDep,
-    _: SettingCreateDep,
+    actor: SettingCreateDep,
     key: Annotated[str, Form()],
     value: Annotated[str | None, Form()] = None,
 ) -> SuccessResponse[SettingRead]:
     payload = SettingCreate(key=key, value=value)
-    setting = SettingService(db).create(payload)
+    setting = SettingService(db).create(payload, actor)
     return SuccessResponse(
         message=SettingMessages.CREATED, data=SettingRead.model_validate(setting)
     )
@@ -71,12 +72,12 @@ def get_setting_by_key(
 def update_setting(
     setting_id: UUID,
     db: DbSessionDep,
-    _: SettingUpdateDep,
+    actor: SettingUpdateDep,
     key: Annotated[str | None, Form()] = None,
     value: Annotated[str | None, Form()] = None,
 ) -> SuccessResponse[SettingRead]:
     payload = SettingUpdate(key=key, value=value)
-    setting = SettingService(db).update(setting_id, payload)
+    setting = SettingService(db).update(setting_id, payload, actor)
     return SuccessResponse(
         message=SettingMessages.UPDATED, data=SettingRead.model_validate(setting)
     )
@@ -84,7 +85,7 @@ def update_setting(
 
 @router.delete("/delete/{setting_id}", response_model=SuccessResponse[None])
 def delete_setting(
-    setting_id: UUID, db: DbSessionDep, _: SettingDeleteDep
+    setting_id: UUID, db: DbSessionDep, actor: SettingDeleteDep
 ) -> SuccessResponse[None]:
-    SettingService(db).delete(setting_id)
+    SettingService(db).delete(setting_id, actor)
     return SuccessResponse(message=SettingMessages.DELETED, data=None)

@@ -6,9 +6,9 @@ from pydantic import BaseModel, Field
 
 from app.models.page import PageStatus
 from app.schemas.base import BaseReadSchema
-from app.schemas.validators import NonBlankStr
+from app.schemas.validators import AlphanumericStr
 
-PageTitle = Annotated[NonBlankStr, Field(max_length=255)]
+PageTitle = Annotated[AlphanumericStr, Field(max_length=255)]
 
 
 class PageRead(BaseReadSchema):

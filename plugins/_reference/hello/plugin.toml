@@ -1,0 +1,38 @@
+manifest_version = 1
+dependencies = []
+categories = [
+  { slug = "business-service-reference", name = "Reference Services", parent = "business-service", bind = true, include_descendants = true },
+]
+
+[plugin]
+key = "hello"
+name = "Hello Reference Plugin"
+version = "1.1.0"
+role_scope = "business-service-provider"
+business_type = "service"
+description = "Reference plugin that proves the plugin framework works. It has no business features."
+
+[compatibility]
+core_api = ">=1.1,<2.0"
+
+[entrypoint]
+module = "plugin"
+function = "register"
+
+[api]
+prefix = "/plugins/hello"
+tag = "1.5 Businesses · Hello"
+
+[database]
+table_prefix = "plg_hello_"
+migrations = false
+
+[permissions."plugin.hello.greeting.view"]
+description = "View the hello reference plugin greeting"
+
+[[capabilities]]
+key = "business_greeting"
+title = "Greeting"
+type = "menu"
+path = "/businesses/{business_id}/greeting"
+permission = "plugin.hello.greeting.view"

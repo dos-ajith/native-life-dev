@@ -11,9 +11,7 @@ from app.models.base import Base, UUIDPrimaryKeyMixin
 
 class ActivityLog(Base, UUIDPrimaryKeyMixin):
     __tablename__ = "activity_logs"
-    __table_args__ = (
-        Index("ix_activity_logs_entity_type_entity_id", "entity_type", "entity_id"),
-    )
+    __table_args__ = (Index("ix_activity_logs_entity_type_entity_id", "entity_type", "entity_id"),)
 
     user_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), index=True

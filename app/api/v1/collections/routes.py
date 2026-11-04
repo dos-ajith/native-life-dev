@@ -4,13 +4,14 @@ from fastapi import APIRouter, status
 
 from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaginationDep
 from app.core.messages import CollectionMessages
+from app.core.openapi_tags import ApiTag
 from app.schemas.collection import CollectionCreate, CollectionRead, CollectionUpdate
 from app.schemas.pagination import Page
 from app.schemas.post import PostDetailRead
 from app.schemas.response import SuccessResponse
 from app.services.collection_service import CollectionService
 
-me_router = APIRouter(prefix="/me/collections", tags=["collections"])
+me_router = APIRouter(prefix="/me/collections", tags=[ApiTag.COLLECTIONS])
 
 
 @me_router.post(

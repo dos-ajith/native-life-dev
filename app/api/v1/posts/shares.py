@@ -5,11 +5,12 @@ from fastapi import APIRouter, status
 from app.api.deps import DbSessionDep
 from app.api.v1.posts.permissions import PostShareDep
 from app.core.messages import PostShareMessages
+from app.core.openapi_tags import ApiTag
 from app.schemas.post_share import PostShareCreate
 from app.schemas.response import SuccessResponse
 from app.services.post_share_service import PostShareService
 
-router = APIRouter(prefix="/posts", tags=["post-shares"])
+router = APIRouter(prefix="/posts", tags=[ApiTag.POSTS])
 
 
 @router.post(

@@ -3,13 +3,16 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import BusinessRuleError, NotFoundError
+from app.core.exceptions import AuthorizationError, BusinessRuleError, NotFoundError
 from app.core.messages import RoleMessages
+from app.core.permissions import ADMIN_ROLE_SLUGS, CANONICAL_ROLE_SLUGS
 from app.models.role import Role
+from app.models.user import User
 from app.repositories.permission_repository import PermissionRepository
 from app.repositories.role_repository import RoleRepository
 from app.schemas.pagination import PaginationParams
 from app.schemas.role import RoleCreate, RoleUpdate
+from app.services.authorization_service import is_super_admin
 from app.utils.slug import slugify
 
 
@@ -33,8 +36,9 @@ class RoleService:
             raise NotFoundError(RoleMessages.NOT_FOUND)
         return role
 
-    def update(self, role_id: UUID, payload: RoleUpdate) -> Role:
+    def update(self, role_id: UUID, payload: RoleUpdate, actor: User) -> Role:
         role = self.get(role_id)
+        self._ensure_can_change(role, actor)
         data: dict[str, Any] = payload.model_dump(exclude_none=True)
         name = data.get("name")
         if name is not None and name != role.name and self._roles.get_by_name(name):
@@ -45,10 +49,13 @@ class RoleService:
 
     def delete(self, role_id: UUID) -> None:
         role = self.get(role_id)
+        if role.slug in CANONICAL_ROLE_SLUGS:
+            raise BusinessRuleError(RoleMessages.SYSTEM_ROLE_PROTECTED)
         self._roles.delete(role)
 
-    def set_permissions(self, role_id: UUID, permission_ids: list[UUID]) -> Role:
+    def set_permissions(self, role_id: UUID, permission_ids: list[UUID], actor: User) -> Role:
         role = self.get(role_id)
+        self._ensure_can_change(role, actor)
         permissions = self._permissions.get_by_ids(permission_ids)
         missing_ids = set(permission_ids) - {permission.id for permission in permissions}
         if missing_ids:
@@ -59,3 +66,8 @@ class RoleService:
 
     def list(self, params: PaginationParams) -> tuple[list[Role], int]:
         return self._roles.list(params)
+
+    @staticmethod
+    def _ensure_can_change(role: Role, actor: User) -> None:
+        if role.slug in ADMIN_ROLE_SLUGS and not is_super_admin(actor):
+            raise AuthorizationError(RoleMessages.ADMIN_ROLE_PROTECTED)

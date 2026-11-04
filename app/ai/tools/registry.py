@@ -17,7 +17,10 @@ class AIToolRegistry:
         self._tools: dict[str, AITool[Any]] = {tool.name: tool for tool in tools}
 
     def with_tool(self, tool: AITool[Any]) -> "AIToolRegistry":
-        return AIToolRegistry([*self._tools.values(), tool])
+        return self.with_tools([tool])
+
+    def with_tools(self, tools: list[AITool[Any]]) -> "AIToolRegistry":
+        return AIToolRegistry([*self._tools.values(), *tools])
 
     def schemas(self) -> list[dict[str, Any]]:
         return [

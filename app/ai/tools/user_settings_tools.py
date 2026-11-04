@@ -29,7 +29,5 @@ class GetUserSettingsTool(AITool[GetUserSettingsArgs]):
             preferred_language=context.preferred_language,
             response_style=context.response_style,
             preferred_category_names=[tag.name for tag in content.preferred_categories],
-            preferred_district_names=[
-                district.name for district in content.preferred_locations
-            ],
+            preferred_district_names=[district.name for district in content.preferred_locations],
         )

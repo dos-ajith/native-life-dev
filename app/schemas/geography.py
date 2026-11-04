@@ -1,7 +1,11 @@
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+MAX_AREA_NAME_LENGTH = 150
+MAX_LGD_CODE_LENGTH = 10
+MAX_AREA_RADIUS_M = 100_000
 
 
 class GeographySourceMode(StrEnum):
@@ -15,9 +19,28 @@ class GeographyImportSummary(BaseModel):
     state_count: int
     district_count: int
     taluk_count: int
+    village_count: int
     created: int
     updated: int
     failed: int
+
+
+class GeographyAreaCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=MAX_AREA_NAME_LENGTH)
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    radius_m: int | None = Field(default=None, gt=0, le=MAX_AREA_RADIUS_M)
+    lgd_code: str | None = Field(default=None, min_length=1, max_length=MAX_LGD_CODE_LENGTH)
+
+    @field_validator("name", "lgd_code")
+    @classmethod
+    def strip_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("must not be blank")
+        return stripped
 
 
 class GisStateRead(BaseModel):
@@ -46,6 +69,15 @@ class GisTalukRead(BaseModel):
     name: str
 
 
+class GisVillageRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    taluk_id: UUID
+    lgd_code: str
+    name: str
+
+
 class ReverseGeocodeQuery(BaseModel):
     latitude: float
     longitude: float
@@ -58,4 +90,8 @@ class ReverseGeocodeResult(BaseModel):
 
 
 class ReverseGeocodeAddressResult(BaseModel):
+    location_name: str
+
+
+class AddressSuggestion(BaseModel):
     location_name: str

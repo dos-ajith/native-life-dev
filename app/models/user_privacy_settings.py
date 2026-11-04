@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.user_settings_defaults import UserSettingsDefaults
-from app.models.user_settings_enums import ProfileVisibility, VisibilityLevel
+from app.models.user_settings_enums import MessagePermission, ProfileVisibility, VisibilityLevel
 
 _visibility_level_type = Enum(
     VisibilityLevel,
@@ -21,13 +21,18 @@ _profile_visibility_type = Enum(
     values_callable=lambda enum_cls: [member.value for member in enum_cls],
 )
 
+_message_permission_type = Enum(
+    MessagePermission,
+    name="message_permission",
+    native_enum=True,
+    values_callable=lambda enum_cls: [member.value for member in enum_cls],
+)
+
 
 class UserPrivacySettings(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "user_privacy_settings"
 
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), unique=True
-    )
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
     profile_visibility: Mapped[ProfileVisibility] = mapped_column(
         _profile_visibility_type, default=UserSettingsDefaults.PROFILE_VISIBILITY
     )
@@ -39,6 +44,9 @@ class UserPrivacySettings(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     allow_messages: Mapped[bool] = mapped_column(
         Boolean(), default=UserSettingsDefaults.ALLOW_MESSAGES
+    )
+    who_can_message: Mapped[MessagePermission] = mapped_column(
+        _message_permission_type, default=UserSettingsDefaults.WHO_CAN_MESSAGE
     )
     allow_mentions: Mapped[bool] = mapped_column(
         Boolean(), default=UserSettingsDefaults.ALLOW_MENTIONS

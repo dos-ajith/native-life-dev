@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Native Life — Web push test</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 760px; margin: 24px auto; padding: 0 16px; color: #1c1c1e; }
+  h1 { font-size: 20px; }
+  label { display: block; margin: 12px 0 4px; font-size: 13px; font-weight: 600; }
+  input, textarea { width: 100%; box-sizing: border-box; padding: 8px; font: 13px ui-monospace, monospace; border: 1px solid #c7c7cc; border-radius: 6px; }
+  textarea { height: 150px; }
+  .row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  button { padding: 9px 14px; border: 0; border-radius: 6px; background: #1f6feb; color: #fff; font-weight: 600; cursor: pointer; }
+  button.secondary { background: #6e7681; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  #log { margin-top: 20px; background: #0d1117; color: #c9d1d9; padding: 12px; border-radius: 6px; font: 12px ui-monospace, monospace; white-space: pre-wrap; min-height: 140px; max-height: 360px; overflow: auto; }
+  .hint { font-size: 12px; color: #6e7681; margin-top: 4px; }
+</style>
+</head>
+<body>
+<h1>Web push test</h1>
+<p class="hint">Serve this page from http://localhost (for example VS Code Live Server). Web push needs HTTPS or localhost. Nothing here is sent anywhere except your API and Firebase.</p>
+
+<label for="apiBase">API base URL</label>
+<input id="apiBase" value="http://127.0.0.1:8000/api/v1">
+
+<label for="email">Email</label>
+<input id="email" autocomplete="username">
+<label for="password">Password</label>
+<input id="password" type="password" autocomplete="current-password">
+
+<label for="firebaseConfig">Firebase web config (paste the <code>firebaseConfig</code> object as Firebase shows it)</label>
+<textarea id="firebaseConfig" placeholder='{"apiKey": "...", "authDomain": "...", "projectId": "...", "storageBucket": "...", "messagingSenderId": "...", "appId": "..."}'></textarea>
+<div class="hint">Firebase console → Project settings → General → Your apps → Web app → SDK setup. Paste it as is; quotes around keys are optional.</div>
+
+<label for="vapidKey">VAPID key</label>
+<input id="vapidKey" placeholder="Project settings → Cloud Messaging → Web Push certificates → Key pair">
+
+<div class="row">
+  <button id="loginBtn">1. Log in</button>
+  <button id="registerBtn" disabled>2. Enable push and register this browser</button>
+  <button id="removeBtn" class="secondary" disabled>Remove this browser</button>
+  <button id="copyBtn" class="secondary" disabled>Copy token</button>
+</div>
+
+<div id="log"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js';
+import { getMessaging, getToken, deleteToken, onMessage } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-messaging.js';
+
+const STORAGE_KEY = 'nativeLifePushTest';
+const $ = (id) => document.getElementById(id);
+const state = { accessToken: '', fcmToken: '', messaging: null, registration: null };
+
+const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+for (const id of ['apiBase', 'email', 'firebaseConfig', 'vapidKey']) {
+  if (saved[id]) $(id).value = saved[id];
+}
+
+function remember() {
+  const values = {};
+  for (const id of ['apiBase', 'email', 'firebaseConfig', 'vapidKey']) values[id] = $(id).value;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(values));
+}
+
+function log(message) {
+  const line = `[${new Date().toLocaleTimeString()}] ${message}`;
+  $('log').textContent += line + '\n';
+  $('log').scrollTop = $('log').scrollHeight;
+}
+
+async function api(method, path, body, auth = true) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth) headers.Authorization = `Bearer ${state.accessToken}`;
+  const response = await fetch(`${$('apiBase').value.replace(/\/$/, '')}${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const json = await response.json().catch(() => ({}));
+  return { ok: response.ok, status: response.status, json };
+}
+
+function parseFirebaseConfig(text) {
+  const body = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
+  const quoted = body
+    .replace(/^\s*\/\/.*$/gm, '')
+    .replace(/([{,]\s*)([A-Za-z_]\w*)\s*:/g, '$1"$2":')
+    .replace(/,\s*}/g, '}');
+  return JSON.parse(quoted);
+}
+
+$('loginBtn').onclick = async () => {
+  remember();
+  if (!$('email').value || !$('password').value) {
+    log('Enter the email and password of the user to test with.');
+    return;
+  }
+  const result = await api('POST', '/auth/login', { email: $('email').value, password: $('password').value }, false);
+  if (!result.ok) {
+    log(`Login failed (${result.status}): ${result.json.message || 'unknown error'}`);
+    return;
+  }
+  state.accessToken = result.json.data.access_token;
+  $('registerBtn').disabled = false;
+  log('Logged in.');
+};
+
+$('registerBtn').onclick = async () => {
+  remember();
+  try {
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+      log('This browser does not support web push.');
+      return;
+    }
+    const config = parseFirebaseConfig($('firebaseConfig').value);
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      log(`Notification permission is "${permission}". Allow notifications for this site and try again.`);
+      return;
+    }
+    state.registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+    await navigator.serviceWorker.ready;
+    state.messaging = getMessaging(initializeApp(config));
+    state.fcmToken = await getToken(state.messaging, {
+      vapidKey: $('vapidKey').value.trim(),
+      serviceWorkerRegistration: state.registration,
+    });
+    if (!state.fcmToken) {
+      log('Firebase returned no token.');
+      return;
+    }
+    log(`Got FCM token (${state.fcmToken.length} chars).`);
+    const result = await api('POST', '/me/devices', { token: state.fcmToken, platform: 'web' });
+    log(result.ok ? 'Registered this browser with the API (platform: web).' : `API registration failed (${result.status}): ${result.json.message || ''}`);
+    $('removeBtn').disabled = !result.ok;
+    $('copyBtn').disabled = false;
+    onMessage(state.messaging, (payload) => {
+      log(`Foreground message: ${JSON.stringify(payload.notification || {})} data=${JSON.stringify(payload.data || {})}`);
+      const note = payload.notification || {};
+      state.registration.showNotification(note.title || 'Native Life', { body: note.body || '', data: payload.data });
+    });
+    log('Ready. Trigger a notification for this user (for example follow them from another account). Switch to another tab to see a background notification.');
+  } catch (error) {
+    log(`Error: ${error.message}`);
+  }
+};
+
+$('removeBtn').onclick = async () => {
+  const result = await api('DELETE', '/me/devices', { token: state.fcmToken });
+  log(result.ok ? 'Removed this browser from the API.' : `Remove failed (${result.status}).`);
+  if (state.messaging) await deleteToken(state.messaging);
+  $('removeBtn').disabled = true;
+};
+
+$('copyBtn').onclick = async () => {
+  await navigator.clipboard.writeText(state.fcmToken);
+  log('Token copied. Paste it in Firebase → Messaging → New campaign → Send test message to test the browser without the API.');
+};
+</script>
+</body>
+</html>

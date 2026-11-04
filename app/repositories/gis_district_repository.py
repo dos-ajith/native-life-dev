@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.models.gis_district import GisDistrict
 from app.schemas.pagination import PaginationParams
@@ -13,6 +13,13 @@ class GisDistrictRepository:
 
     def get_by_id(self, district_id: UUID) -> GisDistrict | None:
         return self._db.get(GisDistrict, district_id)
+
+    def get_without_geometry(self, district_id: UUID) -> GisDistrict | None:
+        return self._db.scalar(
+            select(GisDistrict)
+            .options(defer(GisDistrict.geom))
+            .where(GisDistrict.id == district_id)
+        )
 
     def get_by_ids(self, district_ids: list[UUID]) -> list[GisDistrict]:
         if not district_ids:
@@ -35,8 +42,7 @@ class GisDistrictRepository:
     ) -> tuple[list[GisDistrict], int]:
         where_clause = GisDistrict.state_id == state_id
         total = (
-            self._db.scalar(select(func.count()).select_from(GisDistrict).where(where_clause))
-            or 0
+            self._db.scalar(select(func.count()).select_from(GisDistrict).where(where_clause)) or 0
         )
         offset = (params.page - 1) * params.page_size
         items = self._db.scalars(

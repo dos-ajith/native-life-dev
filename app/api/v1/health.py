@@ -5,9 +5,10 @@ from sqlalchemy.exc import OperationalError
 from app.api.deps import DbSessionDep
 from app.core.exceptions import ServiceUnavailableError
 from app.core.messages import HealthMessages
+from app.core.openapi_tags import ApiTag
 from app.schemas.response import SuccessResponse
 
-router = APIRouter(tags=["health"])
+router = APIRouter(tags=[ApiTag.HEALTH])
 
 
 @router.get("/health", response_model=SuccessResponse[dict[str, str]])

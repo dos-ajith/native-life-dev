@@ -98,6 +98,9 @@ class UserSettingsService:
     def get_content(self, user: User) -> ContentSettingsRead:
         return self._to_content_read(self._get_or_create_content(user))
 
+    def nearby_radius_km(self, user: User) -> int:
+        return self._get_or_create_content(user).nearby_radius_km
+
     def get_aggregate(self, user: User) -> UserSettingsRead:
         return UserSettingsRead(
             general=self.get_general(user),
@@ -195,9 +198,7 @@ class UserSettingsService:
 
         changed_fields = list(data.keys())
         if payload.preferred_category_ids is not None:
-            self._content_settings.replace_preferred_tags(
-                saved.id, payload.preferred_category_ids
-            )
+            self._content_settings.replace_preferred_tags(saved.id, payload.preferred_category_ids)
             changed_fields.append("preferred_category_ids")
         if payload.preferred_location_ids is not None:
             self._content_settings.replace_preferred_districts(
@@ -284,6 +285,7 @@ class UserSettingsService:
             language_filter=settings.language_filter,
             hide_sensitive_content=settings.hide_sensitive_content,
             personalized_feed=settings.personalized_feed,
+            nearby_radius_km=settings.nearby_radius_km,
             created_at=settings.created_at,
             updated_at=settings.updated_at,
         )

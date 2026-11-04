@@ -7,7 +7,7 @@ from shapely.geometry.base import BaseGeometry
 
 from app.core.exceptions import BusinessRuleError
 from app.core.messages import GeographyMessages
-from app.services.geography_layer_detector import AdminLevel
+from app.services.geography_layer_detector import VILLAGE_LEVEL_LABEL, AdminLevel
 from app.services.geography_records import (
     AdminBoundaries,
     DistrictRecord,
@@ -45,7 +45,6 @@ def _majority_name_by_code(
     villages: list[VillageRecord],
     code_of: Callable[[VillageRecord], str],
     name_of: Callable[[VillageRecord], str],
-    level: AdminLevel,
 ) -> dict[str, str]:
     names: dict[str, Counter[str]] = defaultdict(Counter)
     for village in villages:
@@ -53,14 +52,8 @@ def _majority_name_by_code(
 
     resolved: dict[str, str] = {}
     for code, counts in names.items():
-        ranked = counts.most_common(2)
-        if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
-            raise BusinessRuleError(
-                GeographyMessages.AMBIGUOUS_NAME.format(
-                    level=level.value, code=code, names=", ".join(sorted(counts))
-                )
-            )
-        resolved[code] = ranked[0][0]
+        top_count = max(counts.values())
+        resolved[code] = min(name for name, count in counts.items() if count == top_count)
     return resolved
 
 
@@ -73,14 +66,14 @@ def _polygons(geometry: BaseGeometry) -> list[Polygon]:
     ]
 
 
-def _dissolve(geometries: Iterable[BaseGeometry], level: AdminLevel, code: str) -> MultiPolygon:
+def _dissolve(geometries: Iterable[BaseGeometry], level_label: str, code: str) -> MultiPolygon:
     merged = shapely.union_all(list(geometries))
     if not merged.is_valid:
         merged = shapely.make_valid(merged)
     dissolved = MultiPolygon(_polygons(merged))
     if dissolved.is_empty or not dissolved.is_valid or dissolved.has_z:
         raise BusinessRuleError(
-            GeographyMessages.INVALID_DERIVED_GEOMETRY.format(level=level.value, code=code)
+            GeographyMessages.INVALID_DERIVED_GEOMETRY.format(level=level_label, code=code)
         )
     return dissolved
 
@@ -91,7 +84,35 @@ def _dissolve_by_code(
     grouped: dict[str, list[BaseGeometry]] = defaultdict(list)
     for code, geometry in items:
         grouped[code].append(geometry)
-    return {code: _dissolve(geometries, level, code) for code, geometries in grouped.items()}
+    return {code: _dissolve(geometries, level.value, code) for code, geometries in grouped.items()}
+
+
+def merge_village_parts(villages: list[VillageRecord]) -> list[VillageRecord]:
+    grouped: dict[str, list[VillageRecord]] = defaultdict(list)
+    for village in villages:
+        grouped[village.village_lgd_code].append(village)
+    merged: list[VillageRecord] = []
+    for code, parts in sorted(grouped.items()):
+        first = parts[0]
+        geom = (
+            first.geom
+            if len(parts) == 1
+            else _dissolve((part.geom for part in parts), VILLAGE_LEVEL_LABEL, code)
+        )
+        merged.append(
+            VillageRecord(
+                state_lgd_code=first.state_lgd_code,
+                state_name=first.state_name,
+                district_lgd_code=first.district_lgd_code,
+                district_name=first.district_name,
+                taluk_lgd_code=first.taluk_lgd_code,
+                taluk_name=first.taluk_name,
+                village_lgd_code=code,
+                village_name=min(part.village_name for part in parts),
+                geom=geom,
+            )
+        )
+    return merged
 
 
 def derive_admin_boundaries(villages: list[VillageRecord]) -> AdminBoundaries:
@@ -110,18 +131,19 @@ def derive_admin_boundaries(villages: list[VillageRecord]) -> AdminBoundaries:
         AdminLevel.STATE,
     )
     taluk_names = _majority_name_by_code(
-        villages, lambda village: village.taluk_lgd_code, lambda village: village.taluk_name,
-        AdminLevel.TALUK,
+        villages,
+        lambda village: village.taluk_lgd_code,
+        lambda village: village.taluk_name,
     )
     district_names = _majority_name_by_code(
         villages,
         lambda village: village.district_lgd_code,
         lambda village: village.district_name,
-        AdminLevel.DISTRICT,
     )
     state_names = _majority_name_by_code(
-        villages, lambda village: village.state_lgd_code, lambda village: village.state_name,
-        AdminLevel.STATE,
+        villages,
+        lambda village: village.state_lgd_code,
+        lambda village: village.state_name,
     )
 
     taluk_geoms = _dissolve_by_code(

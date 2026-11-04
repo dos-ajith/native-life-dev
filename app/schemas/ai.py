@@ -1,14 +1,24 @@
+from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
+from app.core.messages import PostMessages
 from app.models.post_media import PostMediaType
 from app.models.user_settings_enums import AIResponseStyle
-from app.schemas.post import PostDetailRead, PostMediaRead
+from app.schemas.post import Latitude, Longitude, NearbyRadiusKm, PostDetailRead, PostMediaRead
 from app.schemas.validators import NonBlankStr
 
 AskPrompt = Annotated[NonBlankStr, Field(max_length=2000)]
+
+
+@dataclass(frozen=True)
+class UserLocation:
+    latitude: float
+    longitude: float
+    radius_km: float | None = None
+
 
 _CONTENT_SNIPPET_LENGTH = 240
 
@@ -44,11 +54,16 @@ class PostReferenceRead(BaseModel):
     author_name: str
     image_url: str | None
     tags: list[str]
+    location_name: str | None = None
+    distance_km: float | None = None
     source: str = "Native Life"
 
     @classmethod
-    def from_detail(cls, detail: PostDetailRead) -> "PostReferenceRead":
+    def from_detail(
+        cls, detail: PostDetailRead, distance_km: float | None = None
+    ) -> "PostReferenceRead":
         return cls(
+            distance_km=distance_km,
             post_id=detail.id,
             slug=detail.slug,
             title=detail.title,
@@ -56,6 +71,7 @@ class PostReferenceRead(BaseModel):
             author_name=detail.author.name,
             image_url=_primary_image_url(detail.media),
             tags=[tag.name for tag in detail.tags],
+            location_name=detail.location_name,
         )
 
 
@@ -70,6 +86,39 @@ class AIPersonalizationContext(BaseModel):
 
 class AIAskRequest(BaseModel):
     prompt: AskPrompt
+    latitude: Latitude | None = None
+    longitude: Longitude | None = None
+    radius_km: NearbyRadiusKm | None = None
+
+    @model_validator(mode="after")
+    def _validate_location(self) -> "AIAskRequest":
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError(PostMessages.LOCATION_INCOMPLETE)
+        if self.radius_km is not None and self.latitude is None:
+            raise ValueError(PostMessages.RADIUS_REQUIRES_LOCATION)
+        return self
+
+    @property
+    def location(self) -> UserLocation | None:
+        if self.latitude is None or self.longitude is None:
+            return None
+        return UserLocation(self.latitude, self.longitude, self.radius_km)
+
+
+class AISuggestionRead(BaseModel):
+    id: str
+    title: str
+    subtitle: str
+    prompt: str
+
+
+class AIWelcomeRead(BaseModel):
+    greeting: str
+    intro: str
+    hint: str
+    place_name: str | None
+    suggestions_title: str
+    suggestions: list[AISuggestionRead]
 
 
 class AIAskResponse(BaseModel):

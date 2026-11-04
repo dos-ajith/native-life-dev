@@ -5,12 +5,13 @@ from fastapi import APIRouter, status
 from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaginationDep
 from app.api.v1.posts.permissions import PostCommentDep, PostViewDep
 from app.core.messages import PostCommentMessages
+from app.core.openapi_tags import ApiTag
 from app.schemas.pagination import Page
 from app.schemas.post_comment import PostCommentCreate, PostCommentRead
 from app.schemas.response import SuccessResponse
 from app.services.post_comment_service import PostCommentService
 
-router = APIRouter(prefix="/posts", tags=["post-comments"])
+router = APIRouter(prefix="/posts", tags=[ApiTag.POSTS])
 
 
 @router.post(
@@ -24,10 +25,9 @@ def create_comment(
     db: DbSessionDep,
     current_user: PostCommentDep,
 ) -> SuccessResponse[PostCommentRead]:
-    comment = PostCommentService(db).create(post_id, payload, current_user)
-    return SuccessResponse(
-        message=PostCommentMessages.CREATED, data=PostCommentRead.model_validate(comment)
-    )
+    service = PostCommentService(db)
+    comment = service.create(post_id, payload, current_user)
+    return SuccessResponse(message=PostCommentMessages.CREATED, data=service.to_read(comment))
 
 
 @router.get("/{post_id}/comments", response_model=SuccessResponse[Page[PostCommentRead]])

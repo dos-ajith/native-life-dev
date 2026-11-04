@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Form, status
 
 from app.api.deps import DbSessionDep, PaginationDep, require_permission
 from app.core.messages import RoleMessages
+from app.core.openapi_tags import ApiTag
 from app.core.permissions import PermissionName
 from app.models.user import User
 from app.schemas.pagination import Page
@@ -12,7 +13,7 @@ from app.schemas.response import SuccessResponse
 from app.schemas.role import RoleCreate, RoleRead, RoleUpdate
 from app.services.role_service import RoleService
 
-router = APIRouter(prefix="/admin/roles", tags=["roles"])
+router = APIRouter(prefix="/admin/roles", tags=[ApiTag.ADMIN_ROLES])
 
 RoleCreateDep = Annotated[User, Depends(require_permission(PermissionName.ROLE_CREATE))]
 RoleViewDep = Annotated[User, Depends(require_permission(PermissionName.ROLE_VIEW))]
@@ -55,12 +56,12 @@ def edit_role(role_id: UUID, db: DbSessionDep, _: RoleViewDep) -> SuccessRespons
 def update_role(
     role_id: UUID,
     db: DbSessionDep,
-    _: RoleUpdateDep,
+    actor: RoleUpdateDep,
     name: Annotated[str | None, Form()] = None,
     description: Annotated[str | None, Form()] = None,
 ) -> SuccessResponse[RoleRead]:
     payload = RoleUpdate(name=name, description=description)
-    role = RoleService(db).update(role_id, payload)
+    role = RoleService(db).update(role_id, payload, actor)
     return SuccessResponse(message=RoleMessages.UPDATED, data=RoleRead.model_validate(role))
 
 
@@ -68,10 +69,10 @@ def update_role(
 def set_role_permissions(
     role_id: UUID,
     db: DbSessionDep,
-    _: RoleUpdateDep,
+    actor: RoleUpdateDep,
     permission_ids: Annotated[list[UUID], Form(default_factory=list)],
 ) -> SuccessResponse[RoleRead]:
-    role = RoleService(db).set_permissions(role_id, permission_ids)
+    role = RoleService(db).set_permissions(role_id, permission_ids, actor)
     return SuccessResponse(
         message=RoleMessages.PERMISSIONS_UPDATED, data=RoleRead.model_validate(role)
     )

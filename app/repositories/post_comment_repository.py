@@ -1,9 +1,9 @@
-from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.timezone import app_now
 from app.models.post_comment import PostComment
 from app.schemas.pagination import PaginationParams
 
@@ -27,9 +27,7 @@ class PostCommentRepository:
             & PostComment.deleted_at.is_(None)
             & PostComment.parent_id.is_(None)
         )
-        total = (
-            self._db.scalar(select(func.count()).select_from(PostComment).where(root_only)) or 0
-        )
+        total = self._db.scalar(select(func.count()).select_from(PostComment).where(root_only)) or 0
         offset = (params.page - 1) * params.page_size
         items = self._db.scalars(
             select(PostComment)
@@ -56,5 +54,5 @@ class PostCommentRepository:
         return comment
 
     def soft_delete(self, comment: PostComment) -> None:
-        comment.deleted_at = datetime.now(UTC)
+        comment.deleted_at = app_now()
         self._db.commit()

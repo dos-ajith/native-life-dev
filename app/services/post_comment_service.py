@@ -9,6 +9,7 @@ from app.core.permissions import PermissionName
 from app.models.post_comment import PostComment
 from app.models.user import User
 from app.repositories.post_comment_repository import PostCommentRepository
+from app.repositories.user_repository import UserRepository
 from app.schemas.pagination import PaginationParams
 from app.schemas.post_comment import PostCommentCreate, PostCommentRead
 from app.services.activity_log_service import ActivityLogService
@@ -20,6 +21,7 @@ from app.services.post_service import PostService
 class PostCommentService:
     def __init__(self, db: Session) -> None:
         self._comments = PostCommentRepository(db)
+        self._users = UserRepository(db)
         self._posts = PostService(db)
         self._activity_logs = ActivityLogService(db)
         self._notifications = NotificationService(db)
@@ -56,7 +58,11 @@ class PostCommentService:
         if not roots:
             return [], total
         all_comments = self._comments.list_all_by_post(post_id)
-        return PostCommentRead.build_forest(roots, all_comments), total
+        authors = self._authors_of([*roots, *all_comments])
+        return PostCommentRead.build_forest(roots, all_comments, authors), total
+
+    def to_read(self, comment: PostComment) -> PostCommentRead:
+        return PostCommentRead.from_comment(comment, {}, self._authors_of([comment]))
 
     def delete(self, comment_id: UUID, actor: User) -> None:
         comment = self._get(comment_id)
@@ -73,6 +79,10 @@ class PostCommentService:
             entity_id=comment.id,
             metadata={"post_id": str(comment.post_id)},
         )
+
+    def _authors_of(self, comments: list[PostComment]) -> dict[UUID, User]:
+        user_ids = list({comment.user_id for comment in comments})
+        return {user.id: user for user in self._users.get_by_ids_including_deleted(user_ids)}
 
     def _get(self, comment_id: UUID) -> PostComment:
         comment = self._comments.get_by_id(comment_id)
