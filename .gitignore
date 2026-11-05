@@ -34,10 +34,6 @@ Thumbs.db
 *-firebase-adminsdk-*.json
 firebase-service-account*.json
 
-# Uploaded user content (local filesystem storage)
-/uploads/*
-!/uploads/.gitkeep
-
 # Privately stored uploads (not served via the public /media static mount)
 /private_uploads/*
 !/private_uploads/.gitkeep
