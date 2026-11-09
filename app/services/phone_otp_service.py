@@ -8,7 +8,7 @@ from app.core.config import Settings
 from app.core.exceptions import BusinessRuleError, ServiceUnavailableError, TooManyRequestsError
 from app.core.messages import AuthMessages
 from app.core.security import generate_otp, hash_password, verify_password
-from app.core.sms import OutgoingSms, SmsProvider
+from app.core.sms import CONSOLE_PROVIDER_NAME, OutgoingSms, SmsProvider
 from app.core.sms_templates import render_phone_otp_sms
 from app.core.timezone import app_now
 from app.models.phone_otp_challenge import PhoneOtpChallenge
@@ -23,6 +23,7 @@ RATE_LIMIT_WINDOW = timedelta(hours=1)
 class PhoneOtpIssued:
     expires_in_seconds: int
     resend_available_in_seconds: int
+    dev_otp: str | None = None
 
 
 class PhoneOtpService:
@@ -71,6 +72,7 @@ class PhoneOtpService:
         return PhoneOtpIssued(
             expires_in_seconds=self._settings.otp_expire_minutes * SECONDS_PER_MINUTE,
             resend_available_in_seconds=self._settings.otp_resend_cooldown_seconds,
+            dev_otp=code if self._sms.name == CONSOLE_PROVIDER_NAME else None,
         )
 
     def verify(self, phone: str, otp: str) -> PhoneOtpChallenge:

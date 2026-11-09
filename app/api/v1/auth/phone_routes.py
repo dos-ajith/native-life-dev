@@ -48,6 +48,7 @@ def request_otp(
             phone=payload.phone,
             expires_in_seconds=issued.expires_in_seconds,
             resend_available_in_seconds=issued.resend_available_in_seconds,
+            dev_otp=issued.dev_otp,
         ),
     )
 
@@ -96,6 +97,7 @@ def request_link_otp(
             phone=payload.phone,
             expires_in_seconds=issued.expires_in_seconds,
             resend_available_in_seconds=issued.resend_available_in_seconds,
+            dev_otp=issued.dev_otp,
         ),
     )
 

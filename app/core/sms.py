@@ -12,6 +12,7 @@ from app.utils.phone import mask_phone
 logger = logging.getLogger(__name__)
 
 TWILIO_HTTP_LOGGER_NAME = "app.sms.twilio_http"
+CONSOLE_PROVIDER_NAME = "console"
 
 
 @dataclass(frozen=True)
@@ -34,7 +35,7 @@ class SmsProvider(Protocol):
 
 
 class ConsoleSmsProvider:
-    name: str = "console"
+    name: str = CONSOLE_PROVIDER_NAME
 
     def send(self, message: OutgoingSms) -> SmsSendResult:
         logger.warning(

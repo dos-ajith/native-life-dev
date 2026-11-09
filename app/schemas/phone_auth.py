@@ -16,6 +16,7 @@ class PhoneOtpSent(BaseModel):
     phone: str
     expires_in_seconds: int
     resend_available_in_seconds: int
+    dev_otp: str | None = None
 
 
 class PhoneOtpVerifyRequest(BaseModel):
