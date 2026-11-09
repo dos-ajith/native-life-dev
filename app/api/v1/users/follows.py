@@ -7,9 +7,10 @@ from app.core.messages import UserFollowMessages
 from app.core.openapi_tags import ApiTag
 from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
-from app.schemas.user import UserSummaryRead
+from app.schemas.user import UserDiscoveryRead, UserSummaryRead
 from app.schemas.user_follow import FollowCountsRead, FollowStatusRead
 from app.services.user_follow_service import UserFollowService
+from app.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=[ApiTag.USER_FOLLOWS])
 me_router = APIRouter(prefix="/me", tags=[ApiTag.USER_FOLLOWS])
@@ -99,3 +100,12 @@ def list_incoming_follow_requests(
     items = [UserSummaryRead.model_validate(user) for user in users]
     page = Page[UserSummaryRead].create(items=items, total=total, params=params)
     return SuccessResponse(message=UserFollowMessages.INCOMING_REQUESTS_RETRIEVED, data=page)
+
+
+@me_router.get("/connects", response_model=SuccessResponse[Page[UserDiscoveryRead]])
+def list_connects(
+    db: DbSessionDep, current_user: CurrentActiveUserDep, params: PaginationDep
+) -> SuccessResponse[Page[UserDiscoveryRead]]:
+    items, total = UserService(db).list_connects(current_user, params)
+    page = Page[UserDiscoveryRead].create(items=list(items), total=total, params=params)
+    return SuccessResponse(message=UserFollowMessages.CONNECTS_RETRIEVED, data=page)

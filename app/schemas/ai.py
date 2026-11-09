@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.ai.voice.avatars import DEFAULT_AVATAR_ID, AvatarGender
 from app.core.messages import PostMessages
 from app.models.post_media import PostMediaType
 from app.models.user_settings_enums import AIResponseStyle
@@ -119,6 +120,21 @@ class AIWelcomeRead(BaseModel):
     place_name: str | None
     suggestions_title: str
     suggestions: list[AISuggestionRead]
+
+
+class AIAvatarRead(BaseModel):
+    id: str
+    name: str
+    gender: AvatarGender
+
+
+class AITranscriptionRead(BaseModel):
+    text: str
+
+
+class AISpeakRequest(BaseModel):
+    text: NonBlankStr
+    avatar_id: str = DEFAULT_AVATAR_ID
 
 
 class AIAskResponse(BaseModel):

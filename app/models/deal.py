@@ -33,6 +33,7 @@ class DealStatus(enum.StrEnum):
     DRAFT = "draft"
     PENDING_ACCEPTANCE = "pending_acceptance"
     PUBLISHED = "published"
+    CLOSED = "closed"
     CANCELLED = "cancelled"
     EXPIRED = "expired"
 

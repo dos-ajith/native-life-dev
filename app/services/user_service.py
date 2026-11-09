@@ -250,6 +250,12 @@ class UserService:
         rows, total = self._users.list_discoverable(viewer.id, search and search.strip(), params)
         return [self._to_discovery_read(row) for row in rows], total
 
+    def list_connects(
+        self, viewer: User, params: PaginationParams
+    ) -> tuple[Sequence[UserDiscoveryRead], int]:
+        rows, total = self._users.list_discoverable(viewer.id, None, params, exclude_following=True)
+        return [self._to_discovery_read(row) for row in rows], total
+
     def get_profile(self, viewer: User, user_id: UUID) -> UserProfileRead:
         row = self._users.get_profile(viewer.id, user_id)
         if row is None:
@@ -291,6 +297,7 @@ class UserService:
             following_count=row.following_count,
             is_following=row.is_following,
             follow_status=follow_status,
+            shares_native_place=row.shares_native_place,
         )
 
     def delete(self, user_id: UUID, acting_user: User) -> None:
@@ -361,9 +368,13 @@ class UserService:
     def _ensure_can_change_roles(
         actor: User, previous: Sequence[Role], new: Sequence[Role]
     ) -> None:
+        changed = {role.slug for role in previous} ^ {role.slug for role in new}
+        if RoleSlug.NATIVE_ADMIN in changed:
+            raise BusinessRuleError(UserMessages.NATIVE_ADMIN_ROLE_MANAGED_BY_NATIVE_PLACE)
+        if len(new) > 1:
+            raise BusinessRuleError(UserMessages.SINGLE_ROLE_ONLY)
         if is_super_admin(actor):
             return
-        changed = {role.slug for role in previous} ^ {role.slug for role in new}
         if changed & ADMIN_ROLE_SLUGS:
             raise AuthorizationError(UserMessages.ADMIN_ROLE_CHANGE_FORBIDDEN)
 

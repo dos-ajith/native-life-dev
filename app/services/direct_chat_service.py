@@ -81,7 +81,7 @@ class DirectChatService:
             RealtimeEventType.DIRECT_MESSAGE_CREATED,
             {"message": DirectMessageRead.from_message(message).model_dump(mode="json")},
         )
-        self._push_if_offline(actor, recipient, message)
+        self._push_to_recipient(actor, recipient, message)
         return message
 
     def typing(self, actor_id: UUID, recipient_id: UUID, is_typing: bool) -> None:
@@ -184,8 +184,8 @@ class DirectChatService:
             second.id, first.id
         )
 
-    def _push_if_offline(self, actor: User, recipient: User, message: DirectMessage) -> None:
-        if not self._push.enabled or self._publisher.has_connections(recipient.id):
+    def _push_to_recipient(self, actor: User, recipient: User, message: DirectMessage) -> None:
+        if not self._push.enabled:
             return
         settings = self._notification_settings.get_by_user_id(recipient.id)
         if settings is not None and not (settings.push_enabled and settings.messages):

@@ -5,6 +5,8 @@ from app.services.deal_expiry_service import deal_clock_now
 
 
 def ensure_deal_open(deal: Deal) -> None:
+    if deal.status == DealStatus.CLOSED:
+        raise ConflictError(DealMessages.DEAL_CLOSED)
     if deal.status != DealStatus.PUBLISHED:
         raise ConflictError(DealMessages.NOT_PUBLISHED)
     now = deal_clock_now()

@@ -63,6 +63,7 @@ Enum deal_status {
   "draft"
   "pending_acceptance"
   "published"
+  "closed"
   "cancelled"
   "expired"
 }

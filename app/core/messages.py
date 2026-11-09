@@ -58,6 +58,10 @@ class UserMessages:
     DEFAULT_ROLE_MISSING = "Default role is not configured"
     ADMIN_ROLE_CHANGE_FORBIDDEN = "Only a Super Admin can grant or remove administrative roles"
     SUPER_ADMIN_PROTECTED = "Only a Super Admin can modify a Super Admin account"
+    SINGLE_ROLE_ONLY = "A user can hold only one role"
+    NATIVE_ADMIN_ROLE_MANAGED_BY_NATIVE_PLACE = (
+        "The Native Admin role can only be granted or removed through a native place"
+    )
 
 
 class UserFollowMessages:
@@ -72,6 +76,7 @@ class UserFollowMessages:
     FOLLOWERS_RETRIEVED = "Followers retrieved"
     FOLLOWING_RETRIEVED = "Following retrieved"
     COUNTS_RETRIEVED = "Follow counts retrieved"
+    CONNECTS_RETRIEVED = "Connects retrieved"
     ALREADY_FOLLOWING = "You are already following this user"
     ALREADY_REQUESTED = "You have already requested to follow this user"
     NOT_FOLLOWING_OR_REQUESTED = "You are not following or requesting to follow this user"
@@ -293,6 +298,7 @@ class DealMessages:
     UPDATED = "Deal updated"
     DELETED = "Deal deleted"
     CANCELLED = "Deal cancelled"
+    CLOSED = "Deal closed"
     SUBMITTED = "Deal submitted for acceptance"
     INVITATIONS_REFRESHED = "Deal invitations refreshed"
     INVITATIONS_RETRIEVED = "Deal invitations retrieved"
@@ -311,6 +317,8 @@ class DealMessages:
     NOT_DRAFT = "Only draft deals can be changed"
     NOT_PENDING = "This deal is no longer awaiting acceptance"
     NOT_CANCELLABLE = "Only pending or published deals can be cancelled"
+    NOT_CLOSABLE = "Only published deals can be closed"
+    DEAL_CLOSED = "This deal has been closed"
     ITEMS_REQUIRED = "Add at least one item before submitting the deal"
     THUMBNAIL_REQUIRED = "Add a thumbnail image before submitting the deal"
     TOO_MANY_ITEMS = "A deal can have at most {limit} items"
@@ -650,6 +658,13 @@ class AIMessages:
         "AI could not produce a final answer within the allotted tool-call attempts"
     )
     AI_DISABLED_BY_USER = "AI features are disabled in your settings"
+    AVATARS_RETRIEVED = "Assistant avatars retrieved"
+    AVATAR_NOT_FOUND = "Assistant avatar not found"
+    TRANSCRIPTION_GENERATED = "Speech transcribed"
+    AUDIO_EMPTY = "The audio file is empty"
+    AUDIO_TOO_LARGE = "The audio file is too large"
+    SPEECH_TEXT_TOO_LONG = "The text is too long to be spoken"
+    TRANSCRIPT_EMPTY = "No speech was detected in the audio"
 
 
 class UserSettingsMessages:

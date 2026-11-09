@@ -12,6 +12,7 @@ from app.models.role import Role
 from app.models.user import User, UserStatus
 from app.models.user_follow import UserFollow
 from app.models.user_follow_request import UserFollowRequest
+from app.models.user_native_place import UserNativePlace
 from app.schemas.pagination import PaginationParams
 
 
@@ -25,6 +26,7 @@ class UserDiscoveryRow:
     following_count: int
     is_following: bool
     is_requested: bool
+    shares_native_place: bool
 
 
 @dataclass(frozen=True)
@@ -70,6 +72,16 @@ def _follows(
     return (
         select(UserFollow.id)
         .where(UserFollow.follower_id == follower_id, UserFollow.following_id == following_id)
+        .exists()
+    )
+
+
+def _shares_native_place(viewer_id: UUID) -> Exists:
+    viewer_place = aliased(UserNativePlace)
+    return (
+        select(UserNativePlace.id)
+        .join(viewer_place, viewer_place.village_id == UserNativePlace.village_id)
+        .where(UserNativePlace.user_id == User.id, viewer_place.user_id == viewer_id)
         .exists()
     )
 
@@ -152,13 +164,19 @@ class UserRepository:
         return list(items), total
 
     def list_discoverable(
-        self, viewer_id: UUID, search: str | None, params: PaginationParams
+        self,
+        viewer_id: UUID,
+        search: str | None,
+        params: PaginationParams,
+        exclude_following: bool = False,
     ) -> tuple[Sequence[UserDiscoveryRow], int]:
         conditions = [
             User.deleted_at.is_(None),
             User.status == UserStatus.ACTIVE,
             User.id != viewer_id,
         ]
+        if exclude_following:
+            conditions.append(~_follows(viewer_id, User.id))
         if search:
             full_name = User.first_name + " " + User.last_name
             conditions.append(full_name.icontains(search, autoescape=True))
@@ -174,6 +192,7 @@ class UserRepository:
             )
             .exists()
         )
+        shares_native_place = _shares_native_place(viewer_id)
         offset = (params.page - 1) * params.page_size
         rows = self._db.execute(
             select(
@@ -185,9 +204,10 @@ class UserRepository:
                 following_count.label("following_count"),
                 is_following.label("is_following"),
                 is_requested.label("is_requested"),
+                shares_native_place.label("shares_native_place"),
             )
             .where(*conditions)
-            .order_by(User.first_name, User.last_name, User.id)
+            .order_by(shares_native_place.desc(), User.first_name, User.last_name, User.id)
             .offset(offset)
             .limit(params.page_size)
         ).all()

@@ -207,6 +207,17 @@ class DealService:
         )
         return DealRead.from_deal(get_deal(self._deals, deal_id), actor)
 
+    def close(self, deal_id: UUID, actor: User) -> DealRead:
+        self._expiry.expire_overdue()
+        deal = get_deal(self._deals, deal_id)
+        self._access.ensure_owner(deal, actor)
+        if not self._deals.close(deal.id):
+            self._db.rollback()
+            raise ConflictError(DealMessages.NOT_CLOSABLE)
+        self._db.commit()
+        self._log(actor, ActivityAction.DEAL_CLOSED, deal_id)
+        return DealRead.from_deal(get_deal(self._deals, deal_id), actor)
+
     def explore(
         self, viewer: User, query: DealExploreQuery, params: PaginationParams
     ) -> tuple[list[DealRead], int]:

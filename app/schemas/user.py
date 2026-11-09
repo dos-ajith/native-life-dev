@@ -80,6 +80,7 @@ class UserDiscoveryRead(BaseModel):
     following_count: int
     is_following: bool
     follow_status: FollowRelationship
+    shares_native_place: bool
 
 
 class UserProfileRead(BaseModel):

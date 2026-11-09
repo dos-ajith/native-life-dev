@@ -151,7 +151,7 @@ const WS_UNAUTHENTICATED_CODE = 4401;
 const WS_NORMAL_CLOSE_CODE = 1000;
 const WS_CONNECTING = 0;
 const WS_OPEN = 1;
-const realtime = { socket: null, pingTimer: null, retryTimer: null, manual: false, logPong: false, refreshers: [], onEvent: null };
+const realtime = { openChatPartnerId: null, socket: null, pingTimer: null, retryTimer: null, manual: false, logPong: false, refreshers: [], onEvent: null };
 
 function wsUrl() {
   return `${store.base.replace(/^http/, 'ws')}/ws`;
@@ -194,7 +194,7 @@ function handleSocketMessage(data) {
   }
   logSocket('←', data.type || 'message', data);
   setWsStatus(`connected · last: ${data.type}`);
-  if (String(data.type).startsWith('notification.')) realtime.refreshers.forEach((refresh) => refresh());
+  if (/^(notification|follow_request)\./.test(String(data.type))) realtime.refreshers.forEach((refresh) => refresh());
   if (realtime.onEvent) realtime.onEvent(data);
 }
 
@@ -331,6 +331,7 @@ function field(label, type = 'text', value = '') {
 
 function screenOf(...nodes) {
   realtime.onEvent = null;
+  realtime.openChatPartnerId = null;
   document.getElementById('screen').replaceChildren(...nodes);
 }
 
@@ -962,6 +963,86 @@ async function userProfileScreen(userId, onBack = () => homeScreen(shell.tab)) {
   pagedList(posts, `/posts?user_id=${profile.id}`, (post) => postCard(post, () => userProfileScreen(userId, onBack)), { empty: 'No posts yet.' });
 }
 
+function connectCard(person) {
+  const state = { status: person.follow_status };
+  const message = h('div', { className: 'err' });
+  const button = h('button', { className: 'primary', type: 'button' });
+  const labels = { none: 'Follow', pending: 'Requested (cancel)', accepted: 'Following' };
+  const draw = () => { button.textContent = labels[state.status]; };
+  button.onclick = async () => {
+    const undo = state.status !== 'none';
+    const res = await api(undo ? 'DELETE' : 'POST', `/users/${person.id}/follow`);
+    if (!res.ok) {
+      message.textContent = errorText(res);
+      return;
+    }
+    message.textContent = '';
+    state.status = undo ? 'none' : (res.data.is_following ? 'accepted' : 'pending');
+    draw();
+  };
+  draw();
+  return h('div', { className: 'card stack' },
+    h('div', { className: 'row' },
+      person.profile_image_url ? h('img', { src: mediaUrl(person.profile_image_url), alt: '', className: 'avatar' }) : '',
+      userLink(person.id, person.name, ` · ${person.followers_count} followers${person.shares_native_place ? ' · Native' : ''}`)),
+    button,
+    message);
+}
+
+function followRequestCard(person, reload) {
+  const message = h('div', { className: 'err' });
+  const respond = (action) => async () => {
+    const res = await api('POST', `/users/${person.id}/follow/${action}`);
+    if (res.ok) reload();
+    else message.textContent = errorText(res);
+  };
+  return h('div', { className: 'card stack' },
+    userLink(person.id, `${person.first_name} ${person.last_name}`, ' wants to follow you'),
+    h('div', { className: 'row' },
+      h('button', { className: 'primary', type: 'button', textContent: 'Accept', onclick: respond('accept') }),
+      h('button', { type: 'button', textContent: 'Decline', onclick: respond('decline') })),
+    message);
+}
+
+function followRequestsScreen() {
+  subScreen('Follow requests', (content) => {
+    const reload = () => {
+      content.replaceChildren();
+      pagedList(content, '/me/follow-requests', (person) => followRequestCard(person, reload), { empty: 'No pending follow requests.' });
+    };
+    reload();
+  });
+}
+
+function connectedPersonCard(person) {
+  const name = `${person.first_name} ${person.last_name}`;
+  return h('div', { className: 'card stack' },
+    h('div', { className: 'row' },
+      person.profile_image_url ? h('img', { src: mediaUrl(person.profile_image_url), alt: '', className: 'avatar' }) : '',
+      userLink(person.id, name)),
+    h('button', {
+      className: 'primary',
+      type: 'button',
+      textContent: 'Message',
+      onclick: () => directChatScreen({ id: person.id, name }, () => connectsScreen('following')),
+    }));
+}
+
+function connectsScreen(activeTab = 'discover') {
+  const tabs = [
+    ['discover', 'Discover', '/me/connects', connectCard, 'No new people to connect with.'],
+    ['following', 'Following', `/users/${session.me.id}/following`, connectedPersonCard, 'You are not following anyone yet.'],
+    ['followers', 'Followers', `/users/${session.me.id}/followers`, connectedPersonCard, 'No followers yet.'],
+  ];
+  subScreen('Connects', (content) => {
+    content.append(h('div', { className: 'row' }, ...tabs.map(([key, label]) =>
+      h('button', { type: 'button', textContent: label, className: key === activeTab ? 'primary' : '', onclick: () => connectsScreen(key) }))));
+    const [, , path, render, empty] = tabs.find(([key]) => key === activeTab);
+    if (activeTab === 'discover') content.append(h('div', { className: 'hint', textContent: 'People from your native place come first. Tap a name to see their posts.' }));
+    pagedList(content, path, render, { empty });
+  });
+}
+
 function postCard(post, reload) {
   const comments = h('div', {});
   const act = (text, onclick) => h('button', { type: 'button', textContent: text, onclick });
@@ -984,17 +1065,492 @@ function postCard(post, reload) {
     comments);
 }
 
+const LEVEL_FFT_SIZE = 256;
+const LEVEL_GAIN = 2.2;
+const LIP_ATTACK = 0.6;
+const LIP_RELEASE = 0.3;
+const LIP_CURVE = 0.6;
+const MOUTH_FOLLOW = 0.55;
+const MOUTH_MAX_OPEN = 0.85;
+const MOUTH_WIDTH_SHRINK = 0.3;
+const MOUTH_JAW_DROP = 2;
+const MOUTH_SMILE = 1.2;
+const MOUTH_MAX_DEPTH_FACTOR = 22;
+const MOUTH_CENTER = { x: 110, y: 135 };
+const MOUTH_HALF_WIDTH = 10.5;
+const LIP_THICKNESS = 3.2;
+const TONGUE_OPEN_THRESHOLD = 0.35;
+const BLINK_MIN_MS = 2200;
+const BLINK_SPREAD_MS = 3200;
+const BLINK_DURATION_MS = 140;
+const BLINK_CLOSED_SCALE = 0.08;
+const GAZE_MIN_MS = 1800;
+const GAZE_SPREAD_MS = 2600;
+const GAZE_RANGE = 1.1;
+const GAZE_FOLLOW = 0.18;
+const STATE_FOLLOW = 0.12;
+const SWAY_DEGREES = 1.2;
+const SWAY_PERIOD_MS = 4200;
+const BOB_PIXELS = 1.5;
+const BOB_PERIOD_MS = 2600;
+const BREATH_PIXELS = 1.1;
+const BREATH_PERIOD_MS = 3400;
+const NOD_PIXELS = 1.2;
+const BROW_LIFT = 3;
+const AVATAR_SIZE = 240;
+const AVATAR_CENTER = { x: 110, y: 109 };
+const AVATAR_CLIP_RADIUS = 85;
+const AVATAR_RING_RADIUS = 83;
+const RING_DASH = '14 10';
+const RING_DASH_SPEED = 0.03;
+const RING_PULSE_PERIOD_MS = 900;
+const RING_ENERGY_OPACITY = 0.4;
+const RING_ENERGY_WIDTH = 2;
+const EYE_CENTERS = [{ x: 90, y: 108, side: -1 }, { x: 130, y: 108, side: 1 }];
+
+const AVATAR_STATES = {
+  idle: { ring: '#9bb88c', ringOpacity: 0.35, ringWidth: 3, gazeX: 0, gazeY: 0, tilt: 0, brow: 0, browRight: 0, dashed: false },
+  listening: { ring: '#3aa655', ringOpacity: 0.95, ringWidth: 4, gazeX: 0, gazeY: 0.3, tilt: 3, brow: 1.5, browRight: 0, dashed: false },
+  thinking: { ring: '#e0a030', ringOpacity: 0.95, ringWidth: 3.5, gazeX: 2.2, gazeY: -2, tilt: -3, brow: 0.5, browRight: 2, dashed: true },
+  speaking: { ring: '#2f7a43', ringOpacity: 0.6, ringWidth: 3.5, gazeX: 0, gazeY: 0, tilt: 0, brow: 0, browRight: 0, dashed: false },
+};
+
+const AVATAR_LOOKS = {
+  arjun: {
+    background: '#bfe3d0', backgroundLight: '#effaf4', skin: '#c98d62', skinLight: '#dca47a', skinShade: '#a8704a',
+    hair: '#1a1210', hairShine: '#6b5a50', lips: '#a85c4a', cheek: '#e8956e',
+    outer: '#f08a24', outerLight: '#f7a84e', outerShade: '#c96d12', trim: '#f4efe6',
+    tufts: true, ponytail: false, bindi: false, hoops: false, earbuds: true, lashes: false, browWidth: 3.4,
+  },
+  anjali: {
+    background: '#f3c9dc', backgroundLight: '#fff4f8', skin: '#cc9166', skinLight: '#e0a87e', skinShade: '#ab7550',
+    hair: '#150e0d', hairShine: '#5c4a42', lips: '#c0505e', cheek: '#ee9a78',
+    outer: '#1fa39a', outerLight: '#3cc2b8', outerShade: '#15796f', trim: '#f4efe6', scrunchie: '#ef5d9a',
+    tufts: false, ponytail: true, bindi: true, hoops: true, earbuds: false, lashes: true, browWidth: 3,
+  },
+};
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function svgEl(name, attrs, children = []) {
+  const node = document.createElementNS(SVG_NS, name);
+  Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
+  node.append(...children);
+  return node;
+}
+
+function svgGradient(kind, id, attrs, stops) {
+  return svgEl(kind, { id, ...attrs }, stops.map(([offset, color]) => svgEl('stop', { offset, 'stop-color': color })));
+}
+
+function mouthShape(open, width) {
+  const { x, y } = MOUTH_CENTER;
+  const half = MOUTH_HALF_WIDTH * width;
+  const corner = y - MOUTH_SMILE * (1 - open);
+  const upperLift = 2 + open * 3;
+  const lowerDrop = 3 + open * MOUTH_MAX_DEPTH_FACTOR;
+  const lens = `M${x - half} ${corner} Q${x} ${y - upperLift} ${x + half} ${corner} Q${x} ${y + lowerDrop} ${x - half} ${corner}Z`;
+  const lowerLip = `M${x - half} ${corner} Q${x} ${y + lowerDrop} ${x + half} ${corner} Q${x} ${y + lowerDrop + LIP_THICKNESS * 2} ${x - half} ${corner}Z`;
+  const teethTop = y - upperLift * 0.35;
+  const teethBottom = y + Math.min(5, open * 9);
+  const teeth = `M${x - half * 0.68} ${teethTop} L${x + half * 0.68} ${teethTop} L${x + half * 0.6} ${teethBottom} L${x - half * 0.6} ${teethBottom}Z`;
+  const tongueHeight = Math.max(0, Math.min(3.2, (open - TONGUE_OPEN_THRESHOLD) * 6));
+  return {
+    lens,
+    lowerLip,
+    teeth,
+    teethOpacity: open > 0.08 ? 1 : 0,
+    tongue: { cx: x, cy: y + lowerDrop * 0.36, rx: half * 0.5, ry: tongueHeight },
+    shine: { cx: x, cy: y + lowerDrop / 2 + LIP_THICKNESS / 2, rx: half * 0.3, ry: 0.7 },
+  };
+}
+
+function avatarEye(center, avatarId) {
+  const { x, y, side } = center;
+  const clipId = `eye-clip-${avatarId}-${side}`;
+  const iris = svgEl('g', {}, [
+    svgEl('circle', { cx: x, cy: y, r: 6.4, fill: '#5a3320' }),
+    svgEl('circle', { cx: x, cy: y, r: 4.8, fill: '#7a4a2c' }),
+    svgEl('circle', { cx: x, cy: y, r: 3.2, fill: '#120a07' }),
+    svgEl('circle', { cx: x + 2.2, cy: y - 2.4, r: 1.9, fill: '#ffffff' }),
+    svgEl('circle', { cx: x - 2.2, cy: y + 2.2, r: 0.9, fill: '#ffffff', opacity: 0.8 }),
+  ]);
+  const group = svgEl('g', {}, [
+    svgEl('clipPath', { id: clipId }, [svgEl('ellipse', { cx: x, cy: y, rx: 9.6, ry: 8.2 })]),
+    svgEl('ellipse', { cx: x, cy: y, rx: 9.6, ry: 8.2, fill: '#fbf7f2' }),
+    svgEl('g', { 'clip-path': `url(#${clipId})` }, [iris]),
+    svgEl('path', {
+      d: `M${x - 9.8} ${y - 1} Q${x} ${y - 12} ${x + 9.8} ${y - 1}`,
+      stroke: '#150a07', 'stroke-width': 2.2, 'stroke-linecap': 'round', fill: 'none',
+    }),
+  ]);
+  const setBlink = (scale) => group.setAttribute('transform', `translate(${x} ${y}) scale(1 ${scale}) translate(${-x} ${-y})`);
+  const setGaze = (dx, dy) => iris.setAttribute('transform', `translate(${dx} ${dy})`);
+  return { group, setBlink, setGaze };
+}
+
+function avatarLashes(center, look) {
+  if (!look.lashes) return [];
+  const { x, y, side } = center;
+  return [[9, -5, 12.8, -8.4], [9.8, -2, 13.8, -3.6]].map(([x1, y1, x2, y2]) => svgEl('path', {
+    d: `M${x + side * x1} ${y + y1} L${x + side * x2} ${y + y2}`,
+    stroke: '#150a07', 'stroke-width': 1.5, 'stroke-linecap': 'round',
+  }));
+}
+
+function avatarOutfit(look, avatarId) {
+  const body = 'M26 240 C30 196 72 172 96 168 Q110 184 124 168 C148 172 190 196 194 240Z';
+  const drawstring = (x1, x2) => svgEl('path', { d: `M${x1} 178 Q${(x1 + x2) / 2} 186 ${x2} 197`, stroke: look.trim, 'stroke-width': 1.7, fill: 'none', 'stroke-linecap': 'round' });
+  return [
+    svgEl('ellipse', { cx: 110, cy: 174, rx: 44, ry: 21, fill: look.outerShade }),
+    svgEl('path', { d: 'M97 140 L97 172 Q110 184 123 172 L123 140Z', fill: look.skinShade }),
+    svgEl('path', { d: body, fill: `url(#${avatarId}-outer)` }),
+    svgEl('path', { d: 'M96 168 Q110 184 124 168', stroke: look.outerShade, 'stroke-width': 5, fill: 'none', 'stroke-linecap': 'round' }),
+    drawstring(102, 99),
+    drawstring(118, 121),
+    svgEl('circle', { cx: 99, cy: 198, r: 1.9, fill: look.trim }),
+    svgEl('circle', { cx: 121, cy: 198, r: 1.9, fill: look.trim }),
+    svgEl('path', { d: 'M70 192 L72 197 L77 199 L72 201 L70 206 L68 201 L63 199 L68 197Z', fill: look.trim, opacity: 0.9 }),
+  ];
+}
+
+function avatarHair(look) {
+  const shine = (d) => svgEl('path', { d, stroke: look.hairShine, 'stroke-width': 2.2, 'stroke-linecap': 'round', fill: 'none', opacity: 0.45 });
+  const cap = svgEl('path', {
+    d: 'M62 108 C50 60 80 38 112 38 C144 38 170 60 158 108 C156 90 150 78 144 74 C136 86 124 88 110 80 C96 88 84 86 76 74 C70 80 64 92 62 108Z',
+    fill: look.hair,
+  });
+  const tufts = look.tufts
+    ? ['M86 46 L82 33 L98 41Z', 'M108 40 L112 28 L124 39Z', 'M132 42 L141 31 L146 48Z'].map((d) => svgEl('path', { d, fill: look.hair }))
+    : [];
+  const ponytail = look.ponytail
+    ? [
+      svgEl('path', { d: 'M126 42 C158 32 182 52 174 86 C170 104 168 120 162 136 C158 114 158 98 150 82 C145 70 138 56 126 42Z', fill: look.hair }),
+      svgEl('path', { d: 'M148 50 C164 52 172 68 168 90', stroke: look.hairShine, 'stroke-width': 2.2, 'stroke-linecap': 'round', fill: 'none', opacity: 0.4 }),
+    ]
+    : [];
+  const scrunchie = look.ponytail
+    ? [svgEl('ellipse', { cx: 136, cy: 46, rx: 10, ry: 5.5, fill: look.scrunchie, transform: 'rotate(-28 136 46)' })]
+    : [];
+  return {
+    back: ponytail,
+    front: [cap, ...tufts, shine('M86 52 C98 44 120 43 134 50'), ...scrunchie],
+  };
+}
+
+function avatarFace(look, avatarId) {
+  const outline = 'M66 106 C66 70 86 58 110 58 C134 58 154 70 154 106 C154 136 134 156 110 156 C86 156 66 136 66 106Z';
+  return [
+    svgEl('path', { d: outline, fill: `url(#${avatarId}-skin)` }),
+    ...[76, 144].map((cx) => svgEl('ellipse', { cx, cy: 124, rx: 8.5, ry: 5.5, fill: look.cheek, opacity: 0.5 })),
+    svgEl('path', { d: 'M106.5 121 Q110 125 113.5 121', stroke: look.skinShade, 'stroke-width': 1.7, fill: 'none', 'stroke-linecap': 'round' }),
+    ...(look.bindi ? [svgEl('circle', { cx: 110, cy: 86, r: 2.4, fill: '#d81b3c' })] : []),
+  ];
+}
+
+function avatarEarAccessories(look) {
+  const earbuds = look.earbuds
+    ? [67, 153].map((cx) => svgEl('g', {}, [
+      svgEl('circle', { cx, cy: 113, r: 3.1, fill: '#ffffff', stroke: '#d6d6d6', 'stroke-width': 0.8 }),
+      svgEl('path', { d: `M${cx} 115 L${cx} 124`, stroke: '#ffffff', 'stroke-width': 2, 'stroke-linecap': 'round' }),
+    ]))
+    : [];
+  const hoops = look.hoops
+    ? [66, 154].map((cx) => svgEl('circle', { cx, cy: 122, r: 5.2, fill: 'none', stroke: '#e8b53a', 'stroke-width': 1.7 }))
+    : [];
+  return [...earbuds, ...hoops];
+}
+
+function avatarDefs(look, avatarId) {
+  return svgEl('defs', {}, [
+    svgGradient('radialGradient', `${avatarId}-skin`, { cx: 0.5, cy: 0.4, r: 0.75 },
+      [[0, look.skinLight], [1, look.skin]]),
+    svgGradient('radialGradient', `${avatarId}-bg`, { cx: 0.5, cy: 0.4, r: 0.75 },
+      [[0, look.backgroundLight], [1, look.background]]),
+    svgGradient('linearGradient', `${avatarId}-outer`, { x1: 0, y1: 0, x2: 0, y2: 1 },
+      [[0, look.outerLight], [1, look.outer]]),
+    svgEl('clipPath', { id: `${avatarId}-clip` }, [
+      svgEl('circle', { cx: AVATAR_CENTER.x, cy: AVATAR_CENTER.y, r: AVATAR_CLIP_RADIUS }),
+    ]),
+  ]);
+}
+
+function randomBetween(min, spread) {
+  return min + Math.random() * spread;
+}
+
+function buildAvatar(avatar) {
+  const look = AVATAR_LOOKS[avatar.id] || AVATAR_LOOKS.arjun;
+  const eyes = EYE_CENTERS.map((center) => avatarEye(center, avatar.id));
+  const brows = EYE_CENTERS.map(() => svgEl('path', {
+    d: '', stroke: look.hair, 'stroke-width': look.browWidth, 'stroke-linecap': 'round', fill: 'none',
+  }));
+  const browPath = (cx, lift) => `M${cx - 9} ${93 - lift * 0.4} Q${cx} ${87.5 - lift} ${cx + 9} ${93 - lift * 0.4}`;
+  const lowerLip = svgEl('path', { fill: look.lips });
+  const mouthInside = svgEl('path', { fill: '#4a1a1a', stroke: look.lips, 'stroke-width': 2.8, 'stroke-linejoin': 'round' });
+  const mouthTeeth = svgEl('path', { fill: '#ffffff' });
+  const tongue = svgEl('ellipse', { fill: '#c4505a' });
+  const lipShine = svgEl('ellipse', { fill: '#ffffff', opacity: 0.3 });
+  const mouth = svgEl('g', {}, [lowerLip, mouthInside, mouthTeeth, tongue, lipShine]);
+  const hair = avatarHair(look);
+  const ears = [65, 155].map((cx) => svgEl('ellipse', { cx, cy: 112, rx: 5.5, ry: 8.5, fill: look.skinShade }));
+  const backHair = svgEl('g', {}, hair.back);
+  const head = svgEl('g', {}, [
+    svgEl('ellipse', { cx: 110, cy: 157, rx: 14, ry: 5, fill: '#3a2010', opacity: 0.25 }),
+    ...ears, ...avatarEarAccessories(look), ...avatarFace(look, avatar.id),
+    ...EYE_CENTERS.flatMap((center) => avatarLashes(center, look)),
+    ...eyes.map((eye) => eye.group), mouth, ...hair.front, ...brows,
+  ]);
+  const outfit = svgEl('g', {}, avatarOutfit(look, avatar.id));
+  const ring = svgEl('circle', {
+    cx: AVATAR_CENTER.x, cy: AVATAR_CENTER.y, r: AVATAR_RING_RADIUS, fill: 'none', 'stroke-linecap': 'round',
+  });
+  const svg = svgEl('svg', { viewBox: '25 24 170 170', width: AVATAR_SIZE, height: AVATAR_SIZE }, [
+    avatarDefs(look, avatar.id),
+    svgEl('g', { 'clip-path': `url(#${avatar.id}-clip)` }, [
+      svgEl('rect', { x: 0, y: 0, width: 220, height: 240, fill: `url(#${avatar.id}-bg)` }),
+      svgEl('circle', {
+        cx: AVATAR_CENTER.x, cy: 96, r: 70, fill: 'none', stroke: '#ffffff', 'stroke-width': 1.2,
+        'stroke-dasharray': '1 5', 'stroke-linecap': 'round', opacity: 0.55,
+      }),
+      backHair, outfit, head,
+    ]),
+    ring,
+  ]);
+
+  let level = 0;
+  let shown = 0;
+  let state = 'idle';
+  let microGaze = { x: 0, y: 0 };
+  let nextGazeAt = 0;
+  let nextBlinkAt = BLINK_MIN_MS;
+  let blinkUntil = 0;
+  const motion = { gazeX: 0, gazeY: 0, tilt: 0, brow: 0, browRight: 0 };
+  const follow = (current, target, rate) => current + (target - current) * rate;
+
+  const animate = (now) => {
+    if (!svg.isConnected) return;
+    const style = AVATAR_STATES[state];
+    if (now >= nextBlinkAt) {
+      blinkUntil = now + BLINK_DURATION_MS;
+      nextBlinkAt = now + randomBetween(BLINK_MIN_MS, BLINK_SPREAD_MS);
+    }
+    if (now >= nextGazeAt) {
+      microGaze = { x: (Math.random() * 2 - 1) * GAZE_RANGE, y: (Math.random() * 2 - 1) * GAZE_RANGE * 0.5 };
+      nextGazeAt = now + randomBetween(GAZE_MIN_MS, GAZE_SPREAD_MS);
+    }
+    motion.gazeX = follow(motion.gazeX, style.gazeX + microGaze.x, GAZE_FOLLOW);
+    motion.gazeY = follow(motion.gazeY, style.gazeY + microGaze.y, GAZE_FOLLOW);
+    motion.tilt = follow(motion.tilt, style.tilt, STATE_FOLLOW);
+    motion.brow = follow(motion.brow, style.brow, STATE_FOLLOW);
+    motion.browRight = follow(motion.browRight, style.browRight, STATE_FOLLOW);
+    shown = follow(shown, level, MOUTH_FOLLOW);
+
+    const open = Math.min(1, shown) * MOUTH_MAX_OPEN;
+    const shape = mouthShape(open, 1 - open * MOUTH_WIDTH_SHRINK);
+    lowerLip.setAttribute('d', shape.lowerLip);
+    mouthInside.setAttribute('d', shape.lens);
+    mouthTeeth.setAttribute('d', shape.teeth);
+    mouthTeeth.setAttribute('opacity', String(shape.teethOpacity));
+    Object.entries(shape.tongue).forEach(([key, value]) => tongue.setAttribute(key, String(value)));
+    Object.entries(shape.shine).forEach(([key, value]) => lipShine.setAttribute(key, String(value)));
+    mouth.setAttribute('transform', `translate(0 ${open * MOUTH_JAW_DROP})`);
+
+    const blinkScale = now < blinkUntil ? BLINK_CLOSED_SCALE : 1;
+    eyes.forEach((eye) => {
+      eye.setBlink(blinkScale);
+      eye.setGaze(motion.gazeX, motion.gazeY);
+    });
+    brows.forEach((brow, index) => {
+      const lift = open * BROW_LIFT + motion.brow + (index === 1 ? motion.browRight : 0);
+      brow.setAttribute('d', browPath(EYE_CENTERS[index].x, lift));
+    });
+
+    const sway = Math.sin((now / SWAY_PERIOD_MS) * Math.PI * 2) * SWAY_DEGREES;
+    const bob = Math.sin((now / BOB_PERIOD_MS) * Math.PI * 2) * BOB_PIXELS;
+    const headTransform = `translate(0 ${bob + open * NOD_PIXELS}) rotate(${sway + motion.tilt} 110 170)`;
+    head.setAttribute('transform', headTransform);
+    backHair.setAttribute('transform', headTransform);
+    outfit.setAttribute('transform', `translate(0 ${Math.sin((now / BREATH_PERIOD_MS) * Math.PI * 2) * BREATH_PIXELS})`);
+
+    const pulse = 0.5 + 0.5 * Math.sin((now / RING_PULSE_PERIOD_MS) * Math.PI * 2);
+    const energy = state === 'speaking' ? Math.min(1, shown) : 0;
+    const baseOpacity = state === 'listening' ? style.ringOpacity * (0.55 + 0.45 * pulse) : style.ringOpacity;
+    ring.setAttribute('stroke', style.ring);
+    ring.setAttribute('stroke-opacity', String(Math.min(1, baseOpacity + energy * RING_ENERGY_OPACITY)));
+    ring.setAttribute('stroke-width', String(style.ringWidth + energy * RING_ENERGY_WIDTH));
+    ring.setAttribute('stroke-dasharray', style.dashed ? RING_DASH : 'none');
+    ring.setAttribute('stroke-dashoffset', String(-now * RING_DASH_SPEED));
+    requestAnimationFrame(animate);
+  };
+  requestAnimationFrame(animate);
+  return {
+    element: svg,
+    setOpen: (value) => { level = value; },
+    setState: (value) => { state = AVATAR_STATES[value] ? value : 'idle'; },
+  };
+}
+
+function playWithLipSync(blob, setOpen) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    const context = new AudioContext();
+    const analyser = context.createAnalyser();
+    analyser.fftSize = LEVEL_FFT_SIZE;
+    context.createMediaElementSource(audio).connect(analyser);
+    analyser.connect(context.destination);
+    const samples = new Uint8Array(analyser.fftSize);
+    let frame = 0;
+    let smoothed = 0;
+    const tick = () => {
+      analyser.getByteTimeDomainData(samples);
+      const peak = samples.reduce((max, value) => Math.max(max, Math.abs(value - 128)), 0) / 128;
+      const target = Math.min(1, Math.pow(peak * LEVEL_GAIN, LIP_CURVE));
+      smoothed += (target - smoothed) * (target > smoothed ? LIP_ATTACK : LIP_RELEASE);
+      setOpen(smoothed);
+      frame = requestAnimationFrame(tick);
+    };
+    const finish = () => {
+      cancelAnimationFrame(frame);
+      setOpen(0);
+      context.close();
+      URL.revokeObjectURL(url);
+      resolve();
+    };
+    audio.onended = finish;
+    audio.onerror = finish;
+    audio.play().then(tick, finish);
+  });
+}
+
+async function fetchSpeech(text, avatarId) {
+  try {
+    const res = await fetch(`${store.base}/ai/voice/speak`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${store.access}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, avatar_id: avatarId }),
+    });
+    logCall('POST', '/ai/voice/speak', res.status, res.ok ? '(audio)' : await res.text());
+    return res.ok ? await res.blob() : null;
+  } catch (error) {
+    logCall('POST', '/ai/voice/speak', 0, error.message);
+    return null;
+  }
+}
+
+async function recordClip() {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const recorder = new MediaRecorder(stream);
+  const chunks = [];
+  recorder.ondataavailable = (event) => chunks.push(event.data);
+  const stopped = new Promise((resolve) => {
+    recorder.onstop = () => {
+      stream.getTracks().forEach((track) => track.stop());
+      resolve(new Blob(chunks, { type: recorder.mimeType }));
+    };
+  });
+  recorder.start();
+  return { stop: () => recorder.stop(), blob: stopped };
+}
+
+async function voicePanel(ask) {
+  const avatarsRes = await api('GET', '/ai/avatars');
+  if (!avatarsRes.ok) return { panel: h('div', { className: 'err', textContent: errorText(avatarsRes) }), speak: async () => {}, setState: () => {} };
+  const avatars = avatarsRes.data;
+  const picker = h('select', {}, avatars.map((a) => h('option', { value: a.id, textContent: `${a.name} (${a.gender})` })));
+  const face = h('div', { style: 'text-align:center' });
+  let current = { setOpen: () => {}, setState: () => {} };
+  let avatarState = 'idle';
+  let selection = 0;
+  const setState = (value) => {
+    avatarState = value;
+    current.setState(value);
+  };
+  const showAvatar = async () => {
+    selection += 1;
+    const mine = selection;
+    face.replaceChildren(h('div', { className: 'meta', textContent: 'Loading avatar…' }));
+    const chosen = avatars.find((a) => a.id === picker.value);
+    const built = buildAvatar(chosen);
+    if (mine !== selection) return;
+    current = built;
+    built.setState(avatarState);
+    face.replaceChildren(built.element);
+  };
+  picker.onchange = showAvatar;
+  showAvatar();
+  const status = h('div', { className: 'meta', textContent: 'Tap the mic and speak.' });
+  const speakReplies = h('input', { type: 'checkbox', checked: true });
+  const mic = h('button', { type: 'button', textContent: '🎤 Start talking' });
+  let recording = null;
+  mic.onclick = async () => {
+    if (recording) {
+      recording.stop();
+      mic.disabled = true;
+      setState('thinking');
+      status.textContent = 'Transcribing…';
+      const clip = await recording.blob;
+      recording = null;
+      const form = new FormData();
+      form.append('audio', clip, 'clip.webm');
+      const heard = await api('POST', '/ai/voice/transcribe', { form });
+      mic.disabled = false;
+      mic.textContent = '🎤 Start talking';
+      if (!heard.ok) {
+        setState('idle');
+        status.textContent = errorText(heard);
+        return;
+      }
+      status.textContent = `You said: ${heard.data.text}`;
+      ask(heard.data.text);
+      return;
+    }
+    try {
+      recording = await recordClip();
+    } catch (error) {
+      status.textContent = `Microphone unavailable: ${error.message}`;
+      return;
+    }
+    mic.textContent = '⏹ Stop';
+    setState('listening');
+    status.textContent = 'Listening…';
+  };
+  const speak = async (text) => {
+    if (!speakReplies.checked) {
+      setState('idle');
+      return;
+    }
+    status.textContent = 'Speaking…';
+    const audio = await fetchSpeech(text, picker.value);
+    if (!audio) {
+      setState('idle');
+      status.textContent = 'Could not generate speech.';
+      return;
+    }
+    setState('speaking');
+    await playWithLipSync(audio, (value) => current.setOpen(value));
+    setState('idle');
+    status.textContent = 'Tap the mic and speak.';
+  };
+  const panel = h('div', { className: 'card' }, face, h('div', { className: 'row' }, picker, mic),
+    h('label', { style: 'display:flex;gap:6px;align-items:center' }, speakReplies, 'Speak replies'), status);
+  return { panel, speak, setState };
+}
+
 function assistantScreen() {
   subScreen('Native Assistant', async (content) => {
     const chat = h('div', {});
     const input = h('input', { type: 'text', placeholder: 'Ask about your village' });
     const useLocation = h('input', { type: 'checkbox' });
     const send = h('button', { className: 'fit', type: 'submit', textContent: 'Ask' });
+    let voice = null;
     const ask = async (prompt) => {
       chat.append(h('div', { className: 'card', style: 'background:#eef5ee', textContent: `You: ${prompt}` }));
       const pending = h('div', { className: 'meta', textContent: 'Thinking…' });
       chat.append(pending);
       send.disabled = true;
+      if (voice) voice.setState('thinking');
       const json = { prompt };
       if (useLocation.checked) Object.assign(json, (await currentPosition()) || {});
       const res = await api('POST', '/ai/ask', { json });
@@ -1002,11 +1558,13 @@ function assistantScreen() {
       if (!res.ok) {
         pending.className = 'err';
         pending.textContent = errorText(res);
+        if (voice) voice.setState('idle');
         return;
       }
       pending.replaceWith(h('div', { className: 'card' },
         h('div', { style: 'white-space:pre-wrap', textContent: res.data.answer }),
         (res.data.posts || []).map(assistantPostCard)));
+      if (voice) voice.speak(res.data.answer);
     };
     const form = h('form', {},
       h('div', { className: 'row' }, input, send),
@@ -1023,6 +1581,8 @@ function assistantScreen() {
       content.append(h('div', { className: 'card' }, h('strong', { textContent: welcome.data.greeting }), h('div', { textContent: welcome.data.intro }), h('div', { className: 'meta', textContent: welcome.data.hint })));
       content.append(...welcome.data.suggestions.map((sg) => h('button', { className: 'option', type: 'button', textContent: `${sg.title} — ${sg.subtitle}`, onclick: () => ask(sg.prompt) })));
     }
+    voice = await voicePanel(ask);
+    content.append(voice.panel);
     content.append(chat, form);
   });
 }
@@ -1084,6 +1644,7 @@ async function directChatScreen(partner, onBack) {
   const form = h('form', { className: 'row' }, input, send);
   const status = h('div', { className: 'meta', style: 'margin:-4px 0 8px' });
   screenOf(backBar(partner.name, onBack), status, form, error, list);
+  realtime.openChatPartnerId = partner.id;
   const state = { presence: '', typingTimer: null, lastTypingSent: 0 };
   const drawStatus = () => { status.textContent = state.typingTimer ? 'typing…' : state.presence; };
   const loadPresence = async () => {
@@ -1155,27 +1716,33 @@ async function directChatScreen(partner, onBack) {
 function messagesScreen() {
   const content = h('div', {});
   screenOf(backBar('Chats', () => homeScreen(shell.tab)), chatTabs('Messages'), content);
-  (async () => {
+  const draw = async () => {
     const res = await api('GET', '/chats?page=1&page_size=50');
+    const rows = [];
     if (!res.ok) {
-      content.append(h('div', { className: 'err', textContent: errorText(res) }));
-      return;
+      rows.push(h('div', { className: 'err', textContent: errorText(res) }));
+    } else {
+      const items = listOf(res.data);
+      if (!items.length) rows.push(h('div', { className: 'meta', textContent: 'No conversations yet. Open a profile and tap Message.' }));
+      items.forEach((conversation) => {
+        const name = `${conversation.user.first_name} ${conversation.user.last_name}`;
+        const last = conversation.last_message;
+        rows.push(h('button', {
+          className: 'option',
+          type: 'button',
+          style: 'display:block;width:100%;text-align:left;margin-top:8px',
+          onclick: () => directChatScreen({ id: conversation.user.id, name }, messagesScreen),
+        },
+        h('strong', { textContent: `${name}${conversation.unread_count ? ` (${conversation.unread_count} new)` : ''}${conversation.blocked_by_me ? ' · blocked' : ''}` }),
+        h('div', { className: 'meta', textContent: [presenceText(conversation.presence), last ? last.content : ''].filter(Boolean).join(' · ') })));
+      });
     }
-    const items = listOf(res.data);
-    if (!items.length) content.append(h('div', { className: 'meta', textContent: 'No conversations yet. Open a profile and tap Message.' }));
-    items.forEach((conversation) => {
-      const name = `${conversation.user.first_name} ${conversation.user.last_name}`;
-      const last = conversation.last_message;
-      content.append(h('button', {
-        className: 'option',
-        type: 'button',
-        style: 'display:block;width:100%;text-align:left;margin-top:8px',
-        onclick: () => directChatScreen({ id: conversation.user.id, name }, messagesScreen),
-      },
-      h('strong', { textContent: `${name}${conversation.unread_count ? ` (${conversation.unread_count} new)` : ''}${conversation.blocked_by_me ? ' · blocked' : ''}` }),
-      h('div', { className: 'meta', textContent: [presenceText(conversation.presence), last ? last.content : ''].filter(Boolean).join(' · ') })));
-    });
-  })();
+    content.replaceChildren(...rows);
+  };
+  realtime.onEvent = (event) => {
+    if (DIRECT_CHAT_EVENTS.includes(event.type)) draw();
+  };
+  draw();
 }
 
 function blockedUsersScreen() {
@@ -1220,8 +1787,13 @@ function refreshOnCommunityEvent(eventType, communityId, reload) {
 }
 const COMMUNITY_TABS = ['Chat', 'Polls', 'Posts', 'Members'];
 
+const CLUB_ROLE_SLUG = 'club-community';
+const COMMUNITY_CREATOR_STATUSES = ['pending', 'verified'];
+
 function canCreateCommunity() {
-  return permissionChecker(session.me)(['community.create']);
+  const role = session.me.account_role;
+  return permissionChecker(session.me)(['community.create'])
+    || Boolean(role && role.slug === CLUB_ROLE_SLUG && COMMUNITY_CREATOR_STATUSES.includes(role.verification_status));
 }
 
 function communityCard(community) {
@@ -1756,6 +2328,7 @@ const DEAL_STATUS_CHIPS = [
   { id: 'draft', label: 'Draft' },
   { id: 'pending_acceptance', label: 'Pending' },
   { id: 'published', label: 'Published' },
+  { id: 'closed', label: 'Closed' },
   { id: 'cancelled', label: 'Cancelled' },
   { id: 'expired', label: 'Expired' },
 ];
@@ -2175,6 +2748,17 @@ function myDealCard(deal, reload) {
   if (deal.status === 'pending_acceptance') {
     buttons.push(h('button', { type: 'button', textContent: 'Refresh invitations', onclick: () => run(() => api('POST', `/deals/${deal.id}/invitations/refresh`)) }));
   }
+  if (deal.status === 'published') {
+    buttons.push(h('button', {
+      type: 'button',
+      textContent: 'Close deal',
+      onclick: () => {
+        if (window.confirm(`Close "${deal.name}"? No one else can join or order; existing orders stay.`)) {
+          run(() => api('POST', `/deals/${deal.id}/close`));
+        }
+      },
+    }));
+  }
   if (deal.status === 'pending_acceptance' || deal.status === 'published') {
     buttons.push(h('button', { type: 'button', textContent: 'Cancel deal', onclick: () => run(() => api('POST', `/deals/${deal.id}/cancel`)) }));
   }
@@ -2279,6 +2863,8 @@ function headerBar() {
       counter('Cart', '/me/cart', (d) => d.total_quantity, cartScreen),
       counter('Alerts', '/me/notifications/unread-count', (d) => d.unread_count, () => homeScreen('activity')),
       h('button', { type: 'button', textContent: 'Chats', onclick: messagesScreen }),
+      h('button', { type: 'button', textContent: 'Connects', onclick: () => connectsScreen() }),
+      counter('Requests', '/me/follow-requests?page=1&page_size=1', (d) => d.total, followRequestsScreen),
       h('button', { type: 'button', textContent: 'Assistant', onclick: assistantScreen })),
     h('button', { className: 'chip', type: 'button', textContent: `Location: ${place ? place.place.village_name : 'not set'} ▾`, onclick: () => nativeScreen(true) }),
     searchForm,
@@ -3962,7 +4548,7 @@ const USER_FIELDS = [
   { name: 'date_of_birth', label: 'Date of birth', type: 'date' },
 ];
 const USER_IMAGE_FIELD = { name: 'image', label: 'Image (optional)', type: 'file' };
-const ROLE_IDS_FIELD = { name: 'role_ids', label: 'Roles', type: 'checklist', optionsPath: '/admin/roles', initial: (i) => (i.roles || []).map((r) => r.id) };
+const ROLE_IDS_FIELD = { name: 'role_ids', label: 'Roles', type: 'checklist', optionsPath: '/admin/roles', lockedSlugs: ['native-admin'], initial: (i) => (i.roles || []).map((r) => r.id) };
 const PAGE_FIELDS = [
   { name: 'title', label: 'Title' },
   { name: 'content', label: 'Content (HTML)', type: 'textarea' },
@@ -4095,7 +4681,10 @@ const ADMIN_SECTIONS = [
         path: '/admin/users',
         title: (i) => `${i.first_name} ${i.last_name}`,
         subtitle: (i) => `${i.email || i.phone || ''} · ${(i.roles || []).map((r) => r.name).join(', ')}`,
-        toolbar: [toolbarButton('+ New user', ['user.create'], 'New user', 'POST', () => '/admin/users/create', [...USER_FIELDS, { name: 'password', label: 'Password', type: 'password' }, ROLE_IDS_FIELD, USER_IMAGE_FIELD])],
+        toolbar: [
+          toolbarButton('+ New user', ['user.create'], 'New user', 'POST', () => '/admin/users/create', [...USER_FIELDS, { name: 'password', label: 'Password', type: 'password' }, ROLE_IDS_FIELD, USER_IMAGE_FIELD]),
+          toolbarButton('+ New native admin', ['user.create'], 'New native admin', 'POST', (i, v) => `/admin/native-places/${v.village_id}/admin`, [{ name: 'village_id', label: 'Native place', type: 'village', pathOnly: true }, ...USER_FIELDS, { name: 'password', label: 'Password', type: 'password' }], 'json'),
+        ],
         actions: [
           formAction('Edit', ['user.update'], 'Edit user', 'PATCH', (i) => `/admin/users/update/${i.id}`, [...USER_FIELDS, { name: 'status', label: 'Status', type: 'select', options: ['', 'active', 'inactive', 'suspended', 'pending_verification'] }, USER_IMAGE_FIELD]),
           formAction('Set roles', ['user.update'], 'Set roles', 'PUT', (i) => `/admin/users/update/${i.id}/roles`, [ROLE_IDS_FIELD]),
@@ -4360,8 +4949,10 @@ function fieldInput(field, item) {
     const list = h('div', { className: 'checklist' }, 'Loading…');
     const boxes = [];
     loadAllOptions(field.optionsPath).then((options) => {
-      list.replaceChildren(...options.map((option) => {
-        const box = h('input', { type: 'checkbox', checked: selected.has(option.id) });
+      const locked = new Set(field.lockedSlugs || []);
+      const visible = options.filter((option) => !locked.has(option.slug) || selected.has(option.id));
+      list.replaceChildren(...visible.map((option) => {
+        const box = h('input', { type: 'checkbox', checked: selected.has(option.id), disabled: locked.has(option.slug) });
         boxes.push({ id: option.id, box });
         return h('label', { className: 'check' }, box, ` ${option.name}`);
       }));
@@ -4674,8 +5265,14 @@ async function enablePush({ interactive }) {
     }
     store.pushOn = true;
     persist();
+    navigator.serviceWorker.onmessage = (event) => {
+      if (!event.data || event.data.type !== 'is-chat-open') return;
+      event.ports[0].postMessage(event.data.senderId === realtime.openChatPartnerId);
+    };
     onMessage(push.messaging, (payload) => {
       logEntry('PUSH (page in foreground)', payload);
+      const data = payload.data || {};
+      if (document.visibilityState === 'visible' && data.type === 'direct_message' && data.sender_id === realtime.openChatPartnerId) return;
       const note = payload.notification || {};
       push.registration.showNotification(note.title || 'Native Life', { body: note.body || '', data: payload.data });
     });

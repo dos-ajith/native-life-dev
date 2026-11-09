@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     ai_max_tool_iterations: int = 8
     ai_max_retries: int = Field(default=0, ge=0)
     ai_reasoning_effort: Literal["low", "medium", "high"] | None = None
+    ai_stt_model: str = "whisper-large-v3-turbo"
+    ai_tts_model: str = "canopylabs/orpheus-v1-english"
+    ai_tts_response_format: Literal["mp3", "wav"] = "wav"
+    ai_voice_max_audio_bytes: int = Field(default=5_000_000, ge=1)
+    ai_voice_max_speech_characters: int = Field(default=1000, ge=1)
 
     openai_api_key: str | None = None
 

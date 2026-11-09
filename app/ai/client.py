@@ -19,7 +19,7 @@ ToolCallHandler = Callable[[str, dict[str, Any]], dict[str, Any]]
 _FORCE_TEXT_ANSWER: dict[str, Any] = {"tool_choice": "none"}
 
 
-def _call_with_provider_error_handling(fn: Callable[[], Any]) -> Any:
+def call_with_provider_error_handling(fn: Callable[[], Any]) -> Any:
     try:
         return fn()
     except APITimeoutError as exc:
@@ -52,7 +52,7 @@ class _ResponsesBackend:
         self._max_tool_iterations = max_tool_iterations
 
     def _create_response(self, **kwargs: Any) -> Any:
-        return _call_with_provider_error_handling(
+        return call_with_provider_error_handling(
             lambda: self._client.responses.create(
                 model=self._model, max_output_tokens=self._max_output_tokens, **kwargs
             )
@@ -147,7 +147,7 @@ class _ChatCompletionsBackend:
         ]
 
     def _create_completion(self, **kwargs: Any) -> Any:
-        return _call_with_provider_error_handling(
+        return call_with_provider_error_handling(
             lambda: self._client.chat.completions.create(
                 model=self._model,
                 max_tokens=self._max_output_tokens,
@@ -217,16 +217,28 @@ class _ChatCompletionsBackend:
         return text
 
 
-def _build_backend(settings: Settings) -> _AIBackend:
+def build_sdk_client(settings: Settings) -> OpenAI:
     if settings.ai_provider == "groq":
         if not settings.groq_api_key:
             raise AIProviderError(AIMessages.PROVIDER_UNAVAILABLE)
-        client = OpenAI(
+        return OpenAI(
             api_key=settings.groq_api_key,
             base_url=settings.groq_base_url,
             timeout=settings.ai_request_timeout_seconds,
             max_retries=settings.ai_max_retries,
         )
+    if not settings.openai_api_key:
+        raise AIProviderError(AIMessages.PROVIDER_UNAVAILABLE)
+    return OpenAI(
+        api_key=settings.openai_api_key,
+        timeout=settings.ai_request_timeout_seconds,
+        max_retries=settings.ai_max_retries,
+    )
+
+
+def _build_backend(settings: Settings) -> _AIBackend:
+    client = build_sdk_client(settings)
+    if settings.ai_provider == "groq":
         return _ChatCompletionsBackend(
             client,
             settings.ai_model,
@@ -234,14 +246,6 @@ def _build_backend(settings: Settings) -> _AIBackend:
             settings.ai_max_tool_iterations,
             settings.ai_reasoning_effort,
         )
-
-    if not settings.openai_api_key:
-        raise AIProviderError(AIMessages.PROVIDER_UNAVAILABLE)
-    client = OpenAI(
-        api_key=settings.openai_api_key,
-        timeout=settings.ai_request_timeout_seconds,
-        max_retries=settings.ai_max_retries,
-    )
     return _ResponsesBackend(
         client, settings.ai_model, settings.ai_max_output_tokens, settings.ai_max_tool_iterations
     )

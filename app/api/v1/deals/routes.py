@@ -120,6 +120,14 @@ def cancel_deal(
     return SuccessResponse(message=DealMessages.CANCELLED, data=deal)
 
 
+@router.post("/{deal_id}/close", response_model=SuccessResponse[DealRead])
+def close_deal(
+    deal_id: UUID, db: DbSessionDep, current_user: CurrentActiveUserDep
+) -> SuccessResponse[DealRead]:
+    deal = DealService(db).close(deal_id, current_user)
+    return SuccessResponse(message=DealMessages.CLOSED, data=deal)
+
+
 @me_router.get("", response_model=SuccessResponse[Page[DealRead]])
 def list_my_deals(
     db: DbSessionDep,

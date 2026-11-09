@@ -5883,6 +5883,41 @@
                   }
                 },
                 {
+                  "name": "List connects (people to follow)",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/connects?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "connects"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1",
+                          "description": "Optional, default 1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20",
+                          "description": "Optional, default 20, max 100"
+                        }
+                      ]
+                    },
+                    "description": "Paginated active users the authenticated user does not follow yet. Users sharing a native village come first (`shares_native_place`), then alphabetical. Each row carries `follow_status` (none/pending/accepted); follow via `POST /users/{user_id}/follow`."
+                  }
+                },
+                {
                   "name": "Accept follow request",
                   "request": {
                     "method": "POST",
@@ -8890,6 +8925,30 @@
                       ]
                     },
                     "description": "Owner only. Cancels a pending or published deal and closes open invitations (409 for drafts, cancelled or expired deals)."
+                  }
+                },
+                {
+                  "name": "Close deal",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/deals/{{deal_id}}/close",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "deals",
+                        "{{deal_id}}",
+                        "close"
+                      ]
+                    },
+                    "description": "Owner only. Closes a published deal: nobody else can join and joiners can no longer add to cart or order, but existing orders stay valid and are fulfilled (409 for deals that are not published)."
                   }
                 },
                 {
@@ -14509,6 +14568,107 @@
                       ]
                     },
                     "description": "Authenticated. Sends a prompt to the AI assistant. The app searches posts and businesses first and gives the results to the AI, which may also use read-only tools (get_post, search_posts, get_post_comments, get_post_tags, get_user_posts). 503 if the AI provider is not configured.\n\n**Body**\n- `prompt` (string, required)\n- `latitude`, `longitude` (number, optional, together) — enables \"near me\" queries; matching posts are ranked by distance and returned with `distance_km`\n- `radius_km` (number, optional, requires coordinates)"
+                  }
+                },
+                {
+                  "name": "Avatars",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/ai/avatars",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "ai",
+                        "avatars"
+                      ]
+                    },
+                    "description": "Authenticated. The 5 assistant avatars (3 male, 2 female). Pass an `id` as `avatar_id` to `POST /ai/voice/speak` to get that avatar's voice."
+                  }
+                },
+                {
+                  "name": "Voice - Transcribe",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "audio",
+                          "type": "file",
+                          "src": []
+                        },
+                        {
+                          "key": "language",
+                          "value": "en",
+                          "type": "text",
+                          "description": "Optional ISO language code",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/ai/voice/transcribe",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "ai",
+                        "voice",
+                        "transcribe"
+                      ]
+                    },
+                    "description": "Authenticated. Multipart upload of a recorded clip (`audio`); returns `data.text`. Send that text to `POST /ai/ask`. Fails with 422 if the file is empty, too large or has no speech."
+                  }
+                },
+                {
+                  "name": "Voice - Speak",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"text\": \"Hello, how can I help you today?\",\n  \"avatar_id\": \"arjun\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/ai/voice/speak",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "ai",
+                        "voice",
+                        "speak"
+                      ]
+                    },
+                    "description": "Authenticated. Returns raw audio (wav or mp3, per server config) spoken in the chosen avatar's voice. Drive the avatar's mouth from the audio level while it plays."
                   }
                 }
               ]
