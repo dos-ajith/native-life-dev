@@ -1,6 +1,5 @@
-import time
 from dataclasses import dataclass
-from decimal import Decimal
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -25,18 +24,8 @@ from scripts.seed import DEFAULT_USER_PASSWORD
 ADMIN_EMAIL = "dev@nativelife.com"
 PLUGIN_KEY = "ecommerce"
 API_PREFIX = get_settings().api_v1_prefix
-COMMONS_API_URL = "https://commons.wikimedia.org/w/api.php"
-HTTP_HEADERS = {
-    "User-Agent": "NativeLifeDevSeed/1.0 (mailto:dev@nativelife.com; product test images)"
-}
-HTTP_TIMEOUT_SECONDS = 60
-IMAGE_WIDTH = 800
-REQUEST_PAUSE_SECONDS = 2
-RATE_LIMIT_BACKOFF_SECONDS = 20
-MAX_DOWNLOAD_ATTEMPTS = 4
-ACCEPTED_IMAGE_TYPES = ("image/jpeg", "image/png")
-SEARCH_RESULT_LIMIT = 8
-TEST_EMAIL_DOMAIN = "test.nativelife.com"
+PRODUCT_IMAGES_ROOT = Path(get_settings().upload_dir, "plugins", PLUGIN_KEY)
+IMAGE_CONTENT_TYPE = "image/jpeg"
 PRODUCTS_PAGE_SIZE = 100
 LOW_STOCK_THRESHOLD = 5
 
@@ -50,7 +39,7 @@ class SeedProduct:
     original_price: str
     quantity: int
     category: str
-    image_queries: tuple[str, ...]
+    images: tuple[str, ...]
     bulk: bool = False
     individual: bool = False
 
@@ -89,7 +78,10 @@ SEED_BUSINESSES = (
                 "999.00",
                 60,
                 "Electronics",
-                ("USB charger wall adapter", "USB-C charger"),
+                (
+                    "8a85cbd6-d67f-4773-9e06-595fc612cd01.jpg",
+                    "f00ce73b-4efd-4195-b286-15a577355d43.jpg",
+                ),
                 bulk=True,
                 individual=True,
             ),
@@ -101,7 +93,10 @@ SEED_BUSINESSES = (
                 "1499.00",
                 40,
                 "Electronics",
-                ("power bank portable charger",),
+                (
+                    "63a102bd-5fae-4806-b282-48c3e0eb0747.jpg",
+                    "073a7752-b700-4e4b-9d2a-5f02c3f19faa.jpg",
+                ),
                 bulk=True,
             ),
             SeedProduct(
@@ -112,7 +107,7 @@ SEED_BUSINESSES = (
                 "499.00",
                 80,
                 "Electronics",
-                ("earphones headphones in-ear",),
+                ("6f7beaad-dbbe-4930-a603-893b867c6086.jpg",),
                 individual=True,
             ),
             SeedProduct(
@@ -123,19 +118,8 @@ SEED_BUSINESSES = (
                 "1799.00",
                 25,
                 "Electronics",
-                ("bluetooth speaker portable",),
+                ("a4787903-1f80-4cca-8e6a-d5e0e421d83a.jpg",),
                 individual=True,
-            ),
-            SeedProduct(
-                "ELEC-USB-CABLE",
-                "USB-C Cable 1m",
-                "Braided 1 metre USB-C charging and data cable.",
-                "149.00",
-                "249.00",
-                150,
-                "Electronics",
-                ("USB-C cable",),
-                bulk=True,
             ),
         ),
     ),
@@ -151,17 +135,6 @@ SEED_BUSINESSES = (
         76.4167,
         (
             SeedProduct(
-                "FASH-SAREE-KASAVU",
-                "Kasavu Saree",
-                "Traditional cream and gold kasavu cotton saree.",
-                "1850.00",
-                "2400.00",
-                30,
-                "Apparel",
-                ("Kasavu saree Kerala",),
-                individual=True,
-            ),
-            SeedProduct(
                 "FASH-MUNDU-SET",
                 "Cotton Mundu Set",
                 "Handloom double mundu for festive and daily wear.",
@@ -169,20 +142,8 @@ SEED_BUSINESSES = (
                 "1200.00",
                 45,
                 "Apparel",
-                ("mundu Kerala dress",),
+                ("be5e157e-f888-42ce-9a42-07fa701d5b33.jpg",),
                 bulk=True,
-            ),
-            SeedProduct(
-                "FASH-TSHIRT-COT",
-                "Cotton T-Shirt",
-                "Soft combed cotton round-neck t-shirt.",
-                "349.00",
-                "599.00",
-                120,
-                "Apparel",
-                ("cotton t-shirt folded",),
-                bulk=True,
-                individual=True,
             ),
             SeedProduct(
                 "FASH-SHAWL-WOOL",
@@ -192,7 +153,7 @@ SEED_BUSINESSES = (
                 "1099.00",
                 20,
                 "Apparel",
-                ("woollen shawl",),
+                ("7b346668-9bae-469c-b6f3-f4562bf3a312.jpg",),
             ),
         ),
     ),
@@ -215,20 +176,9 @@ SEED_BUSINESSES = (
                 "420.00",
                 80,
                 "Groceries",
-                ("coconut oil bottle",),
+                ("cc53b96f-09ec-41cf-ab53-d17fbe3966aa.jpg",),
                 bulk=True,
                 individual=True,
-            ),
-            SeedProduct(
-                "GROC-MATTA-RICE-5KG",
-                "Kuttanad Matta Rice 5kg",
-                "Red matta rice from Kuttanad, 5 kg pack.",
-                "420.00",
-                "520.00",
-                60,
-                "Groceries",
-                ("red rice matta",),
-                bulk=True,
             ),
             SeedProduct(
                 "GROC-EGGS-TRAY",
@@ -238,7 +188,7 @@ SEED_BUSINESSES = (
                 "240.00",
                 40,
                 "Groceries",
-                ("tray of eggs",),
+                ("3d2168dd-d9aa-4e77-a241-8230ade7889e.jpg",),
                 individual=True,
             ),
             SeedProduct(
@@ -249,7 +199,7 @@ SEED_BUSINESSES = (
                 "320.00",
                 70,
                 "Groceries",
-                ("black pepper peppercorns",),
+                ("3d23ed0e-a499-4dc3-9e33-c91ebade94d8.jpg",),
                 bulk=True,
                 individual=True,
             ),
@@ -261,7 +211,7 @@ SEED_BUSINESSES = (
                 "220.00",
                 90,
                 "Groceries",
-                ("banana chips Kerala",),
+                ("36e96fb5-62ab-40cd-9b44-269e8d4fb642.jpg",),
                 individual=True,
             ),
         ),
@@ -278,17 +228,6 @@ SEED_BUSINESSES = (
         76.4167,
         (
             SeedProduct(
-                "HOME-URULI-BRASS",
-                "Brass Uruli",
-                "Traditional Kerala brass uruli for decor and cooking.",
-                "2200.00",
-                "2800.00",
-                15,
-                "Home & Kitchen",
-                ("uruli brass Kerala",),
-                individual=True,
-            ),
-            SeedProduct(
                 "HOME-CLAY-POT",
                 "Clay Cooking Pot",
                 "Handmade clay pot for fish curry and slow cooking.",
@@ -296,31 +235,8 @@ SEED_BUSINESSES = (
                 "600.00",
                 50,
                 "Home & Kitchen",
-                ("clay cooking pot",),
+                ("f7fc89f8-caf3-46c9-9703-bddf6a97fb86.jpg",),
                 bulk=True,
-            ),
-            SeedProduct(
-                "HOME-COIR-MAT",
-                "Coir Door Mat",
-                "Durable natural coir door mat.",
-                "249.00",
-                "349.00",
-                100,
-                "Home & Kitchen",
-                ("coir door mat",),
-                bulk=True,
-                individual=True,
-            ),
-            SeedProduct(
-                "BEAUTY-SOAP-SANDAL",
-                "Sandalwood Soap Pack of 3",
-                "Natural sandalwood bath soap, pack of three.",
-                "240.00",
-                "300.00",
-                85,
-                "Beauty & Personal Care",
-                ("sandalwood soap",),
-                individual=True,
             ),
         ),
     ),
@@ -455,81 +371,24 @@ def _existing_skus(
     return {item["sku"] for item in page["items"]}
 
 
-def _get_with_retry(client: httpx.Client, url: str, **kwargs: Any) -> httpx.Response:
-    for attempt in range(MAX_DOWNLOAD_ATTEMPTS):
-        try:
-            response = client.get(url, **kwargs)
-        except httpx.TransportError:
-            time.sleep(RATE_LIMIT_BACKOFF_SECONDS)
-            continue
-        if response.status_code != httpx.codes.TOO_MANY_REQUESTS:
-            response.raise_for_status()
-            return response
-        time.sleep(RATE_LIMIT_BACKOFF_SECONDS * (attempt + 1))
-    return client.get(url, **kwargs).raise_for_status()
-
-
-def _download_image(client: httpx.Client, query: str, used: set[str]) -> tuple[bytes, str] | None:
-    search = _get_with_retry(
-        client,
-        COMMONS_API_URL,
-        params={
-            "action": "query",
-            "format": "json",
-            "generator": "search",
-            "gsrnamespace": 6,
-            "gsrsearch": f"{query} filetype:bitmap",
-            "gsrlimit": SEARCH_RESULT_LIMIT,
-            "prop": "imageinfo",
-            "iiprop": "url|mime",
-            "iiurlwidth": IMAGE_WIDTH,
-        },
-    )
-    time.sleep(REQUEST_PAUSE_SECONDS)
-    pages = sorted(
-        search.json().get("query", {}).get("pages", {}).values(), key=lambda page: page["index"]
-    )
-    for page in pages:
-        info = page["imageinfo"][0]
-        if info["mime"] not in ACCEPTED_IMAGE_TYPES or info["url"] in used:
-            continue
-        response = _get_with_retry(client, info.get("thumburl") or info["url"])
-        time.sleep(REQUEST_PAUSE_SECONDS)
-        used.add(info["url"])
-        return response.content, response.headers["content-type"].split(";")[0]
-    return None
-
-
-def _image_files(
-    http: httpx.Client, queries: tuple[str, ...], used: set[str]
-) -> list[tuple[str, tuple[str, bytes, str]]]:
-    files = []
-    for query in queries:
-        image = _download_image(http, query, used)
-        if image is None:
-            print(f"  no image found for '{query}'")
-            continue
-        contents, content_type = image
-        files.append(("images", (f"{len(files)}.jpg", contents, content_type)))
-    return files
-
-
 def _create_product(
     client: TestClient,
-    http: httpx.Client,
     owner_headers: dict[str, str],
     business_id: UUID,
     category_ids: dict[str, str],
     seed: SeedProduct,
-    used: set[str],
 ) -> None:
-    files = _image_files(http, seed.image_queries, used)
+    paths = [PRODUCT_IMAGES_ROOT / str(business_id) / name for name in seed.images]
+    missing = [path.name for path in paths if not path.is_file()]
+    if missing:
+        raise FileNotFoundError(f"{seed.sku}: missing image(s) {missing}")
+    files = [("images", (path.name, path.read_bytes(), IMAGE_CONTENT_TYPE)) for path in paths]
     form = {
         "name": seed.name,
         "sku": seed.sku,
         "description": seed.description,
-        "selling_price": str(Decimal(seed.selling_price)),
-        "original_price": str(Decimal(seed.original_price)),
+        "selling_price": seed.selling_price,
+        "original_price": seed.original_price,
         "category_id": category_ids[seed.category],
         "quantity": str(seed.quantity),
         "low_stock_threshold": str(LOW_STOCK_THRESHOLD),
@@ -541,17 +400,13 @@ def _create_product(
             _plugin_url(business_id, "products"), headers=owner_headers, data=form, files=files
         )
     )
+    for path in paths:
+        path.unlink()
     print(f"  Created product {seed.sku} with {len(files)} image(s)")
 
 
 def seed_test_products() -> None:
-    used_images: set[str] = set()
-    with (
-        TestClient(app) as client,
-        httpx.Client(
-            headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT_SECONDS, follow_redirects=True
-        ) as http,
-    ):
+    with TestClient(app) as client:
         admin_headers = _login(client, ADMIN_EMAIL)
         for seed in SEED_BUSINESSES:
             owner_id = _get_or_create_owner(seed)
@@ -563,9 +418,7 @@ def seed_test_products() -> None:
             print(f"{seed.name}: {len(existing)} existing product(s)")
             for product in seed.products:
                 if product.sku not in existing:
-                    _create_product(
-                        client, http, owner_headers, business_id, category_ids, product, used_images
-                    )
+                    _create_product(client, owner_headers, business_id, category_ids, product)
 
 
 if __name__ == "__main__":

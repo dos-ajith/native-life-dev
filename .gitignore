@@ -52,5 +52,8 @@ firebase-service-account*.json
 !/tests/integration/conftest.py
 !/tests/integration/plugins/
 
+# Installed product plugins (installed on the server from plugin_packages/)
+/plugins/product/
+
 # Local schema scratch file
 # docs/schema.dbml
