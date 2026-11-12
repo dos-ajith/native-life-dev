@@ -14,6 +14,7 @@ from sqlalchemy import (
     Text,
     text,
 )
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -33,6 +34,8 @@ class DealStatus(enum.StrEnum):
     DRAFT = "draft"
     PENDING_ACCEPTANCE = "pending_acceptance"
     PUBLISHED = "published"
+    BLOCKED = "blocked"
+    PENDING_OWNER_APPROVAL = "pending_owner_approval"
     CLOSED = "closed"
     CANCELLED = "cancelled"
     EXPIRED = "expired"
@@ -85,6 +88,10 @@ class Deal(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     joined_count: Mapped[int] = mapped_column(Integer(), server_default=text("0"), default=0)
     pickup_location: Mapped[str | None] = mapped_column(String(500), default=None)
     delivery_details: Mapped[str | None] = mapped_column(Text(), default=None)
+    delivery_options: Mapped[list[str]] = mapped_column(
+        ARRAY(String(20)),
+        server_default=text("ARRAY['instant','route','self_pickup']::varchar[]"),
+    )
     starts_at: Mapped[datetime | None] = mapped_column(default=None)
     valid_until: Mapped[datetime | None] = mapped_column(default=None)
     submitted_at: Mapped[datetime | None] = mapped_column(default=None)

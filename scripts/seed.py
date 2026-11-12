@@ -131,6 +131,7 @@ LOST_FOUND_CATEGORIES = ("Electronics", "Accessories", "Documents", "Bags", "Pet
 
 EVENTS_ROOT_CATEGORY = "Events"
 EVENTS_CATEGORIES = ("Festival", "Community", "Celebration", "Activity")
+DEAL_CATEGORIES = ("Deal", "Bulk Deal")
 
 DEFAULT_SETTINGS = {
     "app_name": "Native Life",
@@ -147,6 +148,17 @@ DEFAULT_SETTINGS = {
 
 DEFAULT_DEAL_ACCEPTING_ROLE_SLUG = RoleSlug.PROMOTER
 DEFAULT_DELIVERY_SETTINGS_ROLE_SLUGS = (RoleSlug.PROMOTER,)
+
+
+PLUGIN_PERMISSION_PREFIX = "plugin."
+PLUGIN_PERMISSION_MIN_SEGMENTS = 3
+
+
+def _is_plugin_permission(name: str) -> bool:
+    return (
+        name.startswith(PLUGIN_PERMISSION_PREFIX)
+        and len(name.split(".")) >= PLUGIN_PERMISSION_MIN_SEGMENTS
+    )
 
 
 def _get_or_create_permission(permissions: PermissionRepository, name: str) -> Permission:
@@ -168,11 +180,13 @@ def _sync_role(roles: RoleRepository, slug: str, name: str, permissions: list[Pe
         print(f"Renamed role '{role.name}' to '{name}'")
         role.name = name
         changed = True
-    if {permission.id for permission in role.permissions} != {
-        permission.id for permission in permissions
-    }:
-        print(f"Synced {len(permissions)} permissions for role: {name}")
-        role.permissions = permissions
+    desired = {permission.id: permission for permission in permissions}
+    for permission in role.permissions:
+        if _is_plugin_permission(permission.name):
+            desired.setdefault(permission.id, permission)
+    if {permission.id for permission in role.permissions} != set(desired):
+        print(f"Synced {len(desired)} permissions for role: {name}")
+        role.permissions = list(desired.values())
         changed = True
     if changed:
         roles.save(role)
@@ -297,7 +311,10 @@ def seed_event_categories() -> None:
 def seed_deal_categories() -> None:
     db = SessionLocal()
     try:
-        _get_or_create_category(CategoryRepository(db), None, DEALS_ROOT_CATEGORY_NAME)
+        categories = CategoryRepository(db)
+        root = _get_or_create_category(categories, None, DEALS_ROOT_CATEGORY_NAME)
+        for name in DEAL_CATEGORIES:
+            _get_or_create_category(categories, root, name)
     finally:
         db.close()
 

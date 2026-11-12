@@ -29,6 +29,7 @@ from app.api.v1.deals import explore as deal_explore_routes
 from app.api.v1.deals import images as deal_image_routes
 from app.api.v1.deals import items as deal_item_routes
 from app.api.v1.deals import orders as deal_order_routes
+from app.api.v1.deals import owner_review as deal_owner_review_routes
 from app.api.v1.deals import participation as deal_participation_routes
 from app.api.v1.deals import routes as deal_routes
 from app.api.v1.deliveries import customer as delivery_customer_routes
@@ -142,6 +143,8 @@ api_router.include_router(community_timeline_routes.router)
 api_router.include_router(deal_explore_routes.router)
 api_router.include_router(deal_routes.router)
 api_router.include_router(deal_routes.me_router)
+api_router.include_router(deal_owner_review_routes.router)
+api_router.include_router(deal_owner_review_routes.me_router)
 api_router.include_router(deal_item_routes.router)
 api_router.include_router(deal_image_routes.router)
 api_router.include_router(deal_acceptance_routes.router)

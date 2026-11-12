@@ -16,6 +16,7 @@ from app.core.messages import DealMessages
 from app.core.timezone import to_naive_app_time
 from app.models.deal import DEALS_ROOT_CATEGORY_NAME, Deal, DealStatus
 from app.models.deal_native import DealNative
+from app.models.order import DeliveryOption
 from app.models.user import User
 from app.models.user_native_place import NativePlaceSlot
 from app.plugins.registry import PluginRegistry
@@ -28,6 +29,7 @@ from app.schemas.deal import (
     DealExploreQuery,
     DealRead,
     DealUpdate,
+    ensure_delivery_options_valid,
     ensure_end_after_start,
 )
 from app.schemas.delivery import DeliveryOptionRead
@@ -37,6 +39,7 @@ from app.services.business_service import BusinessService
 from app.services.category_service import CategoryService
 from app.services.deal_access_policy import DealAccessPolicy, ensure_draft, get_deal
 from app.services.deal_delivery_service import DealDeliveryService
+from app.services.deal_eligibility_service import DealEligibilityService
 from app.services.deal_expiry_service import DealExpiryService, deal_clock_now
 from app.services.deal_image_storage import discard_deal_images, store_deal_images
 from app.services.deal_product_item_service import DealProductItemService
@@ -60,13 +63,24 @@ class DealContentValidator:
         self._categories = CategoryService(db)
         self._businesses = BusinessService(db)
         self._places = UserNativePlaceRepository(db)
+        self._eligibility = DealEligibilityService(db)
 
     def ensure_category(self, category_id: UUID) -> None:
         self._categories.ensure_assignable_under(category_id, DEALS_ROOT_CATEGORY_NAME)
 
-    def ensure_owned_business(self, business_id: UUID, actor: User) -> None:
+    def ensure_can_promote_business(self, business_id: UUID, actor: User) -> None:
         business = self._businesses.get_active(business_id)
-        if business.owner_id != actor.id:
+        if business.owner_id == actor.id:
+            return
+        if not self._eligibility.holds_accepting_role(actor):
+            raise AuthorizationError(DealMessages.BUSINESS_NOT_OWNED)
+        promoter_place = self._places.get_by_slot(actor.id, NativePlaceSlot.PRIMARY)
+        owner_place = self._places.get_by_slot(business.owner_id, NativePlaceSlot.PRIMARY)
+        if (
+            promoter_place is None
+            or owner_place is None
+            or promoter_place.village_id != owner_place.village_id
+        ):
             raise AuthorizationError(DealMessages.BUSINESS_NOT_OWNED)
 
     def primary_village_id(self, actor: User) -> UUID:
@@ -102,7 +116,7 @@ class DealService:
         village_id = self._content.primary_village_id(actor)
         self._content.ensure_category(payload.category_id)
         if payload.business_id is not None:
-            self._content.ensure_owned_business(payload.business_id, actor)
+            self._content.ensure_can_promote_business(payload.business_id, actor)
         items = self._product_items.build_items(payload.business_id, payload.items)
         images = store_deal_images(files, private_upload_dir)
         try:
@@ -116,6 +130,7 @@ class DealService:
                     min_joiners=payload.min_joiners,
                     pickup_location=payload.pickup_location,
                     delivery_details=payload.delivery_details,
+                    delivery_options=[option.value for option in payload.delivery_options],
                     starts_at=_naive(payload.starts_at),
                     valid_until=_naive(payload.valid_until),
                     natives=[DealNative(village_id=village_id, is_primary=True)],
@@ -172,11 +187,13 @@ class DealService:
         if "category_id" in changes and changes["category_id"] != deal.category_id:
             self._content.ensure_category(changes["category_id"])
         if changes.get("business_id") is not None and changes["business_id"] != deal.business_id:
-            self._content.ensure_owned_business(changes["business_id"], actor)
+            self._content.ensure_can_promote_business(changes["business_id"], actor)
         self._ensure_consistent(deal, changes)
         for field in DATETIME_FIELDS:
             if field in changes:
                 changes[field] = _naive(changes[field])
+        if "delivery_options" in changes:
+            changes["delivery_options"] = [option.value for option in changes["delivery_options"]]
         for field, value in changes.items():
             setattr(deal, field, value)
         saved = self._deals.save(deal)
@@ -259,6 +276,14 @@ class DealService:
         delivery_details = changes.get("delivery_details", deal.delivery_details)
         if pickup_location is None and delivery_details is None:
             raise BusinessRuleError(DealMessages.PICKUP_OR_DELIVERY_REQUIRED)
+        delivery_options = [
+            DeliveryOption(option)
+            for option in changes.get("delivery_options", deal.delivery_options)
+        ]
+        try:
+            ensure_delivery_options_valid(delivery_options, pickup_location)
+        except ValueError as exc:
+            raise BusinessRuleError(str(exc)) from exc
 
     def get_owned_draft(self, deal_id: UUID, actor: User) -> Deal:
         deal = get_deal(self._deals, deal_id)

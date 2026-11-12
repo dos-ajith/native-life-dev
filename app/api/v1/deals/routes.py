@@ -8,6 +8,7 @@ from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaginationDep, Sett
 from app.api.v1.deals.permissions import DealCreateDep
 from app.core.messages import DealMessages
 from app.core.openapi_tags import ApiTag
+from app.models.order import DeliveryOption
 from app.plugins.deps import PluginRegistryDep
 from app.schemas.deal import (
     DealCreate,
@@ -15,12 +16,14 @@ from app.schemas.deal import (
     DealRead,
     DealSubmissionRead,
     DealUpdate,
+    PromotableBusinessRead,
     parse_deal_items,
 )
 from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
 from app.services.deal_service import DealService
 from app.services.deal_submission_service import DealSubmissionService
+from app.services.promotable_business_service import PromotableBusinessService
 
 router = APIRouter(prefix="/deals", tags=[ApiTag.DEALS])
 me_router = APIRouter(prefix="/me/deals", tags=[ApiTag.DEALS])
@@ -37,6 +40,7 @@ def create_deal(
     starts_at: Annotated[datetime, Form()],
     valid_until: Annotated[datetime, Form()],
     items: Annotated[str, Form()],
+    delivery_options: Annotated[list[DeliveryOption], Form()],
     description: Annotated[str | None, Form()] = None,
     business_id: Annotated[UUID | None, Form()] = None,
     min_joiners: Annotated[int | None, Form()] = None,
@@ -54,12 +58,24 @@ def create_deal(
         valid_until=valid_until,
         pickup_location=pickup_location,
         delivery_details=delivery_details,
+        delivery_options=delivery_options,
         items=parse_deal_items(items),
     )
     deal = DealService(db, registry).create(
         payload, images or [], settings.private_upload_dir, current_user
     )
     return SuccessResponse(message=DealMessages.CREATED, data=deal)
+
+
+@router.get("/promotable-businesses", response_model=SuccessResponse[Page[PromotableBusinessRead]])
+def list_promotable_businesses(
+    db: DbSessionDep, current_user: CurrentActiveUserDep, params: PaginationDep
+) -> SuccessResponse[Page[PromotableBusinessRead]]:
+    businesses, total = PromotableBusinessService(db).list_for(current_user, params)
+    return SuccessResponse(
+        message=DealMessages.PROMOTABLE_BUSINESSES_RETRIEVED,
+        data=Page[PromotableBusinessRead].create(items=businesses, total=total, params=params),
+    )
 
 
 @router.get("/{deal_id}", response_model=SuccessResponse[DealRead])

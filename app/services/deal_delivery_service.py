@@ -39,8 +39,13 @@ class DealDeliveryService:
 
     def options_for(self, deal: Deal, now: datetime) -> list[DeliveryOptionRead]:
         options: list[DeliveryOptionRead] = []
+        offered = set(deal.delivery_options)
         settings = self._promoter_settings(deal)
-        if settings is not None and settings.instant_fee is not None:
+        if (
+            DeliveryOption.INSTANT in offered
+            and settings is not None
+            and settings.instant_fee is not None
+        ):
             options.append(
                 _promoter_option(
                     DeliveryOption.INSTANT,
@@ -49,11 +54,15 @@ class DealDeliveryService:
                     settings,
                 )
             )
-        if settings is not None and settings.route_fee is not None:
+        if (
+            DeliveryOption.ROUTE in offered
+            and settings is not None
+            and settings.route_fee is not None
+        ):
             options.append(
                 _promoter_option(DeliveryOption.ROUTE, settings.route_fee, True, settings)
             )
-        if deal.pickup_location is not None:
+        if DeliveryOption.SELF_PICKUP in offered and deal.pickup_location is not None:
             options.append(
                 DeliveryOptionRead(
                     option=DeliveryOption.SELF_PICKUP,

@@ -327,7 +327,21 @@ class DealMessages:
     VALID_UNTIL_IN_PAST = "valid_until must be in the future"
     END_BEFORE_START = "valid_until must be after starts_at"
     PICKUP_OR_DELIVERY_REQUIRED = "Provide pickup_location or delivery_details"
-    BUSINESS_NOT_OWNED = "You can only create deals for your own business"
+    DELIVERY_OPTIONS_DUPLICATE = "delivery_options must not repeat an option"
+    SELF_PICKUP_NEEDS_LOCATION = "pickup_location is required when self pickup is offered"
+    BUSINESS_NOT_OWNED = (
+        "You can only create deals for your own business, or as a promoter for a business "
+        "in your primary native village"
+    )
+    NOT_BUSINESS_OWNER = "Only the business owner can do this"
+    NOT_PUBLISHED = "Only a published deal can be blocked"
+    NOT_BLOCKED = "Only a blocked deal can be sent for republish approval"
+    NOT_AWAITING_OWNER = "This deal is not waiting for the business owner's approval"
+    BLOCKED_BY_OWNER = "Deal blocked"
+    REPUBLISH_REQUESTED = "Republish requested. The business owner must approve it."
+    REPUBLISH_APPROVED = "Deal approved and published again"
+    REPUBLISH_REJECTED = "Republish rejected. The deal stays blocked."
+    PROMOTABLE_BUSINESSES_RETRIEVED = "Businesses you can create deals for retrieved"
     PRIMARY_NATIVE_REQUIRED = "Set your primary native place before creating or submitting a deal"
     SECONDARY_NATIVE_NOT_SET = "You have not set a secondary native place"
     ACCEPTANCE_NOT_CONFIGURED = "Deal acceptance is not configured. Please contact support."
@@ -585,6 +599,13 @@ class NotificationMessages:
     )
     DEAL_PUBLISHED = "{actor} accepted your deal '{deal_name}'. It is now published."
     DEAL_EXPIRED = "Your deal '{deal_name}' expired because it was not accepted in time"
+    DEAL_PROMOTED_FOR_BUSINESS = "{actor} published the deal '{deal_name}' for your business"
+    DEAL_REPUBLISH_REQUESTED = (
+        "{actor} asks to publish the deal '{deal_name}' for your business again"
+    )
+    DEAL_BLOCKED = "{actor} blocked your deal '{deal_name}'"
+    DEAL_REPUBLISH_APPROVED = "{actor} approved your deal '{deal_name}'. It is published again."
+    DEAL_REPUBLISH_REJECTED = "{actor} rejected publishing your deal '{deal_name}' again"
     DELIVERY_REQUESTED = "New delivery request for order {order_number}"
     DELIVERY_ACCEPTED = "A promoter accepted the delivery of your order {order_number}"
     DELIVERY_REJECTED = (
@@ -650,6 +671,8 @@ class AIMessages:
     TOOL_EXECUTION_FAILED = "AI tool execution failed"
     USER_POSTS_FORBIDDEN = "You do not have permission to view this user's posts"
     EVENTS_FORBIDDEN = "You do not have permission to view events"
+    DEAL_CREATE_FORBIDDEN = "You do not have permission to create deals"
+    DRAFT_EMPTY = "There are no saved details yet"
     PROVIDER_UNAVAILABLE = "AI provider is currently unavailable"
     PROVIDER_TIMEOUT = "AI provider request timed out"
     PROVIDER_RATE_LIMITED = "AI is busy right now, please try again in a moment"

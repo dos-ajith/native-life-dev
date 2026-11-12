@@ -19,6 +19,7 @@ from app.core.timezone import app_now, to_naive_app_time
 from app.models.deal import DealStatus
 from app.models.deal_invitation import DealInvitationStatus
 from app.models.deal_item import PRICE_PRECISION, PRICE_SCALE
+from app.models.order import DeliveryOption
 from app.models.user_native_place import NativePlaceSlot
 from app.schemas.base import BaseReadSchema
 from app.schemas.category import CategoryRef
@@ -65,6 +66,15 @@ def ensure_end_after_start(starts_at: datetime | None, valid_until: datetime | N
         and to_naive_app_time(valid_until) <= to_naive_app_time(starts_at)
     ):
         raise ValueError(DealMessages.END_BEFORE_START)
+
+
+def ensure_delivery_options_valid(
+    delivery_options: list[DeliveryOption], pickup_location: str | None
+) -> None:
+    if len(set(delivery_options)) != len(delivery_options):
+        raise ValueError(DealMessages.DELIVERY_OPTIONS_DUPLICATE)
+    if DeliveryOption.SELF_PICKUP in delivery_options and pickup_location is None:
+        raise ValueError(DealMessages.SELF_PICKUP_NEEDS_LOCATION)
 
 
 def discount_percent(original_price: Decimal | None, deal_price: Decimal | None) -> int | None:
@@ -128,6 +138,7 @@ class DealCreate(BaseModel):
     valid_until: datetime
     pickup_location: DealPickupLocation | None = None
     delivery_details: DealDeliveryDetails | None = None
+    delivery_options: list[DeliveryOption] = Field(min_length=1)
     items: list[DealItemCreate] = Field(min_length=1, max_length=MAX_DEAL_ITEMS)
 
     _valid_until_in_future = field_validator("valid_until")(_ensure_in_future)
@@ -135,6 +146,7 @@ class DealCreate(BaseModel):
     @model_validator(mode="after")
     def _validate_form(self) -> "DealCreate":
         ensure_end_after_start(self.starts_at, self.valid_until)
+        ensure_delivery_options_valid(self.delivery_options, self.pickup_location)
         if self.pickup_location is None and self.delivery_details is None:
             raise ValueError(DealMessages.PICKUP_OR_DELIVERY_REQUIRED)
         return self
@@ -150,6 +162,7 @@ class DealUpdate(BaseModel):
     valid_until: datetime | None = None
     pickup_location: DealPickupLocation | None = None
     delivery_details: DealDeliveryDetails | None = None
+    delivery_options: list[DeliveryOption] | None = Field(default=None, min_length=1)
 
     _valid_until_in_future = field_validator("valid_until")(_ensure_in_future)
 
@@ -247,6 +260,13 @@ class DealBusinessRead(BaseModel):
     name: str
 
 
+class PromotableBusinessRead(BaseModel):
+    id: UUID
+    name: str
+    is_mine: bool
+    deals_created: int
+
+
 class SellerType(enum.StrEnum):
     INDIVIDUAL = "individual"
     BUSINESS = "business"
@@ -269,6 +289,7 @@ class DealRead(BaseReadSchema):
     seller_type: SellerType
     pickup_location: str | None
     delivery_details: str | None
+    delivery_options: list[DeliveryOption]
     starts_at: datetime | None
     valid_until: datetime | None
     submitted_at: datetime | None
@@ -308,6 +329,7 @@ class DealRead(BaseReadSchema):
             seller_type=SellerType.BUSINESS if deal.business_id else SellerType.INDIVIDUAL,
             pickup_location=deal.pickup_location,
             delivery_details=deal.delivery_details,
+            delivery_options=[DeliveryOption(option) for option in deal.delivery_options],
             starts_at=deal.starts_at,
             valid_until=deal.valid_until,
             submitted_at=deal.submitted_at,

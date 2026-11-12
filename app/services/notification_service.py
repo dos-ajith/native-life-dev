@@ -83,6 +83,11 @@ NOTIFICATION_MESSAGE_TEMPLATES = {
     ),
     NotificationType.DEAL_PUBLISHED: NotificationMessages.DEAL_PUBLISHED,
     NotificationType.DEAL_EXPIRED: NotificationMessages.DEAL_EXPIRED,
+    NotificationType.DEAL_PROMOTED_FOR_BUSINESS: NotificationMessages.DEAL_PROMOTED_FOR_BUSINESS,
+    NotificationType.DEAL_REPUBLISH_REQUESTED: NotificationMessages.DEAL_REPUBLISH_REQUESTED,
+    NotificationType.DEAL_BLOCKED: NotificationMessages.DEAL_BLOCKED,
+    NotificationType.DEAL_REPUBLISH_APPROVED: NotificationMessages.DEAL_REPUBLISH_APPROVED,
+    NotificationType.DEAL_REPUBLISH_REJECTED: NotificationMessages.DEAL_REPUBLISH_REJECTED,
     NotificationType.DELIVERY_REQUESTED: NotificationMessages.DELIVERY_REQUESTED,
     NotificationType.DELIVERY_ACCEPTED: NotificationMessages.DELIVERY_ACCEPTED,
     NotificationType.DELIVERY_REJECTED: NotificationMessages.DELIVERY_REJECTED,
@@ -423,6 +428,16 @@ class NotificationService:
         self, creator_id: UUID, actor: User, deal_id: UUID, deal_name: str
     ) -> None:
         self._notify_deal(creator_id, actor.id, NotificationType.DEAL_PUBLISHED, deal_id, deal_name)
+
+    def notify_deal_event(
+        self,
+        recipient_id: UUID,
+        actor: User,
+        type_: NotificationType,
+        deal_id: UUID,
+        deal_name: str,
+    ) -> None:
+        self._notify_deal(recipient_id, actor.id, type_, deal_id, deal_name)
 
     def notify_deal_expired(self, creator_id: UUID, deal_id: UUID, deal_name: str) -> None:
         self._notify_deal(creator_id, None, NotificationType.DEAL_EXPIRED, deal_id, deal_name)

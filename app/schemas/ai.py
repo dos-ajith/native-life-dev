@@ -8,6 +8,7 @@ from app.ai.voice.avatars import DEFAULT_AVATAR_ID, AvatarGender
 from app.core.messages import PostMessages
 from app.models.post_media import PostMediaType
 from app.models.user_settings_enums import AIResponseStyle
+from app.schemas.ai_draft import AICreatedEntityRead
 from app.schemas.post import Latitude, Longitude, NearbyRadiusKm, PostDetailRead, PostMediaRead
 from app.schemas.validators import NonBlankStr
 
@@ -140,3 +141,4 @@ class AISpeakRequest(BaseModel):
 class AIAskResponse(BaseModel):
     answer: str
     posts: list[PostReferenceRead] = []
+    created: AICreatedEntityRead | None = None

@@ -40,6 +40,7 @@ class ApiTag:
     DEAL_DELIVERY = "1.6 Deals · Delivery"
     DEAL_EXPLORE = "1.6 Deals · Explore"
     DEAL_ORDERS = "1.6 Deals · Orders"
+    DEAL_OWNER_REVIEW = "1.6 Deals · Business Owner Review"
     CART = "1.7 Orders · Cart"
     ORDERS = "1.7 Orders · My Orders"
     BUSINESS_ORDERS = "1.7 Orders · Business Orders"

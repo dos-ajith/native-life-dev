@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -7,6 +8,7 @@ from app.core.activity_actions import ActivityAction
 from app.core.exceptions import BusinessRuleError, ConflictError
 from app.core.messages import DealMessages
 from app.models.deal import Deal, DealStatus
+from app.models.notification import NotificationType
 from app.models.user import User
 from app.plugins.registry import PluginRegistry
 from app.realtime.publisher import RealtimePublisher
@@ -63,6 +65,9 @@ class DealSubmissionService:
             self._db.rollback()
             raise ConflictError(DealMessages.NOT_DRAFT)
         self._deals.set_primary_village(deal.id, village_id)
+        own_role_id = self._eligibility.verified_accepting_role_id(actor)
+        if own_role_id is not None:
+            return self._publish_by_creator(deal, actor, own_role_id, village_id, now)
         invited = self._invitations.invite_eligible(deal.id, deal.created_by, role_ids)
         self._db.commit()
         self._log(
@@ -76,6 +81,31 @@ class DealSubmissionService:
             self._notifications.notify_deal_no_eligible_acceptors(actor.id, deal.id, deal.name)
             self._notifications.notify_admins_deal_no_eligible_acceptors(actor, deal.id, deal.name)
         return self._result(deal.id, actor, len(invited))
+
+    def _publish_by_creator(
+        self, deal: Deal, actor: User, role_id: UUID, village_id: UUID, now: datetime
+    ) -> DealSubmissionResult:
+        if self._deals.record_acceptance(deal.id, now) is None:
+            self._db.rollback()
+            raise ConflictError(DealMessages.NOT_PENDING)
+        self._invitations.add_accepted(deal.id, actor.id, role_id, now)
+        self._db.commit()
+        metadata: dict[str, object] = {"invited_count": 0, "village_id": str(village_id)}
+        self._log(actor, ActivityAction.DEAL_SUBMITTED, deal.id, metadata)
+        self._log(actor, ActivityAction.DEAL_ACCEPTED, deal.id, {"self_accepted": True})
+        self._log(actor, ActivityAction.DEAL_PUBLISHED, deal.id, {"self_accepted": True})
+        self._notify_business_owner(deal, actor)
+        return self._result(deal.id, actor, 0)
+
+    def _notify_business_owner(self, deal: Deal, actor: User) -> None:
+        if deal.business is not None and deal.business.owner_id != actor.id:
+            self._notifications.notify_deal_event(
+                deal.business.owner_id,
+                actor,
+                NotificationType.DEAL_PROMOTED_FOR_BUSINESS,
+                deal.id,
+                deal.name,
+            )
 
     def refresh_invitations(self, deal_id: UUID, actor: User) -> DealSubmissionResult:
         self._expiry.expire_overdue()
@@ -104,7 +134,7 @@ class DealSubmissionService:
             raise BusinessRuleError(DealMessages.VALID_UNTIL_IN_PAST)
         self._content.ensure_category(deal.category_id)
         if deal.business_id is not None:
-            self._content.ensure_owned_business(deal.business_id, actor)
+            self._content.ensure_can_promote_business(deal.business_id, actor)
             self._product_items.ensure_ready(deal)
         return self._content.primary_village_id(actor)
 

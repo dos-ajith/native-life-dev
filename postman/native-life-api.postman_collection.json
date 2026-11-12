@@ -8670,7 +8670,7 @@
                         "deals"
                       ]
                     },
-                    "description": "Multipart form. `items` is a JSON array. Without `business_id`, each item is manual: `name`, `unit`, `quantity`, `original_price`, `deal_price`. With `business_id` (your own business with a commerce plugin such as E-commerce enabled), every item must be a product: `{\"product_id\": \"{{product_id}}\", \"deal_price\": \"199.00\", \"quantity\": 100}`. Name, description, unit and original_price come from the product (original_price is its selling price), `deal_price` cannot exceed the selling price, `quantity` is how many units the deal offers, and a product can appear once. Placing an order takes stock from the product.",
+                    "description": "Multipart form. `items` is a JSON array. Without `business_id`, each item is manual: `name`, `unit`, `quantity`, `original_price`, `deal_price`. With `business_id` (your own business with a commerce plugin such as E-commerce enabled), every item must be a product: `{\"product_id\": \"{{product_id}}\", \"deal_price\": \"199.00\", \"quantity\": 100}`. Name, description, unit and original_price come from the product (original_price is its selling price), `deal_price` cannot exceed the selling price, `quantity` is how many units the deal offers, and a product can appear once. Placing an order takes stock from the product. A promoter (holds an accepting role such as promoter) may also pass the `business_id` of another user's active business whose owner has the same primary native village; pick one from List businesses I can create deals for. When the creator is a promoter, submitting publishes the deal straight away and the business owner is notified; the owner can then block it.",
                     "body": {
                       "mode": "formdata",
                       "formdata": [
@@ -8718,6 +8718,23 @@
                           "disabled": true
                         },
                         {
+                          "key": "delivery_options",
+                          "value": "self_pickup",
+                          "type": "text",
+                          "description": "Repeat the key for each option the deal offers: instant, route, self_pickup. self_pickup needs pickup_location. Instant and route are only offered at checkout if the accepting promoter has a fee set for them."
+                        },
+                        {
+                          "key": "delivery_options",
+                          "value": "route",
+                          "type": "text"
+                        },
+                        {
+                          "key": "delivery_options",
+                          "value": "instant",
+                          "type": "text",
+                          "disabled": true
+                        },
+                        {
                           "key": "pickup_location",
                           "value": "Near Central Market, Kochi",
                           "type": "text"
@@ -8732,7 +8749,8 @@
                           "key": "business_id",
                           "value": "{{business_id}}",
                           "type": "text",
-                          "disabled": true
+                          "disabled": true,
+                          "description": "Your own business, or as a promoter a business owned by someone with the same primary native village."
                         },
                         {
                           "key": "images",
@@ -8801,6 +8819,39 @@
                   }
                 },
                 {
+                  "name": "List businesses I can create deals for",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/deals/promotable-businesses?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "deals",
+                        "promotable-businesses"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        }
+                      ]
+                    },
+                    "description": "Active businesses you can create a deal for: your own, plus, if you are a promoter, active businesses whose owner has the same primary native village as you. Businesses you already created deals for come first (most deals first), then by name."
+                  }
+                },
+                {
                   "name": "Get deal",
                   "request": {
                     "method": "GET",
@@ -8847,7 +8898,7 @@
                         "{{deal_id}}"
                       ]
                     },
-                    "description": "Owner only, **draft only** (409 after submission). Send only the fields to change; `description`, `business_id`, `valid_until`, `min_joiners`, `pickup_location` and `delivery_details` can be cleared with null. Fields: `name`, `category_id`, `description`, `business_id`, `min_joiners`, `starts_at`, `valid_until`, `pickup_location`, `delivery_details`. Items and images are managed in their own folders.",
+                    "description": "Owner only, **draft only** (409 after submission). Send only the fields to change; `description`, `business_id`, `valid_until`, `min_joiners`, `pickup_location` and `delivery_details` can be cleared with null. Fields: `name`, `category_id`, `description`, `business_id`, `min_joiners`, `starts_at`, `valid_until`, `pickup_location`, `delivery_details`, `delivery_options` (array of `instant`, `route`, `self_pickup`; replaces the whole list). Items and images are managed in their own folders.",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"name\": \"Weekend combo (updated)\"\n}"
@@ -8875,7 +8926,7 @@
                         "submit"
                       ]
                     },
-                    "description": "Owner only, draft only. Needs at least one item and a thumbnail image. Moves the deal to `pending_acceptance`, starts the acceptance deadline (`deal_acceptance_timeout_hours`), invites eligible users of the configured accepting role whose primary native place is the deal's village, and notifies them. Returns `invited_count`; with 0 the deal stays pending and you and the admins are notified. 503 if deal acceptance is not configured."
+                    "description": "Owner only, draft only. Needs at least one item and a thumbnail image. Moves the deal to `pending_acceptance`, starts the acceptance deadline (`deal_acceptance_timeout_hours`), invites eligible users of the configured accepting role whose primary native place is the deal's village, and notifies them. Returns `invited_count`; with 0 the deal stays pending and you and the admins are notified. If you hold a verified accepting role yourself (for example promoter), nobody else needs to accept: you are recorded as the accepting promoter and the deal is `published` straight away with `invited_count` 0. 503 if deal acceptance is not configured."
                   }
                 },
                 {
@@ -9614,6 +9665,146 @@
                       }
                     }
                   ]
+                }
+              ]
+            },
+            {
+              "name": "Business Owner Review",
+              "item": [
+                {
+                  "name": "List deals on my businesses",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/deals/on-my-businesses?page=1&page_size=20&status=published",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "deals",
+                        "on-my-businesses"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        },
+                        {
+                          "key": "status",
+                          "value": "published",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Deals other users (promoters) created for businesses you own, newest activity first. Optional `status` filter: published, blocked, pending_owner_approval, closed, cancelled, expired."
+                  }
+                },
+                {
+                  "name": "Block deal",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/deals/{{deal_id}}/block",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "deals",
+                        "{{deal_id}}",
+                        "block"
+                      ]
+                    },
+                    "description": "Business owner only (not the deal's creator). Moves a `published` deal to `blocked`; the creator is notified. 409 if the deal is not published."
+                  }
+                },
+                {
+                  "name": "Request republish",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/deals/{{deal_id}}/request-republish",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "deals",
+                        "{{deal_id}}",
+                        "request-republish"
+                      ]
+                    },
+                    "description": "Deal creator only. Moves a `blocked` deal to `pending_owner_approval`; the business owner is notified and must approve. 409 if the deal is not blocked."
+                  }
+                },
+                {
+                  "name": "Approve republish",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/deals/{{deal_id}}/approve-republish",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "deals",
+                        "{{deal_id}}",
+                        "approve-republish"
+                      ]
+                    },
+                    "description": "Business owner only. Moves a `pending_owner_approval` deal back to `published`; the creator is notified. 409 otherwise."
+                  }
+                },
+                {
+                  "name": "Reject republish",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/deals/{{deal_id}}/reject-republish",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "deals",
+                        "{{deal_id}}",
+                        "reject-republish"
+                      ]
+                    },
+                    "description": "Business owner only. Moves a `pending_owner_approval` deal back to `blocked`; the creator is notified. 409 otherwise."
+                  }
                 }
               ]
             }
@@ -14567,7 +14758,7 @@
                         "ask"
                       ]
                     },
-                    "description": "Authenticated. Sends a prompt to the AI assistant. The app searches posts and businesses first and gives the results to the AI, which may also use read-only tools (get_post, search_posts, get_post_comments, get_post_tags, get_user_posts). 503 if the AI provider is not configured.\n\n**Body**\n- `prompt` (string, required)\n- `latitude`, `longitude` (number, optional, together) — enables \"near me\" queries; matching posts are ranked by distance and returned with `distance_km`\n- `radius_km` (number, optional, requires coordinates)"
+                    "description": "Authenticated. Sends a prompt to the AI assistant. The app searches posts and businesses first and gives the results to the AI, which may also use read-only tools (get_post, search_posts, get_post_comments, get_post_tags, get_user_posts). 503 if the AI provider is not configured.\n\n**Body**\n- `prompt` (string, required)\n- `latitude`, `longitude` (number, optional, together) — enables \"near me\" queries; matching posts are ranked by distance and returned with `distance_km`\n- `radius_km` (number, optional, requires coordinates)\n\n**Creating a deal with the assistant**\nUsers holding the deal-create permission also get a question-and-answer flow that creates a DRAFT individual-seller deal (tools: list_deal_categories, save_deal_details, create_deal_draft, discard_deal_details). Answers collected so far are stored server-side in the `ai_drafts` table (one row per user per kind, expires after 24h) and are deleted when the deal is created or discarded, so each `POST /ai/ask` just continues from what is saved.\n\n**Response**\n- `data.created` (object, optional) — `{kind, id, title, status}`; set only when a draft deal was created. It is never published: cover images and submit still happen through the deals endpoints.\n- Deals for a business are not created through the assistant."
                   }
                 },
                 {

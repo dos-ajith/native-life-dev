@@ -19,10 +19,17 @@ class DealEligibilityService:
         return [role.id for role in self._settings.accepting_roles()]
 
     def holds_accepting_role(self, user: User) -> bool:
+        return self.verified_accepting_role_id(user) is not None
+
+    def verified_accepting_role_id(self, user: User) -> UUID | None:
         role_ids = set(self.accepting_role_ids())
-        return any(
-            assignment.role_id in role_ids and assignment.verified_at is not None
-            for assignment in self._assignments.list_for_users([user.id])
+        return next(
+            (
+                assignment.role_id
+                for assignment in self._assignments.list_for_users([user.id])
+                if assignment.role_id in role_ids and assignment.verified_at is not None
+            ),
+            None,
         )
 
     def is_eligible(self, deal: Deal, user: User, role_ids: list[UUID]) -> bool:

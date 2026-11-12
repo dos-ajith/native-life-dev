@@ -1,5 +1,6 @@
 from app.models.active_token import ActiveToken
 from app.models.activity_log import ActivityLog
+from app.models.ai_draft import AIDraft
 from app.models.auth_identity import AuthIdentity
 from app.models.base import Base
 from app.models.business import Business
@@ -80,6 +81,7 @@ from app.models.user_settings import UserSettings
 __all__ = [
     "ActiveToken",
     "ActivityLog",
+    "AIDraft",
     "AuthIdentity",
     "Base",
     "Business",

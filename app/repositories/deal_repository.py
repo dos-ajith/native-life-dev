@@ -16,7 +16,12 @@ from app.models.user import User, UserStatus
 from app.repositories.category_repository import category_subtree_ids, unavailable_category_tree_ids
 from app.schemas.pagination import PaginationParams
 
-CANCELLABLE_STATUSES = (DealStatus.PENDING_ACCEPTANCE, DealStatus.PUBLISHED)
+CANCELLABLE_STATUSES = (
+    DealStatus.PENDING_ACCEPTANCE,
+    DealStatus.PUBLISHED,
+    DealStatus.BLOCKED,
+    DealStatus.PENDING_OWNER_APPROVAL,
+)
 
 
 @dataclass(frozen=True)
@@ -202,6 +207,29 @@ class DealRepository:
             Deal.id.in_(select(DealParticipant.deal_id).where(DealParticipant.user_id == user_id)),
         ]
         return self._page(conditions, [Deal.published_at.desc().nulls_last(), Deal.id], params)
+
+    def transition(self, deal_id: UUID, current: DealStatus, target: DealStatus) -> bool:
+        result = self._db.execute(
+            update(Deal)
+            .where(Deal.id == deal_id, Deal.status == current, Deal.deleted_at.is_(None))
+            .values(status=target)
+            .returning(Deal.id)
+            .execution_options(synchronize_session=False)
+        )
+        return result.first() is not None
+
+    def list_for_business_owner(
+        self, owner_id: UUID, status: DealStatus | None, params: PaginationParams
+    ) -> tuple[list[Deal], int]:
+        conditions: list[ColumnElement[bool]] = [
+            Deal.business_id.in_(select(Business.id).where(Business.owner_id == owner_id)),
+            Deal.created_by != owner_id,
+            Deal.status != DealStatus.DRAFT,
+            Deal.deleted_at.is_(None),
+        ]
+        if status is not None:
+            conditions.append(Deal.status == status)
+        return self._page(conditions, [Deal.updated_at.desc(), Deal.id], params)
 
     def cancel(self, deal_id: UUID) -> bool:
         result = self._db.execute(

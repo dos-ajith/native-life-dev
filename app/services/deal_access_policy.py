@@ -61,12 +61,16 @@ class DealAccessPolicy:
     def ensure_not_publisher(self, deal: Deal, actor: User) -> None:
         if deal.created_by == actor.id:
             raise AuthorizationError(DealMessages.CANNOT_JOIN_OWN)
+        if deal.business is not None and deal.business.owner_id == actor.id:
+            raise AuthorizationError(DealMessages.CANNOT_JOIN_OWN)
         invitation = self._invitations.get_for_user(deal.id, actor.id)
         if invitation is not None and invitation.status == DealInvitationStatus.ACCEPTED:
             raise AuthorizationError(DealMessages.CANNOT_JOIN_ACCEPTED)
 
     def can_view(self, deal: Deal, viewer: User) -> bool:
         if deal.created_by == viewer.id or has_permission(viewer, PermissionName.DEAL_VIEW_ANY):
+            return True
+        if deal.business is not None and deal.business.owner_id == viewer.id:
             return True
         if self._is_participating_invitee(deal, viewer):
             return True

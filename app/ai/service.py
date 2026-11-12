@@ -3,6 +3,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.ai.client import AIClient, get_ai_client
+from app.ai.draft_flows import DRAFT_FLOWS, render_draft_progress
 from app.ai.policy import NATIVE_LIFE_SYSTEM_PROMPT
 from app.ai.retrieval import NativeLifeRetriever, render_retrieval_context
 from app.ai.search_intent import extract_search_intent
@@ -24,6 +25,7 @@ from app.core.activity_actions import ActivityAction
 from app.core.config import Settings
 from app.core.exceptions import BusinessRuleError
 from app.core.messages import AIMessages
+from app.core.timezone import app_now
 from app.models.plugin import PluginStatus
 from app.models.user import User
 from app.models.user_settings_enums import AIResponseStyle
@@ -31,6 +33,7 @@ from app.plugins.registry import PluginRegistry
 from app.repositories.plugin_repository import PluginRepository
 from app.repositories.setting_repository import SettingRepository
 from app.schemas.ai import AIAskResponse, PostReferenceRead, UserLocation
+from app.schemas.ai_draft import AICreatedEntityRead
 from app.services.activity_log_service import ActivityLogService
 from app.services.user_settings_service import UserSettingsService
 
@@ -151,7 +154,8 @@ class AIService:
         effective_language = _resolve_effective_language(preferred_language, allowed_languages)
         return (
             f"{NATIVE_LIFE_SYSTEM_PROMPT} {_response_style_instruction(response_style)} "
-            f"{_language_instruction(effective_language, allowed_languages)}"
+            f"{_language_instruction(effective_language, allowed_languages)} "
+            f"Current date and time: {app_now().isoformat(timespec='minutes')}."
         )
 
     def ask(
@@ -164,6 +168,14 @@ class AIService:
         registry = self._registry.with_tools(self._plugin_tools())
         if ai_settings.personalization_enabled:
             registry = registry.with_tool(GetUserSettingsTool())
+        draft_flows = [flow for flow in DRAFT_FLOWS if flow.is_available(actor)]
+        draft_progress_blocks: list[str] = []
+        for flow in draft_flows:
+            registry = registry.with_tools(flow.tools())
+            progress = flow.progress(self._db, actor)
+            if progress is not None:
+                draft_progress_blocks.append(render_draft_progress(flow.kind, progress))
+        create_tool_names = {flow.create_tool_name for flow in draft_flows}
 
         context = ToolContext(
             db=self._db,
@@ -174,6 +186,7 @@ class AIService:
             response_style=ai_settings.response_style,
         )
         referenced_posts: dict[str, dict[str, Any]] = {}
+        created_entity: AICreatedEntityRead | None = None
         input_text = prompt
 
         intent = extract_search_intent(self._client, prompt)
@@ -183,8 +196,14 @@ class AIService:
             for post in retrieved.posts:
                 referenced_posts[str(post.post_id)] = post.model_dump(mode="json")
 
+        if draft_progress_blocks:
+            input_text = "\n\n".join([input_text, *draft_progress_blocks])
+
         def handle_tool_call(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+            nonlocal created_entity
             result = registry.execute(name, arguments, context)
+            if name in create_tool_names and result.get("created"):
+                created_entity = AICreatedEntityRead.model_validate(result["entity"])
             self._activity_logs.log(
                 actor=actor,
                 action=ActivityAction.AI_TOOL_CALLED,
@@ -214,4 +233,5 @@ class AIService:
         return AIAskResponse(
             answer=answer,
             posts=[PostReferenceRead.model_validate(item) for item in referenced_posts.values()],
+            created=created_entity,
         )

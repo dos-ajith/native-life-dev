@@ -75,6 +75,18 @@ class DealInvitationRepository:
         )
         return list(self._db.execute(statement).scalars())
 
+    def add_accepted(self, deal_id: UUID, user_id: UUID, role_id: UUID, now: datetime) -> None:
+        self._db.add(
+            DealInvitation(
+                deal_id=deal_id,
+                user_id=user_id,
+                role_id=role_id,
+                status=DealInvitationStatus.ACCEPTED,
+                decided_at=now,
+            )
+        )
+        self._db.flush()
+
     def is_eligible(
         self, deal_id: UUID, creator_id: UUID, user_id: UUID, role_ids: Sequence[UUID]
     ) -> bool:
