@@ -5,7 +5,7 @@ from uuid import UUID
 
 import httpx
 from fastapi.testclient import TestClient
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -18,6 +18,7 @@ from app.models.category import Category
 from app.models.role import Role
 from app.models.user import User, UserStatus, UserType
 from app.models.user_has_role import user_has_roles
+from app.plugins.media import MEDIA_URL_PREFIX, delete_plugin_image
 from app.repositories.role_repository import RoleRepository
 from scripts.seed import DEFAULT_USER_PASSWORD
 
@@ -25,6 +26,7 @@ ADMIN_EMAIL = "dev@nativelife.com"
 PLUGIN_KEY = "ecommerce"
 API_PREFIX = get_settings().api_v1_prefix
 PRODUCT_IMAGES_ROOT = Path(get_settings().upload_dir, "plugins", PLUGIN_KEY)
+PRODUCT_IMAGES_URL_ROOT = f"{MEDIA_URL_PREFIX}/plugins/{PLUGIN_KEY}"
 IMAGE_CONTENT_TYPE = "image/jpeg"
 PRODUCTS_PAGE_SIZE = 100
 LOW_STOCK_THRESHOLD = 5
@@ -79,8 +81,8 @@ SEED_BUSINESSES = (
                 60,
                 "Electronics",
                 (
-                    "8a85cbd6-d67f-4773-9e06-595fc612cd01.jpg",
-                    "f00ce73b-4efd-4195-b286-15a577355d43.jpg",
+                    "1fedc0a9-0f4f-48c9-a08a-4114b81e7338.jpg",
+                    "23539041-6c03-4592-b239-f0932d22a959.jpg",
                 ),
                 bulk=True,
                 individual=True,
@@ -94,8 +96,8 @@ SEED_BUSINESSES = (
                 40,
                 "Electronics",
                 (
-                    "63a102bd-5fae-4806-b282-48c3e0eb0747.jpg",
-                    "073a7752-b700-4e4b-9d2a-5f02c3f19faa.jpg",
+                    "1978e67e-3ba5-493c-98d6-3ff03451adcd.jpg",
+                    "86355c35-be8f-4aa8-a58f-2603c32accf3.jpg",
                 ),
                 bulk=True,
             ),
@@ -107,7 +109,7 @@ SEED_BUSINESSES = (
                 "499.00",
                 80,
                 "Electronics",
-                ("6f7beaad-dbbe-4930-a603-893b867c6086.jpg",),
+                ("311043c5-cbf0-43d4-8867-5fd616939b58.jpg",),
                 individual=True,
             ),
             SeedProduct(
@@ -118,7 +120,7 @@ SEED_BUSINESSES = (
                 "1799.00",
                 25,
                 "Electronics",
-                ("a4787903-1f80-4cca-8e6a-d5e0e421d83a.jpg",),
+                ("9f1e8142-9219-46c2-8616-b85580763d19.jpg",),
                 individual=True,
             ),
         ),
@@ -142,7 +144,7 @@ SEED_BUSINESSES = (
                 "1200.00",
                 45,
                 "Apparel",
-                ("be5e157e-f888-42ce-9a42-07fa701d5b33.jpg",),
+                ("5d1ecf0f-0276-44ab-ba73-ec7b6cfb3c81.jpg",),
                 bulk=True,
             ),
             SeedProduct(
@@ -153,7 +155,7 @@ SEED_BUSINESSES = (
                 "1099.00",
                 20,
                 "Apparel",
-                ("7b346668-9bae-469c-b6f3-f4562bf3a312.jpg",),
+                ("98ab4bee-f9a4-435b-b702-bbe6e9e586ff.jpg",),
             ),
         ),
     ),
@@ -176,7 +178,7 @@ SEED_BUSINESSES = (
                 "420.00",
                 80,
                 "Groceries",
-                ("cc53b96f-09ec-41cf-ab53-d17fbe3966aa.jpg",),
+                ("c3010235-9f80-43ba-8883-16f890718860.jpg",),
                 bulk=True,
                 individual=True,
             ),
@@ -188,7 +190,7 @@ SEED_BUSINESSES = (
                 "240.00",
                 40,
                 "Groceries",
-                ("3d2168dd-d9aa-4e77-a241-8230ade7889e.jpg",),
+                ("c5431511-a306-449c-99c6-80d9df42e148.jpg",),
                 individual=True,
             ),
             SeedProduct(
@@ -199,7 +201,7 @@ SEED_BUSINESSES = (
                 "320.00",
                 70,
                 "Groceries",
-                ("3d23ed0e-a499-4dc3-9e33-c91ebade94d8.jpg",),
+                ("42a8a5f8-a0e2-45b3-b0d1-ef96085cbdb2.jpg",),
                 bulk=True,
                 individual=True,
             ),
@@ -211,7 +213,7 @@ SEED_BUSINESSES = (
                 "220.00",
                 90,
                 "Groceries",
-                ("36e96fb5-62ab-40cd-9b44-269e8d4fb642.jpg",),
+                ("80d04a06-b3be-45f2-a207-5cbc46e32def.jpg",),
                 individual=True,
             ),
         ),
@@ -235,7 +237,7 @@ SEED_BUSINESSES = (
                 "600.00",
                 50,
                 "Home & Kitchen",
-                ("f7fc89f8-caf3-46c9-9703-bddf6a97fb86.jpg",),
+                ("017a9a47-65eb-45b8-8724-23fc479221ef.jpg",),
                 bulk=True,
             ),
         ),
@@ -371,6 +373,20 @@ def _existing_skus(
     return {item["sku"] for item in page["items"]}
 
 
+def _reuse_committed_images(
+    business_id: UUID, stored_images: list[dict[str, Any]], paths: list[Path]
+) -> None:
+    with SessionLocal() as db:
+        for stored, path in zip(stored_images, paths, strict=True):
+            db.execute(
+                text("UPDATE plg_ecommerce_product_images SET url = :url WHERE id = :id"),
+                {"url": f"{PRODUCT_IMAGES_URL_ROOT}/{business_id}/{path.name}", "id": stored["id"]},
+            )
+        db.commit()
+    for stored in stored_images:
+        delete_plugin_image(stored["url"])
+
+
 def _create_product(
     client: TestClient,
     owner_headers: dict[str, str],
@@ -395,13 +411,12 @@ def _create_product(
         "is_bulk_promotable": str(seed.bulk).lower(),
         "is_individually_promotable": str(seed.individual).lower(),
     }
-    _data(
+    created = _data(
         client.post(
             _plugin_url(business_id, "products"), headers=owner_headers, data=form, files=files
         )
     )
-    for path in paths:
-        path.unlink()
+    _reuse_committed_images(business_id, created["images"], paths)
     print(f"  Created product {seed.sku} with {len(files)} image(s)")
 
 
