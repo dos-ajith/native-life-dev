@@ -6,13 +6,16 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.models.deal import DealStatus
+from app.plugins.deal_commerce import DealProduct
 from app.schemas.base import BaseReadSchema
 from app.schemas.deal import deal_image_file_url
 from app.schemas.deal_order import MAX_ORDER_LINE_QUANTITY, OrderDetails
+from app.services.order_tax import tax_for
 
 if TYPE_CHECKING:
     from app.models.cart_item import CartItem
     from app.models.deal import Deal
+    from app.models.product_cart_item import ProductCartItem
 
 CartQuantity = Annotated[int, Field(ge=1, le=MAX_ORDER_LINE_QUANTITY)]
 
@@ -93,6 +96,54 @@ class CartDealGroupRead(BaseReadSchema):
         )
 
 
+class CartProductAdd(BaseModel):
+    business_id: UUID
+    product_id: UUID
+    quantity: CartQuantity
+
+
+class CartProductItemRead(BaseModel):
+    id: UUID
+    product_id: UUID
+    name: str | None
+    unit: str | None
+    quantity: int
+    unit_price: Decimal | None
+    line_total: Decimal | None
+    tax_percent: Decimal
+    tax_amount: Decimal
+    is_available: bool
+
+    @classmethod
+    def from_line(
+        cls, line: "ProductCartItem", product: DealProduct | None
+    ) -> "CartProductItemRead":
+        line_total = product.selling_price * line.quantity if product is not None else None
+        tax_percent = product.tax_percent if product is not None else Decimal(0)
+        return cls(
+            id=line.id,
+            product_id=line.product_id,
+            name=product.name if product is not None else None,
+            unit=product.unit if product is not None else None,
+            quantity=line.quantity,
+            unit_price=product.selling_price if product is not None else None,
+            line_total=line_total,
+            tax_percent=tax_percent,
+            tax_amount=tax_for(line_total, tax_percent) if line_total is not None else Decimal(0),
+            is_available=product is not None and product.is_active,
+        )
+
+
+class CartBusinessGroupRead(BaseModel):
+    business_id: UUID
+    business_name: str
+    items: list[CartProductItemRead]
+    subtotal: Decimal
+    tax_total: Decimal
+    total: Decimal
+
+
 class CartRead(BaseModel):
     deals: list[CartDealGroupRead]
+    businesses: list[CartBusinessGroupRead]
     total_quantity: int

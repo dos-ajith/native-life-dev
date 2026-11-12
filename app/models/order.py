@@ -30,6 +30,7 @@ CANCELLATION_REASON_LENGTH = 500
 LINE_TOTAL_PRECISION = 14
 PRICE_PRECISION = 12
 PRICE_SCALE = 2
+TAX_PERCENT_PRECISION = 5
 
 
 class OrderStatus(enum.StrEnum):
@@ -82,6 +83,12 @@ class OrderItem(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     unit_price: Mapped[Decimal] = mapped_column(Numeric(PRICE_PRECISION, PRICE_SCALE))
     quantity: Mapped[int] = mapped_column(Integer())
     line_total: Mapped[Decimal] = mapped_column(Numeric(LINE_TOTAL_PRECISION, PRICE_SCALE))
+    tax_percent: Mapped[Decimal] = mapped_column(
+        Numeric(TAX_PERCENT_PRECISION, PRICE_SCALE), server_default=text("0"), default=Decimal(0)
+    )
+    tax_amount: Mapped[Decimal] = mapped_column(
+        Numeric(LINE_TOTAL_PRECISION, PRICE_SCALE), server_default=text("0"), default=Decimal(0)
+    )
 
 
 class Order(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -165,6 +172,9 @@ class Order(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     notes: Mapped[str | None] = mapped_column(Text(), default=None)
     currency: Mapped[str] = mapped_column(String(CURRENCY_LENGTH))
+    tax_amount: Mapped[Decimal] = mapped_column(
+        Numeric(LINE_TOTAL_PRECISION, PRICE_SCALE), server_default=text("0"), default=Decimal(0)
+    )
     total_amount: Mapped[Decimal] = mapped_column(Numeric(LINE_TOTAL_PRECISION, PRICE_SCALE))
     cancellation_reason: Mapped[str | None] = mapped_column(
         String(CANCELLATION_REASON_LENGTH), default=None

@@ -11,6 +11,10 @@ from app.schemas.delivery_request import (
     DeliveryReRequest,
     EligibleRouteListQuery,
     EligibleRouteRead,
+    NearbyRouteListQuery,
+    NearbyRouteRead,
+    NearMissRouteListQuery,
+    NearMissRouteRead,
 )
 from app.schemas.response import SuccessResponse
 from app.services.delivery_request_service import DeliveryRequestService
@@ -29,6 +33,31 @@ def list_eligible_routes(
         query.option, query.address_id, query.deal_id, current_user
     )
     return SuccessResponse(message=DeliveryMessages.ELIGIBLE_ROUTES_RETRIEVED, data=routes)
+
+
+@router.get(
+    "/delivery/eligible-routes/nearby", response_model=SuccessResponse[list[NearbyRouteRead]]
+)
+def list_nearby_routes(
+    db: DbSessionDep,
+    current_user: CurrentActiveUserDep,
+    query: Annotated[NearbyRouteListQuery, Query()],
+) -> SuccessResponse[list[NearbyRouteRead]]:
+    routes = EligibleRouteService(db).list_near(query.option, query.latitude, query.longitude)
+    return SuccessResponse(message=DeliveryMessages.NEARBY_ROUTES_RETRIEVED, data=routes)
+
+
+@router.get(
+    "/delivery/eligible-routes/near-misses",
+    response_model=SuccessResponse[list[NearMissRouteRead]],
+)
+def list_near_miss_routes(
+    db: DbSessionDep,
+    current_user: CurrentActiveUserDep,
+    query: Annotated[NearMissRouteListQuery, Query()],
+) -> SuccessResponse[list[NearMissRouteRead]]:
+    routes = EligibleRouteService(db).list_near_misses(query.option, query.address_id, current_user)
+    return SuccessResponse(message=DeliveryMessages.NEAR_MISS_ROUTES_RETRIEVED, data=routes)
 
 
 @router.get("/me/orders/{order_id}/delivery", response_model=SuccessResponse[DeliveryRequestRead])

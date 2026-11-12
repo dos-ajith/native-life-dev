@@ -152,6 +152,14 @@
     {
       "key": "fcm_token",
       "value": ""
+    },
+    {
+      "key": "cart_product_item_id",
+      "value": ""
+    },
+    {
+      "key": "tax_rate_id",
+      "value": ""
     }
   ],
   "item": [
@@ -7969,6 +7977,13 @@
                               "disabled": true
                             },
                             {
+                              "key": "tax_rate_id",
+                              "value": "{{tax_rate_id}}",
+                              "type": "text",
+                              "description": "Optional tax rate of this business; without it the default tax rate from settings applies",
+                              "disabled": true
+                            },
+                            {
                               "key": "is_active",
                               "value": "true",
                               "type": "text"
@@ -8066,7 +8081,7 @@
                         },
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"name\": \"Cotton T-shirt (updated)\",\n  \"selling_price\": \"549.00\",\n  \"original_price\": \"699.00\",\n  \"is_bulk_promotable\": true,\n  \"is_individually_promotable\": true,\n  \"description\": \"Updated\"\n}",
+                          "raw": "{\n  \"name\": \"Cotton T-shirt (updated)\",\n  \"selling_price\": \"549.00\",\n  \"original_price\": \"699.00\",\n  \"is_bulk_promotable\": true,\n  \"is_individually_promotable\": true,\n  \"description\": \"Updated\",\n  \"tax_rate_id\": \"{{tax_rate_id}}\"\n}",
                           "options": {
                             "raw": {
                               "language": "json"
@@ -8628,7 +8643,132 @@
                         },
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"currency\": \"INR\",\n  \"default_low_stock_threshold\": 5\n}",
+                          "raw": "{\n  \"currency\": \"INR\",\n  \"default_low_stock_threshold\": 5,\n  \"default_tax_rate_id\": \"{{tax_rate_id}}\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "description": "Currency, default low-stock threshold and `default_tax_rate_id`, the tax rate used for products with no tax rate of their own. Send `null` to clear the default; 404 if the rate belongs to another business."
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "6. Tax rates",
+                  "description": "Tax rates the business owner maintains. A product's tax_rate_id wins; otherwise the default tax rate from settings (default_tax_rate_id) applies; otherwise 0%. Prices are tax-exclusive and tax is added on top when an order is placed.",
+                  "item": [
+                    {
+                      "name": "List tax rates",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/tax-rates",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "tax-rates"
+                          ]
+                        },
+                        "description": "All tax rates of the business, active and inactive."
+                      }
+                    },
+                    {
+                      "name": "Create tax rate",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/tax-rates",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "tax-rates"
+                          ]
+                        },
+                        "description": "Creates a named tax rate (0 to 100 percent). Names are unique per business (409). Saves `tax_rate_id`.",
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"name\": \"GST 18%\",\n  \"rate_percent\": \"18.00\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      },
+                      "event": [
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const body = pm.response.json();",
+                              "const value = body && body.success ? body.data.id : null;",
+                              "if (value) { pm.collectionVariables.set('tax_rate_id', value); }"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "name": "Update tax rate",
+                      "request": {
+                        "method": "PATCH",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/ecommerce/businesses/{{business_id}}/tax-rates/{{tax_rate_id}}",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "ecommerce",
+                            "businesses",
+                            "{{business_id}}",
+                            "tax-rates",
+                            "{{tax_rate_id}}"
+                          ]
+                        },
+                        "description": "Renames, changes the percent or deactivates a rate. New orders use the new percent; existing orders keep the tax they were placed with. An inactive rate is ignored and the default rate applies instead.",
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"rate_percent\": \"12.00\",\n  \"is_active\": true\n}",
                           "options": {
                             "raw": {
                               "language": "json"
@@ -8640,7 +8780,7 @@
                   ]
                 }
               ],
-              "description": "E-commerce plugin v1.2.1. Flow: import the ZIP (installs it), enable it globally (admin), enable it for the business (owner), grant plugin.ecommerce.* permissions, then use the folders below. Folder 7 lists expected error responses; the status assertions only pass in the matching state."
+              "description": "E-commerce plugin v1.3.0. Flow: import the ZIP (installs it), enable it globally (admin), enable it for the business (owner), grant plugin.ecommerce.* permissions, then use the folders below. Folder 7 lists expected error responses; the status assertions only pass in the matching state."
             }
           ]
         },
@@ -9816,7 +9956,7 @@
           "item": [
             {
               "name": "Cart",
-              "description": "Items from deals you have joined. A cart can hold several deals, but each checkout places one order for one deal. Placing an order (checkout or direct) removes the ordered items from the cart.",
+              "description": "Items from deals you have joined, plus products added from businesses. A cart can hold several deals and businesses, but each checkout places one order for one deal or one business. Placing an order (checkout or direct) removes the ordered items from the cart.",
               "item": [
                 {
                   "name": "Get my cart",
@@ -9838,7 +9978,7 @@
                         "cart"
                       ]
                     },
-                    "description": "Cart lines grouped by deal, with current deal prices, subtotal per deal and total_quantity."
+                    "description": "Deal lines grouped by deal under `deals`, product lines grouped by business under `businesses` (each with `subtotal`, `tax_total`, `total` and per-line `tax_percent`/`tax_amount`), and `total_quantity` across both."
                   }
                 },
                 {
@@ -10009,6 +10149,228 @@
                           "const body = pm.response.json();",
                           "const value = body && body.success ? body.data.id : null;",
                           "if (value) { pm.collectionVariables.set('order_id', value); }"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Add product to cart",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/cart/products",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "cart",
+                        "products"
+                      ]
+                    },
+                    "description": "Adds an active product of an active business to your cart. Adding a product already in the cart increases its quantity. The response is the full cart; product lines are grouped by business under `businesses`. Saves `cart_product_item_id` from the first product line.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"business_id\": \"{{business_id}}\",\n  \"product_id\": \"{{product_id}}\",\n  \"quantity\": 1\n}"
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const body = pm.response.json();",
+                          "const groups = body && body.success ? body.data.businesses : [];",
+                          "const value = groups.length && groups[0].items.length ? groups[0].items[0].id : null;",
+                          "if (value) { pm.collectionVariables.set('cart_product_item_id', value); }"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Update cart product quantity",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/cart/products/{{cart_product_item_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "cart",
+                        "products",
+                        "{{cart_product_item_id}}"
+                      ]
+                    },
+                    "description": "Sets the quantity of one product line. Returns the full cart.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"quantity\": 2\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Remove cart product",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/cart/products/{{cart_product_item_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "cart",
+                        "products",
+                        "{{cart_product_item_id}}"
+                      ]
+                    },
+                    "description": "Removes one product line. Returns the full cart."
+                  }
+                },
+                {
+                  "name": "Remove business products from cart",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/cart/businesses/{{business_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "cart",
+                        "businesses",
+                        "{{business_id}}"
+                      ]
+                    },
+                    "description": "Removes all product lines of one business. 404 when none are in the cart. Returns the full cart."
+                  }
+                },
+                {
+                  "name": "Checkout business cart",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/cart/businesses/{{business_id}}/checkout",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "cart",
+                        "businesses",
+                        "{{business_id}}",
+                        "checkout"
+                      ]
+                    },
+                    "description": "Places one direct order from all your product lines for this business, with the same rules and response as Place direct order (stock is reserved, delivery request created, cash on delivery). On success those cart lines are removed; if the order fails the cart is kept. Track it with My orders and Get order delivery. Saves `order_id`.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"customer_name\": \"Asha Nair\",\n  \"delivery_option\": \"route\",\n  \"payment_method\": \"cash_on_delivery\",\n  \"customer_phone\": \"+919876543210\",\n  \"address_id\": \"{{address_id}}\",\n  \"notes\": \"Call before delivery\",\n  \"route_id\": \"{{delivery_route_id}}\"\n}"
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const body = pm.response.json();",
+                          "const value = body && body.success ? body.data.id : null;",
+                          "if (value) { pm.collectionVariables.set('order_id', value); }"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Checkout all product carts",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/cart/products/checkout",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "cart",
+                        "products",
+                        "checkout"
+                      ]
+                    },
+                    "description": "Bulk order: places one order per business from all your product lines in one request. Delivery address, option, route, payment and notes apply to every order. All or nothing: if any line fails (inactive product, not enough stock, bad route) no order is placed and the cart is kept. Each order carries its tax (`tax_amount`, per item `tax_percent`/`tax_amount`) and `total_amount` = items + tax + delivery fee. Returns the list of orders. Pick a route from Delivery > Customer Delivery > List available routes (without deal_id).",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"customer_name\": \"Asha Nair\",\n  \"delivery_option\": \"route\",\n  \"payment_method\": \"cash_on_delivery\",\n  \"customer_phone\": \"+919876543210\",\n  \"address_id\": \"{{address_id}}\",\n  \"notes\": \"Call before delivery\",\n  \"route_id\": \"{{delivery_route_id}}\"\n}"
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const body = pm.response.json();",
+                          "const first = body && body.success && body.data.length ? body.data[0].id : null;",
+                          "if (first) { pm.collectionVariables.set('order_id', first); }"
                         ]
                       }
                     }
@@ -10908,6 +11270,80 @@
                       ]
                     },
                     "description": "Routes that reach the address, with promoter, vehicle, fee and delivery date. `option` route lists next-day routes; instant lists today's routes with the instant fee. Pass `deal_id` for a deal order (only the deal's promoter) or leave it out for a direct order."
+                  }
+                },
+                {
+                  "name": "List routes serving a map pin",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/delivery/eligible-routes/nearby?option=route&latitude=8.5714&longitude=76.8703",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "delivery",
+                        "eligible-routes",
+                        "nearby"
+                      ],
+                      "query": [
+                        {
+                          "key": "option",
+                          "value": "route",
+                          "description": "route or instant"
+                        },
+                        {
+                          "key": "latitude",
+                          "value": "8.5714"
+                        },
+                        {
+                          "key": "longitude",
+                          "value": "76.8703"
+                        }
+                      ]
+                    },
+                    "description": "For the New delivery address map: the active promoter routes that can deliver to a pin before the address is saved. Same rules as List available routes (route path, coverage radius, village, working hours and fees), so the map and checkout agree. Each route carries `start`, `end`, optional `path` (list of points), `coverage_radius_m` and `coverage` (closed ring of points outlining the area the route serves) for drawing. Empty list when the pin is outside every covered village or option is `self_pickup`."
+                  }
+                },
+                {
+                  "name": "List routes just outside an address",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/delivery/eligible-routes/near-misses?option=route&address_id={{address_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "delivery",
+                        "eligible-routes",
+                        "near-misses"
+                      ],
+                      "query": [
+                        {
+                          "key": "option",
+                          "value": "route",
+                          "description": "route or instant"
+                        },
+                        {
+                          "key": "address_id",
+                          "value": "{{address_id}}"
+                        }
+                      ]
+                    },
+                    "description": "Routes that do not deliver to this saved address but miss it by at most 1000 m, with `meters_outside` (how far past the route's coverage radius the address is). Used to show 'almost covered' routes greyed out in the route dropdown. Routes that do serve the address are not listed; use List available routes for those."
                   }
                 },
                 {
@@ -14375,7 +14811,7 @@
                     {
                       "key": "file",
                       "type": "file",
-                      "src": "plugin_packages/ecommerce/ecommerce-1.2.2.zip",
+                      "src": "plugin_packages/ecommerce/ecommerce-1.3.0.zip",
                       "description": "Newer-version ZIP built with: python -m app.plugins.cli package --key <key>"
                     }
                   ]

@@ -9,6 +9,7 @@ from app.models.delivery_vehicle import VehicleType
 from app.models.order import DeliveryOption, OrderStatus
 from app.schemas.base import BaseReadSchema
 from app.schemas.delivery_route import GeoPoint
+from app.schemas.post import Latitude, Longitude
 
 
 class DeliveryRequestAccept(BaseModel):
@@ -41,6 +42,18 @@ class EligibleRouteRead(BaseModel):
     option: DeliveryOption
     fee: Decimal
     delivery_date: date
+
+
+class NearbyRouteRead(EligibleRouteRead):
+    start: GeoPoint
+    end: GeoPoint
+    path: list[GeoPoint] | None
+    coverage_radius_m: int
+    coverage: list[GeoPoint]
+
+
+class NearMissRouteRead(EligibleRouteRead):
+    meters_outside: int
 
 
 class RiderLocationRead(BaseReadSchema):
@@ -87,3 +100,18 @@ class EligibleRouteListQuery(BaseModel):
     option: DeliveryOption
     address_id: UUID
     deal_id: UUID | None = None
+
+
+class NearbyRouteListQuery(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    option: DeliveryOption
+    latitude: Latitude
+    longitude: Longitude
+
+
+class NearMissRouteListQuery(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    option: DeliveryOption
+    address_id: UUID

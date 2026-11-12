@@ -15,6 +15,7 @@ class DealProduct:
     unit: str | None
     selling_price: Decimal
     is_active: bool
+    tax_percent: Decimal = Decimal(0)
 
 
 @dataclass(frozen=True)

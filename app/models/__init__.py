@@ -54,6 +54,7 @@ from app.models.post_like import PostLike
 from app.models.post_media import PostMedia
 from app.models.post_share import PostShare
 from app.models.post_tag import post_tags
+from app.models.product_cart_item import ProductCartItem
 from app.models.refresh_token import RefreshToken
 from app.models.role import Role
 from app.models.role_has_permission import role_has_permissions
@@ -124,6 +125,7 @@ __all__ = [
     "Permission",
     "PhoneOtpChallenge",
     "Plugin",
+    "ProductCartItem",
     "PluginCategoryBinding",
     "PluginInstallation",
     "PopularPlace",

@@ -37,6 +37,8 @@ class OrderItemRead(BaseModel):
     unit_price: Decimal
     quantity: int
     line_total: Decimal
+    tax_percent: Decimal
+    tax_amount: Decimal
 
     @classmethod
     def from_item(cls, item: "OrderItem") -> "OrderItemRead":
@@ -48,6 +50,8 @@ class OrderItemRead(BaseModel):
             unit_price=item.unit_price,
             quantity=item.quantity,
             line_total=item.line_total,
+            tax_percent=item.tax_percent,
+            tax_amount=item.tax_amount,
         )
 
 
@@ -74,6 +78,7 @@ class OrderRead(BaseReadSchema):
     shipping_village_id: UUID | None
     notes: str | None
     currency: str
+    tax_amount: Decimal
     total_amount: Decimal
     cancellation_reason: str | None
     cancelled_at: datetime | None
@@ -106,6 +111,7 @@ class OrderRead(BaseReadSchema):
             shipping_village_id=order.shipping_village_id,
             notes=order.notes,
             currency=order.currency,
+            tax_amount=order.tax_amount,
             total_amount=order.total_amount,
             cancellation_reason=order.cancellation_reason,
             cancelled_at=order.cancelled_at,

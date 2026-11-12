@@ -17,6 +17,8 @@ from app.services.delivery_access_service import DeliveryAccessService
 from app.services.delivery_schedule import is_within_working_hours, next_working_day
 from app.services.delivery_timeout_service import DeliveryTimeoutService
 
+NEAR_MISS_MARGIN_M = 1000
+
 
 @dataclass(frozen=True)
 class DeliveryTarget:
@@ -110,6 +112,35 @@ class DeliveryPlanService:
                 )
             )
         return eligible
+
+    def near_miss_routes(
+        self, option: DeliveryOption, target: DeliveryTarget, now: datetime
+    ) -> list[tuple[EligibleRoute, int]]:
+        if option == DeliveryOption.SELF_PICKUP:
+            return []
+        role_ids = [role.id for role in self._access.roles()]
+        misses: list[tuple[EligibleRoute, int]] = []
+        for route, settings, distance in self._routes.list_near_misses(
+            target.latitude, target.longitude, target.village_id, role_ids, NEAR_MISS_MARGIN_M
+        ):
+            fee = _fee_for(settings, option)
+            if fee is None:
+                continue
+            delivery_date = (
+                now.date()
+                if option == DeliveryOption.INSTANT
+                else next_working_day(settings, now.date())
+            )
+            entry = EligibleRoute(
+                route,
+                option,
+                fee,
+                delivery_date,
+                settings.route_start_time,
+                settings.route_end_time,
+            )
+            misses.append((entry, round(distance - route.coverage_radius_m)))
+        return misses
 
     def plan(
         self,

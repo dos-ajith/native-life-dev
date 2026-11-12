@@ -95,6 +95,40 @@ class DeliveryRouteRepository:
             stmt = stmt.where(DeliveryRoute.user_id == promoter_id)
         return [(route, settings) for route, settings in self._db.execute(stmt).unique().all()]
 
+    def list_near_misses(
+        self,
+        latitude: float,
+        longitude: float,
+        village_id: UUID | None,
+        role_ids: list[UUID],
+        margin_m: int,
+    ) -> list[tuple[DeliveryRoute, DeliverySettings, float]]:
+        destination = as_geography(point_from_coordinates(latitude, longitude))
+        distance = func.ST_Distance(as_geography(coverage_path()), destination)
+        holds_role = exists().where(
+            user_has_roles.c.user_id == DeliveryRoute.user_id,
+            user_has_roles.c.role_id.in_(role_ids),
+            user_has_roles.c.verified_at.is_not(None),
+        )
+        stmt = (
+            select(DeliveryRoute, DeliverySettings, distance)
+            .join(DeliverySettings, DeliverySettings.user_id == DeliveryRoute.user_id)
+            .options(*_with_relations())
+            .where(
+                DeliveryRoute.is_active.is_(True),
+                distance > DeliveryRoute.coverage_radius_m,
+                distance <= DeliveryRoute.coverage_radius_m + margin_m,
+                holds_role,
+            )
+            .order_by(distance, DeliveryRoute.id)
+        )
+        if village_id is not None:
+            stmt = stmt.where(DeliveryRoute.village_id != village_id)
+        return [
+            (route, settings, float(meters))
+            for route, settings, meters in self._db.execute(stmt).unique().all()
+        ]
+
     def add(self, route: DeliveryRoute) -> DeliveryRoute:
         self._db.add(route)
         self._db.flush()

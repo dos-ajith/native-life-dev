@@ -796,6 +796,7 @@ Table orders {
   expected_delivery_from time
   expected_delivery_to time
   payment_method payment_method [not null, default: `'cash_on_delivery'`]
+  tax_amount numeric(14,2) [not null, default: `0`]
 
   indexes {
     business_id [name: "ix_orders_business_id"]
@@ -816,6 +817,8 @@ Table order_items {
   id uuid [pk, not null]
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [not null, default: `now()`]
+  tax_percent numeric(5,2) [not null, default: `0`]
+  tax_amount numeric(14,2) [not null, default: `0`]
 
   indexes {
     deal_item_id [name: "ix_order_items_deal_item_id"]
@@ -1278,6 +1281,22 @@ Table posts {
   }
 }
 
+Table product_cart_items {
+  user_id uuid [not null]
+  business_id uuid [not null]
+  product_id uuid [not null]
+  quantity integer [not null]
+  id uuid [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (user_id, business_id, product_id) [name: "uq_product_cart_items_user_id_business_id_product_id", unique]
+  }
+
+  Note: 'CHECK quantity > 0'
+}
+
 Table refresh_tokens {
   user_id uuid [not null]
   token_hash varchar(64) [not null]
@@ -1706,6 +1725,8 @@ Ref: delivery_requests.passed_over_promoter_id > users.id [delete: set null]
 Ref: delivery_requests.order_id > orders.id [delete: cascade]
 Ref: delivery_requests.promoter_id >? users.id [delete: set null]
 Ref: delivery_requests.route_id >? delivery_routes.id [delete: set null]
+Ref: product_cart_items.business_id > businesses.id [delete: cascade]
+Ref: product_cart_items.user_id > users.id [delete: cascade]
 Ref: refresh_tokens.user_id > users.id [delete: cascade]
 Ref: role_has_permissions.permission_id > permissions.id [delete: cascade]
 Ref: role_has_permissions.role_id > roles.id [delete: cascade]
