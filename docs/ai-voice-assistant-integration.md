@@ -4,37 +4,105 @@ How to integrate the Native Assistant (text chat, voice mode and talking avatar)
 
 ## Prompt for your AI coding assistant
 
-Copy this into your assistant together with this file:
+Copy everything in the block into your AI coding assistant, and attach this file. Replace the two `<…>` placeholders first.
 
 ```text
-Implement the Native Assistant screen in the mobile app using the API described in
-docs/ai-voice-assistant-integration.md.
+You are implementing the "Native Assistant" screen in our mobile app (<Flutter / React
+Native / Kotlin / Swift>). The backend API is fully described in the attached file
+docs/ai-voice-assistant-integration.md. Treat that file as the source of truth for every
+endpoint, field, limit and error. Do not invent fields or endpoints that are not in it.
 
-Requirements:
-1. Opening screen: call GET /ai/welcome and show the greeting, intro, hint and the
-   suggestion chips. Tapping a chip sends its `prompt` to POST /ai/ask.
-2. Text chat: send the user's text to POST /ai/ask and render `answer` plus the
-   `posts` cards.
-3. Voice mode: record audio, send it to POST /ai/voice/transcribe, send the returned
-   text to POST /ai/ask, then send the `answer` to POST /ai/voice/speak and play the
-   returned audio.
-4. Avatar: load GET /ai/avatars, let the user pick one, send its id as `avatar_id` to
-   /ai/voice/speak, and animate the avatar's mouth from the audio level while the
-   reply plays.
-5. Use the standard response envelope and handle every error in the error table.
-6. Never hardcode the base URL or tokens. The access token comes from the existing
-   login flow.
+Context
+- Base URL and the access token already exist in the app (<where: e.g. ApiClient /
+  AuthRepository>). Reuse them. Never hardcode the base URL, tokens or keys.
+- Every JSON response uses {"success", "message", "data"} on success and
+  {"success": false, "message", "errors"} on failure. Always show the server's `message`
+  to the user on errors.
+- The assistant already knows the signed-in user's name on the server. The app never
+  sends it.
+
+Build these parts, in this order:
+
+1. Welcome: on open, call GET /ai/welcome. Show greeting, intro and hint, then one chip
+   per suggestion (title + subtitle). Tapping a chip sends its `prompt` as a question.
+
+2. Text chat: a message list plus an input with a Send button.
+   - POST /ai/ask with {"mode": "chat", "prompt": text}. Add "latitude"/"longitude"
+     only when the user enabled "use my location" and permission is granted.
+   - Render `answer` as plain text and each item in `posts` as a card (title, summary,
+     image, location, distance) that opens the post by `post_id` / `slug`. Any of
+     image_url, summary, location_name, distance_km may be null.
+   - Show a "Thinking…" bubble and disable Send while a request is running.
+
+3. Deal flow inside chat: when the response has `next_step`, render it under the answer.
+   - If `next_step.options` is not empty: one button per option showing `label`; on tap,
+     send that option's `prompt` as the next question and remove the buttons.
+   - If `next_step.input` is "datetime" and there are no options: show a date-time
+     picker; on confirm, send "Starts at YYYY-MM-DD HH:MM" when `field` is "starts_at",
+     "Ends at YYYY-MM-DD HH:MM" when it is "valid_until".
+   - The user can always type a free answer instead.
+   - When `created` is present, show a card "Draft deal created: <title>" with a button
+     that opens the user's deals screen.
+
+4. Live (voice) mode, with a "Speak replies" toggle that is on by default:
+   - Mic button: tap to start recording (ask for microphone permission first), tap again
+     to stop. Auto-stop after 30 seconds. Record AAC/m4a (supported on iOS and Android).
+   - Base64-encode the clip and POST /ai/ask with {"mode": "live",
+     "audio_base64": <base64>, "avatar_id": <selected avatar id>}.
+   - Show `transcript` as the user's message, then `answer` and `posts` exactly like chat.
+   - Start playback of `audio_url` immediately with the platform streaming player
+     (ExoPlayer / AVPlayer / just_audio / react-native-track-player). Do not download it
+     first and do not add an Authorization header: the signed token in the URL is the
+     credential. Do not cache or replay the URL; it expires after about 5 minutes.
+   - Do not assume the audio format; it is audio/wav in development and audio/mpeg in
+     production. Let the player detect it from the response.
+   - Typed questions while "Speak replies" is on also use {"mode": "live", "prompt": ...}.
+     When it is off, always use "mode": "chat".
+   - If the audio fails to load or play, keep the text answer and continue silently.
+
+5. Avatar:
+   - Load GET /ai/avatars, show a picker (name + gender), remember the choice locally,
+     default "arjun". Artwork is bundled in the app, keyed by `id`, with a fallback image
+     for unknown ids.
+   - States: idle (blink every few seconds, slight sway), listening, thinking, speaking.
+   - While the reply plays, sample the output audio level 30-60 times per second, map it
+     to mouth openness 0..1, apply a curve (level^0.6), open fast and close slower.
+
+6. Concurrency and UX:
+   - Only one turn at a time: disable mic and Send while a request runs.
+   - The user can stop playback at any time.
+   - Never call /ai/ask in a loop, on every keystroke, or auto-replay audio.
+
+7. Errors (see the Errors table in the file):
+   - 401 on /ai/ask: refresh the token once and retry, otherwise go to login.
+   - 401 on audio_url: skip the audio, keep the text.
+   - 404 avatar: reload /ai/avatars and reset the selection.
+   - 422: show `message`. For "AI features are disabled in your settings", add a link
+     to the AI settings screen. For "No speech was detected in the audio", ask the user
+     to try again closer to the microphone.
+   - 429 / 502 / 503 / 504: show `message` with a Retry button; in live mode offer to
+     switch to typing.
+
+Deliverables
+- The screen, its state management, and an API layer with typed models for every
+  request and response field in the file.
+- Unit tests for the API models and for the turn state machine
+  (idle -> listening -> thinking -> speaking -> idle, plus error paths).
+- A short note listing anything in the file you could not implement and why.
+
+Before writing code, list the files you will create or change and ask me to confirm.
 ```
 
 ## Overview
 
 ```text
- mic ──record──▶ POST /ai/voice/transcribe ──text──▶ POST /ai/ask ──answer──▶ POST /ai/voice/speak ──audio──▶ speaker
-                                                                                                          │
-                                                                              avatar mouth follows the audio level
+ chat:  text ──▶ POST /ai/ask {mode: "chat", prompt} ──▶ answer + posts
+ live:  mic ──record──▶ POST /ai/ask {mode: "live", audio_base64} ──▶ transcript + answer + posts + audio_url
+                                                                                    │
+                                              player ──GET audio_url (streamed)──▶ speaker, avatar mouth follows the level
 ```
 
-The voice endpoints only convert between speech and text. All assistant logic stays in `POST /ai/ask`, so text and voice answers are identical.
+Both modes use the same assistant logic. Live mode adds speech-to-text before it, asks the assistant for a short spoken-style answer, and hands back a link instead of audio. The audio is generated only when the player opens the link, and it starts playing after the first chunk arrives (under a second), not after the whole clip is ready.
 
 ## Conventions
 
@@ -44,8 +112,6 @@ The voice endpoints only convert between speech and text. All assistant logic st
 | Auth | `Authorization: Bearer <access_token>` on every call. The token comes from `POST /auth/login`. Refresh it with the existing refresh flow on a 401. |
 | Success (JSON endpoints) | `{"success": true, "message": "...", "data": ...}` |
 | Error | `{"success": false, "message": "...", "errors": []}` |
-
-`POST /ai/voice/speak` is the exception: on success it returns raw audio bytes, not JSON. Errors from it still use the JSON error format.
 
 ## Endpoints
 
@@ -85,7 +151,11 @@ Request (JSON):
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `prompt` | string | yes | Not blank, at most 2000 characters. |
+| `mode` | string | no | `chat` (default) returns text only. `live` returns a short, speakable answer plus an `audio_url`. |
+| `prompt` | string | one of | Not blank, at most 2000 characters. Send exactly one of `prompt` or `audio_base64`. |
+| `audio_base64` | string | one of | Live mode only. Base64 of the recorded clip (wav, webm, ogg, m4a, mp3 or flac; the format is detected from the audio), at most 5 MB decoded by default (server setting). |
+| `language` | string | no | Live mode. Optional ISO code such as `en` for transcription. Omit to auto-detect. |
+| `avatar_id` | string | no | Live mode. Voice for the reply, from `/ai/avatars`. Defaults to `arjun`. An unknown id returns 404. |
 | `latitude` | number | no | -90 to 90. Send together with `longitude`, or neither. |
 | `longitude` | number | no | -180 to 180. |
 | `radius_km` | number | no | Greater than 0, at most 50. Needs `latitude` and `longitude`. |
@@ -112,15 +182,63 @@ Response `data`:
       "distance_km": 1.2,
       "source": "Native Life"
     }
-  ]
+  ],
+  "created": null,
+  "next_step": null,
+  "transcript": null,
+  "audio_url": null
 }
 ```
 
-- `answer` is plain text. Show it in the chat bubble, and send exactly this text to `/ai/voice/speak` in voice mode.
+Live mode request and the extra response fields:
+
+```json
+{ "mode": "live", "audio_base64": "GkXfo59ChoEBQveBAULygQRC84EIQoKE…", "avatar_id": "anjali" }
+```
+
+```json
+{
+  "answer": "Here are a few businesses near you…",
+  "posts": [],
+  "transcript": "Which local businesses are there?",
+  "audio_url": "https://api.example.com/api/v1/ai/speech?token=eyJhbGciOi…"
+}
+```
+
+- `answer` is plain text. Show it in the chat bubble.
+- `transcript` is set only when live mode received audio. Show it as the user's message.
+- `audio_url` is set only in live mode. Give it straight to the platform audio player (ExoPlayer / AVPlayer / `just_audio`); no `Authorization` header is needed because the signed token in the URL is the credential. It streams `audio/wav` in development (Groq) and `audio/mpeg` in production (OpenAI), so let the player detect the format and never assume one. The link expires after 5 minutes by default (server setting), so play it right away and do not cache it.
+- Speech is limited to 1000 characters by default (server setting). A longer `answer` is spoken up to the last full sentence within the limit; the text `answer` is always complete.
 - `posts` may be empty. Render each item as a card that opens the post by `post_id`/`slug`. `image_url`, `summary`, `location_name` and `distance_km` can be `null`.
 - Requests can take several seconds. Show a "Thinking…" state and keep the send button disabled until the call finishes.
+- The assistant knows the signed-in user's name (it reads it on the server). The app never sends it.
 
-### 3. `GET /ai/avatars`
+#### Deal creation inside the chat (`created`, `next_step`)
+
+Users allowed to create deals can say things like "I want to sell my bicycle". The assistant then asks for the details one at a time and creates a **draft** deal.
+
+- `next_step` (object or `null`) is present while a deal draft is in progress:
+
+  ```json
+  {
+    "flow": "deal",
+    "field": "starts_at",
+    "input": "datetime",
+    "options": []
+  }
+  ```
+
+  - `input` is `text`, `datetime`, `choice` or `confirm`. `field` is the draft field being asked for (`null` on `confirm`).
+  - `options` is a list of `{id, label, prompt}`. Render each `label` as a button. On tap, send its `prompt` to `/ai/ask` as the next message and remove the buttons.
+  - For `input: "datetime"` with no options, show a date-time picker and send `Starts at YYYY-MM-DD HH:MM` (field `starts_at`) or `Ends at YYYY-MM-DD HH:MM` (field `valid_until`).
+  - Typing a free answer always works too.
+- `created` (object or `null`) is set once the draft exists: `{kind, id, title, status}`. Show a confirmation card with a button to the user's deals screen. The deal is never published from chat; cover images and submit still happen in the deals screens.
+
+### 3. `GET /ai/speech?token=…`
+
+The `audio_url` from a live-mode answer. Streams the spoken reply (`audio/wav` or `audio/mpeg`, see `Content-Type`) as the speech provider produces it. No bearer header; an invalid or expired token returns 401 `The speech link is invalid or has expired`. You never build this URL yourself.
+
+### 4. `GET /ai/avatars`
 
 The assistant characters the user can choose from.
 
@@ -139,53 +257,18 @@ The assistant characters the user can choose from.
 - The artwork lives in the app, keyed by `id`. The list may change, so always load it from the API and fall back to a default picture for an unknown `id`.
 - Remember the user's choice locally. The default is `arjun`.
 
-### 4. `POST /ai/voice/transcribe`
-
-Turns a recorded clip into text. Request is `multipart/form-data`:
-
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `audio` | file | yes | Not empty, at most 5 MB by default (server setting). |
-| `language` | string | no | Optional ISO code such as `en`. Omit to auto-detect. |
-
-- Give the file a correct extension in its filename (`clip.m4a`, `clip.webm`, `clip.wav`, `clip.mp3`, `clip.ogg`). The server detects the format from it.
-- Keep recordings short (one question). Stop automatically after about 30 seconds or when the user releases the button.
-
-Response `data`:
-
-```json
-{ "text": "What's new in Kadakampalli?" }
-```
-
-### 5. `POST /ai/voice/speak`
-
-Speaks text in the chosen avatar's voice. Request (JSON):
-
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `text` | string | yes | Not blank, at most 1000 characters by default (server setting). |
-| `avatar_id` | string | no | Defaults to `arjun`. An unknown id returns 404. |
-
-```json
-{ "text": "Here are a few businesses near you.", "avatar_id": "anjali" }
-```
-
-Response: raw audio bytes. Read the `Content-Type` header to decide how to play it (`audio/wav` or `audio/mpeg`). Do not assume one format.
-
-- If the `answer` from `/ai/ask` is longer than the limit, split it by sentence and speak the first part, or skip speech and show only the text.
-- Play from memory or a temporary file. Do not store the audio.
-
 ## Voice turn, step by step
 
 1. User taps the mic. Ask for microphone permission if needed. Show **Listening**.
-2. User taps again (or releases). Stop recording. Show **Transcribing**.
-3. `POST /ai/voice/transcribe` with the clip. Show the returned text as the user's message.
-4. `POST /ai/ask` with that text. Show **Thinking**.
-5. Show the `answer` and `posts` in the chat.
-6. If "speak replies" is on, `POST /ai/voice/speak` with the `answer` and the chosen `avatar_id`. Show **Speaking** and play the audio.
-7. Return to idle.
+2. User taps again (or releases). Stop recording. Keep recordings short (one question); stop automatically after about 30 seconds.
+3. Base64-encode the clip and `POST /ai/ask` with `mode: "live"`, `audio_base64` and the chosen `avatar_id`. Show **Thinking**.
+4. Show `transcript` as the user's message, then the `answer` and `posts`.
+5. If "speak replies" is on, start the player on `audio_url` immediately. Show **Speaking** once playback starts.
+6. Return to idle.
 
-Disable the mic and send buttons while any step is running, so turns can't overlap. Let the user stop playback at any time.
+Typed questions while "speak replies" is on can also use live mode: send `prompt` instead of `audio_base64` and you get an `audio_url` back. With it off, use `mode: "chat"` so no speech is generated.
+
+Disable the mic and send buttons while a request is running, so turns can't overlap. Let the user stop playback at any time.
 
 ## Avatar
 
@@ -204,9 +287,9 @@ A working reference implementation (audio level, smoothing, lip sync, blinking) 
 
 | HTTP | When | What to do |
 |------|------|------------|
-| 401 | Missing, invalid or expired token | Refresh the token, retry once, otherwise send the user to login. |
+| 401 | Missing, invalid or expired token | Refresh the token, retry once, otherwise send the user to login. For `audio_url` (`The speech link is invalid or has expired`), just skip the audio; the text is already shown. |
 | 404 | `avatar_id` unknown (`Assistant avatar not found`) | Reload `/ai/avatars` and reset the selection. |
-| 422 | Validation failed: blank `prompt`, empty or oversized audio, text too long to speak, no speech in the clip, or AI turned off in settings | Show the `message` from the response. For "AI features are disabled in your settings", offer a link to the AI settings. |
+| 422 | Validation failed: missing or both `prompt` and `audio_base64`, `audio_base64` in chat mode, invalid base64, empty, oversized or unsupported audio, no speech in the clip, or AI turned off in settings | Show the `message` from the response. For "AI features are disabled in your settings", offer a link to the AI settings. |
 | 429 | Provider is busy (`AI is busy right now, please try again in a moment`) | Show the message and let the user retry. |
 | 502 | Provider returned something unusable | Show a generic error and offer retry. |
 | 503 | AI provider unavailable or not configured (`AI provider is currently unavailable`) | Show a generic error, and fall back to text-only if speech failed. |
@@ -214,32 +297,35 @@ A working reference implementation (audio level, smoothing, lip sync, blinking) 
 
 Rules:
 
-- If `/ai/voice/speak` fails, still show the text answer. Voice is an extra, not a requirement.
-- If `/ai/voice/transcribe` returns "No speech was detected in the audio", tell the user to try again, closer to the microphone.
+- If a live-mode call fails with a provider error (502/503/504), retry once, or fall back to typing with `mode: "chat"`.
+- If `audio_url` fails to play, keep the text answer. Voice is an extra, not a requirement.
+- If `/ai/ask` returns "No speech was detected in the audio", tell the user to try again, closer to the microphone.
 - Always show the server's `message`. Do not rely on the status code alone.
 
 ## Limits and cost
 
 - Request limits: 5 MB audio and 1000 characters of speech by default. These are server settings and can change.
-- Voice calls are billed per use by the speech provider. Do not call `/ai/voice/speak` for text the user has not asked to hear, and do not auto-replay.
-- Do not call the voice endpoints in a loop or on every keystroke.
+- Speech is billed per use by the provider, and only when `audio_url` is opened. Use `mode: "live"` only when the user wants to hear the reply, and do not auto-replay.
+- Do not call `/ai/ask` in a loop or on every keystroke.
 
 ## Testing checklist
 
 - [ ] Welcome screen renders greeting, hint and suggestion chips.
 - [ ] A suggestion chip sends its prompt and shows the answer and post cards.
 - [ ] Text question with and without location.
-- [ ] Voice question: record → transcribe → ask → speak → avatar lip sync.
+- [ ] Voice question: record → live `/ai/ask` → text shown at once → `audio_url` streams → avatar lip sync.
 - [ ] Each of the 2 avatars plays its own voice.
 - [ ] Microphone permission denied.
 - [ ] Empty recording, very long recording and background noise only.
-- [ ] Network drop during each of the three voice calls.
+- [ ] Network drop during a live-mode call.
 - [ ] Expired token refreshes without losing the user's turn.
 - [ ] User with AI disabled in settings sees the message and no crash.
-- [ ] Both `audio/wav` and `audio/mpeg` replies play.
+- [ ] Playing an `audio_url` after 5 minutes fails cleanly and leaves the text.
 - [ ] Turning "speak replies" off leaves text chat working.
+- [ ] "What is my name?" answers with the signed-in user's name.
+- [ ] Deal flow: "I want to sell my bicycle" shows option buttons and a date picker, and ends with the created card.
 
 ## Open items
 
 - The 3D/2D artwork for the final avatars is not delivered yet. The app should load avatars by `id` so it can be swapped without an app change.
-- Replies are returned in one piece, not streamed. Streaming is planned to reduce waiting time.
+- The text answer is returned in one piece; only the audio is streamed.

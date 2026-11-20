@@ -88,6 +88,25 @@ other layer:
 If neither key is configured for the selected provider, `/api/v1/ai/ask`
 returns a 503 rather than the app failing to start.
 
+Each turn makes two model calls: a quick search-intent step (turns the message
+into keywords, location, near-me) and then the answer. `AI_INTENT_MODEL` lets
+the intent step use a smaller, faster model; leave it empty to reuse `AI_MODEL`.
+
+Live (voice) mode returns the text answer first and an `audio_url` that streams
+the speech, so the speech model names must exist on the selected provider.
+
+| Setting | Production (OpenAI) | Development (Groq) |
+|---------|---------------------|--------------------|
+| `AI_PROVIDER` | `openai` | `groq` |
+| `AI_MODEL` | `gpt-4.1-mini` | `openai/gpt-oss-120b` + `AI_REASONING_EFFORT=low` |
+| `AI_INTENT_MODEL` | `gpt-4.1-nano` | `openai/gpt-oss-20b` + `AI_INTENT_REASONING_EFFORT=low` |
+| `AI_STT_MODEL` | `gpt-4o-mini-transcribe` | `whisper-large-v3-turbo` |
+| `AI_TTS_MODEL` | `gpt-4o-mini-tts` | `canopylabs/orpheus-v1-english` |
+| `AI_TTS_RESPONSE_FORMAT` | `mp3` | `wav` (the only format Groq supports) |
+
+Only set the `*_REASONING_EFFORT` values for reasoning models (`gpt-oss-*`);
+non-reasoning models reject the parameter.
+
 ### Authentication
 
 Three sign-in methods share one `users` table and one session model. Every
@@ -191,6 +210,8 @@ with `python -c "import secrets; print(secrets.token_urlsafe(64))"`).
 | `CORS_ORIGINS` | JSON array of allowed origins for the admin panel |
 | `AI_PROVIDER` | `openai` or `groq` — see "AI integration" above |
 | `AI_MODEL` | Model name for the selected provider |
+| `AI_INTENT_MODEL` | Optional smaller model for the search-intent step; empty reuses `AI_MODEL` |
+| `AI_STT_MODEL` / `AI_TTS_MODEL` | Speech-to-text / text-to-speech models; must match `AI_PROVIDER` |
 | `OPENAI_API_KEY` | Required when `AI_PROVIDER=openai`; leave unset to disable AI |
 | `GROQ_API_KEY` | Required when `AI_PROVIDER=groq`; leave unset to disable AI |
 | `GROQ_BASE_URL` | Groq's OpenAI-compatible base URL (default is correct as-is) |

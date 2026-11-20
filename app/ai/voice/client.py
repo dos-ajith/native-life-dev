@@ -1,7 +1,13 @@
+from collections.abc import Iterator
+from contextlib import ExitStack
+from functools import lru_cache
+
 from openai import OpenAI, omit
 
 from app.ai.client import build_sdk_client, call_with_provider_error_handling
-from app.core.config import Settings
+from app.core.config import Settings, get_settings
+
+SPEECH_CHUNK_BYTES = 4096
 
 
 class VoiceClient:
@@ -21,13 +27,23 @@ class VoiceClient:
         )
         return str(result.text).strip()
 
-    def synthesize(self, text: str, voice: str) -> bytes:
-        response = call_with_provider_error_handling(
-            lambda: self._sdk.audio.speech.create(
-                model=self._tts_model,
-                voice=voice,
-                input=text,
-                response_format=self._response_format,
-            )
+    def open_speech_stream(self, text: str, voice: str) -> Iterator[bytes]:
+        request = self._sdk.audio.speech.with_streaming_response.create(
+            model=self._tts_model,
+            voice=voice,
+            input=text,
+            response_format=self._response_format,
         )
-        return bytes(response.content)
+        stack = ExitStack()
+        response = call_with_provider_error_handling(lambda: stack.enter_context(request))
+
+        def chunks() -> Iterator[bytes]:
+            with stack:
+                yield from response.iter_bytes(SPEECH_CHUNK_BYTES)
+
+        return chunks()
+
+
+@lru_cache
+def get_voice_client() -> VoiceClient:
+    return VoiceClient(get_settings())

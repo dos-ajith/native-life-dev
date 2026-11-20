@@ -200,6 +200,14 @@
     {
       "key": "razorpay_webhook_signature",
       "value": ""
+    },
+    {
+      "key": "ai_audio_base64",
+      "value": ""
+    },
+    {
+      "key": "ai_speech_token",
+      "value": ""
     }
   ],
   "item": [
@@ -18460,7 +18468,74 @@
                         "ask"
                       ]
                     },
-                    "description": "Authenticated. Sends a prompt to the AI assistant. The app searches posts and businesses first and gives the results to the AI, which may also use read-only tools (get_post, search_posts, get_post_comments, get_post_tags, get_user_posts). 503 if the AI provider is not configured.\n\n**Body**\n- `prompt` (string, required)\n- `latitude`, `longitude` (number, optional, together) — enables \"near me\" queries; matching posts are ranked by distance and returned with `distance_km`\n- `radius_km` (number, optional, requires coordinates)\n\n**Creating a deal with the assistant**\nUsers holding the deal-create permission also get a question-and-answer flow that creates a DRAFT individual-seller deal (the app turns each message into draft changes itself, so the draft is saved even if the assistant forgets to). Answers collected so far are stored server-side in the `ai_drafts` table (one row per user per kind, expires after 24h) and are deleted when the deal is created or discarded, so each `POST /ai/ask` just continues from what is saved.\n\n**Response**\n- `data.created` (object, optional) — `{kind, id, title, status}`; set only when a draft deal was created. It is never published: cover images and submit still happen through the deals endpoints.\n- \n- `data.next_step` (object, optional) - present while a deal draft is in progress: `{flow, field, input, options}`. `input` is `text`, `datetime`, `choice` or `confirm`; `field` is the draft field being asked for (null on `confirm`). Each option is `{id, label, prompt}`: render `label` as a button and, when tapped, send its `prompt` to `POST /ai/ask` as the next message (typing a custom answer also works). Absent when the deal is created or cancelled.\nDeals for a business are not created through the assistant."
+                    "description": "Authenticated. Sends a prompt (or, in live mode, a voice clip) to the AI assistant. The app searches posts and businesses first and gives the results to the AI, which may also use read-only tools (get_post, search_posts, get_post_comments, get_post_tags, get_user_posts). 503 if the AI provider is not configured.\n\n**Body**\n- `mode` (string, optional) — `chat` (default) returns a text answer; `live` gives a short, speakable answer plus an `audio_url` that streams it in the avatar's voice\n- `prompt` (string) — the question; send exactly one of `prompt` or `audio_base64`\n- `audio_base64` (string, live mode only) — base64 voice clip (wav, webm, ogg, m4a, mp3 or flac); it is transcribed and used as the prompt. 422 if empty, too large, unsupported or silent\n- `language` (string, optional, live mode) — ISO code hint for transcription, e.g. `en`\n- `avatar_id` (string, optional, live mode) — voice to speak with, from `GET /ai/avatars`; defaults to the first avatar\n- `latitude`, `longitude` (number, optional, together) — enables \"near me\" queries; matching posts are ranked by distance and returned with `distance_km`\n- `radius_km` (number, optional, requires coordinates)\n\n**Creating a deal with the assistant**\nUsers holding the deal-create permission also get a question-and-answer flow that creates a DRAFT individual-seller deal (the app turns each message into draft changes itself, so the draft is saved even if the assistant forgets to). Answers collected so far are stored server-side in the `ai_drafts` table (one row per user per kind, expires after 24h) and are deleted when the deal is created or discarded, so each `POST /ai/ask` just continues from what is saved.\n\n**Response**\n- `data.transcript` (string, live mode with audio only) — what the user said\n- `data.audio_url` (string, live mode only) — short-lived link (5 min by default) to `GET /ai/speech`; point the audio player at it to stream the spoken answer while it is generated. Long answers are spoken up to the configured character limit, cut at a sentence end; `answer` always has the full text\n- `data.created` (object, optional) — `{kind, id, title, status}`; set only when a draft deal was created. It is never published: cover images and submit still happen through the deals endpoints.\n- `data.next_step` (object, optional) - present while a deal draft is in progress: `{flow, field, input, options}`. `input` is `text`, `datetime`, `choice` or `confirm`; `field` is the draft field being asked for (null on `confirm`). Each option is `{id, label, prompt}`: render `label` as a button and, when tapped, send its `prompt` to `POST /ai/ask` as the next message (typing a custom answer also works). Absent when the deal is created or cancelled.\nDeals for a business are not created through the assistant."
+                  }
+                },
+                {
+                  "name": "Ask - Live (voice)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"mode\": \"live\",\n  \"audio_base64\": \"{{ai_audio_base64}}\",\n  \"avatar_id\": \"arjun\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/ai/ask",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "ai",
+                        "ask"
+                      ]
+                    },
+                    "description": "Same endpoint as Ask, in live mode. Set the `ai_audio_base64` variable to a base64-encoded voice clip, or replace `audio_base64` with `prompt` to send text. Returns `answer`, `transcript` and `audio_url` as soon as the text is ready; the test script saves the URL's token as `ai_speech_token` for the Speech request. See Ask for every field."
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const url = pm.response.json().data?.audio_url;",
+                          "if (url) pm.collectionVariables.set('ai_speech_token', new URL(url).searchParams.get('token'));"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Speech (stream)",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{base_url}}/ai/speech?token={{ai_speech_token}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "ai",
+                        "speech"
+                      ],
+                      "query": [
+                        {
+                          "key": "token",
+                          "value": "{{ai_speech_token}}"
+                        }
+                      ]
+                    },
+                    "description": "No bearer header: the signed `token` from a live-mode `audio_url` is the credential. Streams the spoken answer (audio/wav) as the provider generates it. 401 if the token is invalid or expired (5 min by default)."
                   }
                 },
                 {
@@ -18483,85 +18558,7 @@
                         "avatars"
                       ]
                     },
-                    "description": "Authenticated. The 5 assistant avatars (3 male, 2 female). Pass an `id` as `avatar_id` to `POST /ai/voice/speak` to get that avatar's voice."
-                  }
-                },
-                {
-                  "name": "Voice - Transcribe",
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{access_token}}"
-                      }
-                    ],
-                    "body": {
-                      "mode": "formdata",
-                      "formdata": [
-                        {
-                          "key": "audio",
-                          "type": "file",
-                          "src": []
-                        },
-                        {
-                          "key": "language",
-                          "value": "en",
-                          "type": "text",
-                          "description": "Optional ISO language code",
-                          "disabled": true
-                        }
-                      ]
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/ai/voice/transcribe",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "ai",
-                        "voice",
-                        "transcribe"
-                      ]
-                    },
-                    "description": "Authenticated. Multipart upload of a recorded clip (`audio`); returns `data.text`. Send that text to `POST /ai/ask`. Fails with 422 if the file is empty, too large or has no speech."
-                  }
-                },
-                {
-                  "name": "Voice - Speak",
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{access_token}}"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"text\": \"Hello, how can I help you today?\",\n  \"avatar_id\": \"arjun\"\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/ai/voice/speak",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "ai",
-                        "voice",
-                        "speak"
-                      ]
-                    },
-                    "description": "Authenticated. Returns raw audio (wav or mp3, per server config) spoken in the chosen avatar's voice. Drive the avatar's mouth from the audio level while it plays."
+                    "description": "Authenticated. The 5 assistant avatars (3 male, 2 female). Pass an `id` as `avatar_id` to `POST /ai/ask` in live mode to get that avatar's voice."
                   }
                 }
               ]

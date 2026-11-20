@@ -1,5 +1,6 @@
 import json
 from collections.abc import Callable
+from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Protocol
 
@@ -17,6 +18,29 @@ from app.core.messages import AIMessages
 ToolCallHandler = Callable[[str, dict[str, Any]], dict[str, Any]]
 
 _FORCE_TEXT_ANSWER: dict[str, Any] = {"tool_choice": "none"}
+
+
+@dataclass(frozen=True)
+class ModelProfile:
+    model: str
+    max_output_tokens: int
+    reasoning_effort: str | None
+
+
+def answer_profile(settings: Settings) -> ModelProfile:
+    return ModelProfile(
+        settings.ai_model, settings.ai_max_output_tokens, settings.ai_reasoning_effort
+    )
+
+
+def intent_profile(settings: Settings) -> ModelProfile:
+    if not settings.ai_intent_model:
+        return answer_profile(settings)
+    return ModelProfile(
+        settings.ai_intent_model,
+        settings.ai_intent_max_output_tokens,
+        settings.ai_intent_reasoning_effort,
+    )
 
 
 def call_with_provider_error_handling(fn: Callable[[], Any]) -> Any:
@@ -236,24 +260,24 @@ def build_sdk_client(settings: Settings) -> OpenAI:
     )
 
 
-def _build_backend(settings: Settings) -> _AIBackend:
+def _build_backend(settings: Settings, profile: ModelProfile) -> _AIBackend:
     client = build_sdk_client(settings)
     if settings.ai_provider == "groq":
         return _ChatCompletionsBackend(
             client,
-            settings.ai_model,
-            settings.ai_max_output_tokens,
+            profile.model,
+            profile.max_output_tokens,
             settings.ai_max_tool_iterations,
-            settings.ai_reasoning_effort,
+            profile.reasoning_effort,
         )
     return _ResponsesBackend(
-        client, settings.ai_model, settings.ai_max_output_tokens, settings.ai_max_tool_iterations
+        client, profile.model, profile.max_output_tokens, settings.ai_max_tool_iterations
     )
 
 
 class AIClient:
-    def __init__(self, settings: Settings) -> None:
-        self._backend = _build_backend(settings)
+    def __init__(self, settings: Settings, profile: ModelProfile | None = None) -> None:
+        self._backend = _build_backend(settings, profile or answer_profile(settings))
 
     def run(
         self,
@@ -270,3 +294,9 @@ def get_ai_client() -> AIClient:
     """Reuses one SDK client (and its underlying HTTP connection pool) across
     requests instead of paying a fresh TCP/TLS handshake on every /ai/ask call."""
     return AIClient(get_settings())
+
+
+@lru_cache
+def get_intent_ai_client() -> AIClient:
+    settings = get_settings()
+    return AIClient(settings, intent_profile(settings))

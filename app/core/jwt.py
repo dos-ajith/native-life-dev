@@ -8,11 +8,12 @@ import jwt
 
 from app.core.config import Settings
 from app.core.exceptions import AuthenticationError
-from app.core.messages import AuthMessages
+from app.core.messages import AIMessages, AuthMessages
 from app.core.timezone import app_now, get_app_timezone
 
 TOKEN_TYPE_CLAIM = "typ"
 ACCESS_TOKEN_TYPE = "access"
+AI_SPEECH_TOKEN_TYPE = "ai_speech"
 
 
 class RegistrationTokenType(enum.StrEnum):
@@ -25,6 +26,13 @@ class TokenClaims:
     user_id: UUID
     jti: UUID
     expires_at: datetime
+
+
+@dataclass(frozen=True)
+class SpeechTokenClaims:
+    user_id: UUID
+    text: str
+    avatar_id: str
 
 
 @dataclass
@@ -95,3 +103,28 @@ def parse_registration_token(
     if payload.get(TOKEN_TYPE_CLAIM) != token_type.value or not payload.get("sub"):
         raise AuthenticationError(AuthMessages.INVALID_REGISTRATION_TOKEN)
     return payload
+
+
+def create_speech_token(user_id: UUID, text: str, avatar_id: str, settings: Settings) -> str:
+    now = app_now()
+    payload: dict[str, Any] = {
+        "sub": str(user_id),
+        "txt": text,
+        "avt": avatar_id,
+        "iat": now,
+        "exp": now + timedelta(seconds=settings.ai_speech_token_expire_seconds),
+        TOKEN_TYPE_CLAIM: AI_SPEECH_TOKEN_TYPE,
+    }
+    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+
+
+def parse_speech_token(token: str, settings: Settings) -> SpeechTokenClaims:
+    try:
+        payload = decode_access_token(token, settings)
+        if payload.get(TOKEN_TYPE_CLAIM) != AI_SPEECH_TOKEN_TYPE:
+            raise AuthenticationError(AIMessages.SPEECH_LINK_INVALID)
+        return SpeechTokenClaims(
+            user_id=UUID(payload["sub"]), text=str(payload["txt"]), avatar_id=str(payload["avt"])
+        )
+    except (jwt.InvalidTokenError, KeyError, ValueError) as exc:
+        raise AuthenticationError(AIMessages.SPEECH_LINK_INVALID) from exc

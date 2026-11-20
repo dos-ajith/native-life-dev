@@ -3,10 +3,10 @@ from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import Base64Bytes, BaseModel, Field, model_validator
 
 from app.ai.voice.avatars import DEFAULT_AVATAR_ID, AvatarGender
-from app.core.messages import PostMessages
+from app.core.messages import AIMessages, PostMessages
 from app.models.ai_draft import AIDraftKind
 from app.models.post_media import PostMediaType
 from app.models.user_settings_enums import AIResponseStyle
@@ -88,11 +88,28 @@ class AIPersonalizationContext(BaseModel):
     preferred_district_names: list[str]
 
 
+class AIAskMode(enum.StrEnum):
+    CHAT = "chat"
+    LIVE = "live"
+
+
 class AIAskRequest(BaseModel):
-    prompt: AskPrompt
+    mode: AIAskMode = AIAskMode.CHAT
+    prompt: AskPrompt | None = None
+    audio_base64: Base64Bytes | None = None
+    language: Annotated[str | None, Field(max_length=10)] = None
+    avatar_id: str = DEFAULT_AVATAR_ID
     latitude: Latitude | None = None
     longitude: Longitude | None = None
     radius_km: NearbyRadiusKm | None = None
+
+    @model_validator(mode="after")
+    def _validate_input(self) -> "AIAskRequest":
+        if (self.prompt is None) == (self.audio_base64 is None):
+            raise ValueError(AIMessages.PROMPT_OR_AUDIO_REQUIRED)
+        if self.audio_base64 is not None and self.mode != AIAskMode.LIVE:
+            raise ValueError(AIMessages.AUDIO_REQUIRES_LIVE_MODE)
+        return self
 
     @model_validator(mode="after")
     def _validate_location(self) -> "AIAskRequest":
@@ -131,15 +148,6 @@ class AIAvatarRead(BaseModel):
     gender: AvatarGender
 
 
-class AITranscriptionRead(BaseModel):
-    text: str
-
-
-class AISpeakRequest(BaseModel):
-    text: NonBlankStr
-    avatar_id: str = DEFAULT_AVATAR_ID
-
-
 class AIInputKind(enum.StrEnum):
     TEXT = "text"
     DATETIME = "datetime"
@@ -165,3 +173,5 @@ class AIAskResponse(BaseModel):
     posts: list[PostReferenceRead] = []
     created: AICreatedEntityRead | None = None
     next_step: AINextStepRead | None = None
+    transcript: str | None = None
+    audio_url: str | None = None
