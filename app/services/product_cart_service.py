@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from app.core.activity_actions import ActivityAction
 from app.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
 from app.core.messages import CartMessages, DealMessages
+from app.core.payments import PaymentGateway
+from app.models.order import PaymentMethod
 from app.models.product_cart_item import ProductCartItem
 from app.models.user import User
 from app.plugins.deal_commerce import DealProduct
@@ -32,9 +34,15 @@ BUSINESS_ENTITY_TYPE = "business"
 
 
 class ProductCartService:
-    def __init__(self, db: Session, registry: PluginRegistry | None = None) -> None:
+    def __init__(
+        self,
+        db: Session,
+        registry: PluginRegistry | None = None,
+        gateway: PaymentGateway | None = None,
+    ) -> None:
         self._db = db
         self._registry = registry
+        self._gateway = gateway
         self._lines = ProductCartRepository(db)
         self._business_repository = BusinessRepository(db)
         self._businesses = BusinessService(db)
@@ -147,7 +155,11 @@ class ProductCartService:
             )
             for owner_id, business_lines in by_business.items()
         ]
-        placed = DirectOrderService(self._db, self._registry).place_many(entries, actor)
+        placed = DirectOrderService(self._db, self._registry, self._gateway).place_many(
+            entries, actor
+        )
+        if details.payment_method == PaymentMethod.ONLINE:
+            return placed
         for owner_id in by_business:
             self._lines.remove_for_business(actor.id, owner_id)
         self._commit()

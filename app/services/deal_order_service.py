@@ -9,6 +9,7 @@ from app.core.activity_actions import ActivityAction
 from app.core.config import get_settings
 from app.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
 from app.core.messages import DealMessages, OrderMessages
+from app.core.payments import PaymentGateway
 from app.models.deal import Deal
 from app.models.deal_item import DealItem
 from app.models.order import (
@@ -17,6 +18,7 @@ from app.models.order import (
     OrderItem,
     OrderStatus,
     OrderType,
+    PaymentMethod,
 )
 from app.models.user import User
 from app.models.user_address import UserAddress
@@ -37,7 +39,17 @@ from app.services.deal_delivery_service import DealDeliveryService
 from app.services.deal_expiry_service import DealExpiryService, deal_clock_now
 from app.services.delivery_plan_service import DeliveryTarget, expected_delivery_fields
 from app.services.delivery_request_service import DeliveryRequestService
+from app.services.earning_ledger import EarningLedger
+from app.services.finance_settings_service import (
+    FeeKind,
+    FinanceSettingsService,
+    snapshot_charges,
+)
 from app.services.order_numbers import new_order_number
+from app.services.order_payment_service import (
+    OrderPaymentService,
+    ensure_payment_method_available,
+)
 from app.services.user_address_service import UserAddressService, format_shipping_address
 
 ENTITY_TYPE = "deal"
@@ -96,8 +108,14 @@ def _currency(provider: DealCommerceProvider | None, db: Session, business_id: U
 
 
 class DealOrderService:
-    def __init__(self, db: Session, registry: PluginRegistry | None = None) -> None:
+    def __init__(
+        self,
+        db: Session,
+        registry: PluginRegistry | None = None,
+        gateway: PaymentGateway | None = None,
+    ) -> None:
         self._db = db
+        self._payments = OrderPaymentService(db, gateway, registry)
         self._deals = DealRepository(db)
         self._orders = OrderRepository(db)
         self._participants = DealParticipantRepository(db)
@@ -107,11 +125,15 @@ class DealOrderService:
         self._access = DealAccessPolicy(db)
         self._expiry = DealExpiryService(db)
         self._businesses = BusinessService(db)
+        self._finance = FinanceSettingsService(db)
+        self._earnings = EarningLedger(db)
         self._resolver = DealCommerceResolver(db, registry)
         self._addresses = UserAddressService(db)
         self._activity_logs = ActivityLogService(db)
 
     def place(self, deal_id: UUID, payload: DealOrderCreate, actor: User) -> OrderRead:
+        ensure_payment_method_available(payload.payment_method)
+        self._payments.expire_overdue_holds()
         self._expiry.expire_overdue()
         deal = get_deal(self._deals, deal_id)
         self._access.ensure_can_view(deal, actor)
@@ -139,6 +161,7 @@ class DealOrderService:
             )
         self._orders.lock_deal_items([line.item.id for line in lines])
         self._ensure_within_deal_limits(lines)
+        online = payload.payment_method == PaymentMethod.ONLINE
         order = self._orders.add(
             Order(
                 order_number=new_order_number(self._db),
@@ -151,7 +174,7 @@ class DealOrderService:
                 delivery_fee=plan.fee,
                 payment_method=payload.payment_method,
                 **expected_delivery_fields(plan),
-                status=OrderStatus.PENDING,
+                status=OrderStatus.AWAITING_PAYMENT if online else OrderStatus.PENDING,
                 customer_name=payload.customer_name,
                 customer_phone=payload.customer_phone,
                 shipping_address=format_shipping_address(shipped_to) if shipped_to else None,
@@ -164,7 +187,9 @@ class DealOrderService:
                 items=[_new_order_item(line) for line in lines],
             )
         )
-        order.total_amount = sum((item.line_total for item in order.items), Decimal(0)) + plan.fee
+        subtotal = sum((item.line_total for item in order.items), Decimal(0))
+        order.total_amount = subtotal + plan.fee
+        snapshot_charges(order, self._finance.charges_for(FeeKind.DEAL_ORDER, subtotal))
         if business_id is not None and provider is not None:
             provider.reserve_stock(
                 self._db,
@@ -177,9 +202,15 @@ class DealOrderService:
                 ],
                 actor.id,
             )
-        self._carts.remove_deal_items(actor.id, [line.item.id for line in lines])
-        request = self._delivery_requests.create(order, plan)
+        if not online:
+            self._carts.remove_deal_items(actor.id, [line.item.id for line in lines])
+        request = self._delivery_requests.create(order, plan, hold=online)
+        payment = self._payments.open_link_or_rollback(order)
         self._commit()
+        if payment is not None:
+            self._payments.log_link_created(actor, payment)
+        if online:
+            return OrderRead.from_order(order)
         self._activity_logs.log(
             actor=actor,
             action=ActivityAction.DEAL_ORDER_PLACED,
@@ -194,6 +225,7 @@ class DealOrderService:
             },
         )
         self._delivery_requests.announce(request, plan, order, actor)
+        self._earnings.sync_order(order.id, actor)
         return OrderRead.from_order(order)
 
     def _provider_for(self, business_id: UUID | None) -> DealCommerceProvider | None:

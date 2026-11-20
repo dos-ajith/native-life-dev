@@ -1,7 +1,9 @@
+import mimetypes
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Query
+from fastapi.responses import FileResponse
 
 from app.api.deps import CurrentActiveUserDep, DbSessionDep
 from app.core.messages import DeliveryMessages, DeliveryRequestMessages
@@ -17,6 +19,7 @@ from app.schemas.delivery_request import (
     NearMissRouteRead,
 )
 from app.schemas.response import SuccessResponse
+from app.services.delivery_proof_service import DeliveryProofService
 from app.services.delivery_request_service import DeliveryRequestService
 from app.services.eligible_route_service import EligibleRouteService
 
@@ -80,3 +83,11 @@ def re_request_my_order_delivery(
 ) -> SuccessResponse[DeliveryRequestRead]:
     delivery = DeliveryRequestService(db).re_request(order_id, payload, current_user)
     return SuccessResponse(message=DeliveryRequestMessages.RE_REQUESTED, data=delivery)
+
+
+@router.get("/me/orders/{order_id}/delivery/proof")
+def get_my_order_delivery_proof(
+    order_id: UUID, db: DbSessionDep, current_user: CurrentActiveUserDep
+) -> FileResponse:
+    path = DeliveryProofService(db).path_for_customer(order_id, current_user)
+    return FileResponse(path, media_type=mimetypes.guess_type(path)[0])

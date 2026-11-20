@@ -9,8 +9,16 @@ from sqlalchemy.orm import Session
 from app.core.activity_actions import ActivityAction
 from app.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
 from app.core.messages import DealMessages, OrderMessages
+from app.core.payments import PaymentGateway
 from app.models.delivery_request import DeliveryRequest
-from app.models.order import DeliveryOption, Order, OrderItem, OrderStatus, OrderType
+from app.models.order import (
+    DeliveryOption,
+    Order,
+    OrderItem,
+    OrderStatus,
+    OrderType,
+    PaymentMethod,
+)
 from app.models.user import User
 from app.models.user_address import UserAddress
 from app.plugins.deal_commerce import DealProduct, StockLine
@@ -29,7 +37,17 @@ from app.services.delivery_plan_service import (
     expected_delivery_fields,
 )
 from app.services.delivery_request_service import DeliveryRequestService
+from app.services.earning_ledger import EarningLedger
+from app.services.finance_settings_service import (
+    FeeKind,
+    FinanceSettingsService,
+    snapshot_charges,
+)
 from app.services.order_numbers import new_order_number
+from app.services.order_payment_service import (
+    OrderPaymentService,
+    ensure_payment_method_available,
+)
 from app.services.order_tax import tax_for
 from app.services.user_address_service import UserAddressService, format_shipping_address
 
@@ -74,14 +92,22 @@ def _new_order_item(product: DealProduct, quantity: int) -> OrderItem:
 
 
 class DirectOrderService:
-    def __init__(self, db: Session, registry: PluginRegistry | None = None) -> None:
+    def __init__(
+        self,
+        db: Session,
+        registry: PluginRegistry | None = None,
+        gateway: PaymentGateway | None = None,
+    ) -> None:
         self._db = db
+        self._payments = OrderPaymentService(db, gateway, registry)
         self._orders = OrderRepository(db)
         self._businesses = BusinessService(db)
         self._resolver = DealCommerceResolver(db, registry)
         self._addresses = UserAddressService(db)
         self._plans = DeliveryPlanService(db)
         self._delivery_requests = DeliveryRequestService(db)
+        self._finance = FinanceSettingsService(db)
+        self._earnings = EarningLedger(db)
         self._activity_logs = ActivityLogService(db)
 
     def place(self, business_id: UUID, payload: DirectOrderCreate, actor: User) -> OrderRead:
@@ -90,14 +116,23 @@ class DirectOrderService:
     def place_many(
         self, entries: Sequence[tuple[UUID, DirectOrderCreate]], actor: User
     ) -> list[OrderRead]:
+        for _, payload in entries:
+            ensure_payment_method_available(payload.payment_method)
+        self._payments.expire_overdue_holds()
         try:
             staged = [self._stage(business_id, payload, actor) for business_id, payload in entries]
+            payments = [self._payments.open_link(entry.order) for entry in staged]
         except Exception:
             self._db.rollback()
             raise
         self._commit()
+        for payment in payments:
+            if payment is not None:
+                self._payments.log_link_created(actor, payment)
         for entry in staged:
-            self._announce(entry, actor)
+            if entry.order.payment_method != PaymentMethod.ONLINE:
+                self._announce(entry, actor)
+                self._earnings.sync_order(entry.order.id, actor)
         return [OrderRead.from_order(entry.order) for entry in staged]
 
     def _stage(self, business_id: UUID, payload: DirectOrderCreate, actor: User) -> StagedOrder:
@@ -129,7 +164,11 @@ class DirectOrderService:
                 delivery_fee=plan.fee,
                 payment_method=payload.payment_method,
                 **expected_delivery_fields(plan),
-                status=OrderStatus.PENDING,
+                status=(
+                    OrderStatus.AWAITING_PAYMENT
+                    if payload.payment_method == PaymentMethod.ONLINE
+                    else OrderStatus.PENDING
+                ),
                 customer_name=payload.customer_name,
                 customer_phone=payload.customer_phone,
                 shipping_address=format_shipping_address(shipped_to) if shipped_to else None,
@@ -144,9 +183,9 @@ class DirectOrderService:
             )
         )
         order.tax_amount = sum((item.tax_amount for item in order.items), Decimal(0))
-        order.total_amount = (
-            sum((item.line_total for item in order.items), Decimal(0)) + order.tax_amount + plan.fee
-        )
+        subtotal = sum((item.line_total for item in order.items), Decimal(0))
+        order.total_amount = subtotal + order.tax_amount + plan.fee
+        snapshot_charges(order, self._finance.charges_for(FeeKind.DIRECT_ORDER, subtotal))
         provider.reserve_stock(
             self._db,
             business_id,
@@ -154,7 +193,8 @@ class DirectOrderService:
             [StockLine(product_id=product.id, quantity=quantity) for product, quantity in ordered],
             actor.id,
         )
-        return StagedOrder(order, plan, self._delivery_requests.create(order, plan))
+        hold = payload.payment_method == PaymentMethod.ONLINE
+        return StagedOrder(order, plan, self._delivery_requests.create(order, plan, hold=hold))
 
     def _announce(self, entry: StagedOrder, actor: User) -> None:
         order = entry.order

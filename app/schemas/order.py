@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.order import DeliveryOption, OrderStatus, OrderType, PaymentMethod
 from app.schemas.base import BaseReadSchema
+from app.schemas.payment import OrderPaymentRead
 from app.schemas.validators import NonBlankStr
 
 if TYPE_CHECKING:
@@ -80,9 +81,15 @@ class OrderRead(BaseReadSchema):
     currency: str
     tax_amount: Decimal
     total_amount: Decimal
+    platform_fee_percent: Decimal
+    platform_fee_amount: Decimal
+    commission_percent: Decimal
+    commission_amount: Decimal
+    gateway_charge_percent: Decimal
     cancellation_reason: str | None
     cancelled_at: datetime | None
     items: list[OrderItemRead]
+    payment: OrderPaymentRead | None
     created_at: datetime
     updated_at: datetime
 
@@ -113,9 +120,19 @@ class OrderRead(BaseReadSchema):
             currency=order.currency,
             tax_amount=order.tax_amount,
             total_amount=order.total_amount,
+            platform_fee_percent=order.platform_fee_percent,
+            platform_fee_amount=order.platform_fee_amount,
+            commission_percent=order.commission_percent,
+            commission_amount=order.commission_amount,
+            gateway_charge_percent=order.gateway_charge_percent,
             cancellation_reason=order.cancellation_reason,
             cancelled_at=order.cancelled_at,
             items=[OrderItemRead.from_item(item) for item in order.items],
+            payment=(
+                OrderPaymentRead.model_validate(order.payment)
+                if order.payment is not None
+                else None
+            ),
             created_at=order.created_at,
             updated_at=order.updated_at,
         )

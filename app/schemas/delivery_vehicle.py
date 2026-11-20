@@ -30,3 +30,8 @@ class DeliveryVehicleRead(BaseReadSchema):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
+
+class TeamVehicleRead(DeliveryVehicleRead):
+    courier_id: UUID | None = None
+    courier_name: str | None = None

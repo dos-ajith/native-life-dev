@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -37,9 +38,13 @@ COMMUNITY_NAME_METADATA_KEY = "community_name"
 BUSINESS_ENTITY_TYPE = "business"
 BUSINESS_NAME_METADATA_KEY = "business_name"
 DEAL_ENTITY_TYPE = "deal"
+BOOKING_ENTITY_TYPE = "booking"
 DEAL_NAME_METADATA_KEY = "deal_name"
+PLUGIN_ITEM_NAME_METADATA_KEY = "plugin_item_name"
 DELIVERY_ENTITY_TYPE = "delivery_request"
 ORDER_NUMBER_METADATA_KEY = "order_number"
+AMOUNT_METADATA_KEY = "amount"
+HANDOVER_OTP_METADATA_KEY = "handover_otp"
 LOST_FOUND_ENTITY_TYPE = "lost_found_item"
 LOST_ITEM_KIND = "lost"
 ITEM_TITLE_METADATA_KEY = "item_title"
@@ -86,10 +91,25 @@ NOTIFICATION_MESSAGE_TEMPLATES = {
     NotificationType.DEAL_PROMOTED_FOR_BUSINESS: NotificationMessages.DEAL_PROMOTED_FOR_BUSINESS,
     NotificationType.DEAL_REPUBLISH_REQUESTED: NotificationMessages.DEAL_REPUBLISH_REQUESTED,
     NotificationType.DEAL_BLOCKED: NotificationMessages.DEAL_BLOCKED,
+    NotificationType.PLUGIN_APPROVAL_REQUESTED: NotificationMessages.PLUGIN_APPROVAL_REQUESTED,
+    NotificationType.PLUGIN_APPROVAL_APPROVED: NotificationMessages.PLUGIN_APPROVAL_APPROVED,
+    NotificationType.PLUGIN_APPROVAL_REJECTED: NotificationMessages.PLUGIN_APPROVAL_REJECTED,
+    NotificationType.BOOKING_REQUESTED: NotificationMessages.BOOKING_REQUESTED,
+    NotificationType.BOOKING_CONFIRMED: NotificationMessages.BOOKING_CONFIRMED,
+    NotificationType.BOOKING_REJECTED: NotificationMessages.BOOKING_REJECTED,
+    NotificationType.BOOKING_CANCELLED: NotificationMessages.BOOKING_CANCELLED,
+    NotificationType.BOOKING_COMPLETED: NotificationMessages.BOOKING_COMPLETED,
+    NotificationType.BOOKING_PAID: NotificationMessages.BOOKING_PAID,
+    NotificationType.COD_DUES_OWED: NotificationMessages.COD_DUES_OWED,
+    NotificationType.DUES_STATEMENT: NotificationMessages.DUES_STATEMENT,
+    NotificationType.DUES_PAID: NotificationMessages.DUES_PAID,
+    NotificationType.PAYOUT_PAID: NotificationMessages.PAYOUT_PAID,
     NotificationType.DEAL_REPUBLISH_APPROVED: NotificationMessages.DEAL_REPUBLISH_APPROVED,
     NotificationType.DEAL_REPUBLISH_REJECTED: NotificationMessages.DEAL_REPUBLISH_REJECTED,
     NotificationType.DELIVERY_REQUESTED: NotificationMessages.DELIVERY_REQUESTED,
     NotificationType.DELIVERY_ACCEPTED: NotificationMessages.DELIVERY_ACCEPTED,
+    NotificationType.DELIVERY_STARTED: NotificationMessages.DELIVERY_STARTED,
+    NotificationType.DELIVERY_DELIVERED: NotificationMessages.DELIVERY_DELIVERED,
     NotificationType.DELIVERY_REJECTED: NotificationMessages.DELIVERY_REJECTED,
     NotificationType.DELIVERY_EXPIRED: NotificationMessages.DELIVERY_EXPIRED,
     NotificationType.LOST_FOUND_NEARBY: NotificationMessages.LOST_FOUND_NEARBY,
@@ -460,6 +480,75 @@ class NotificationService:
             metadata={DEAL_NAME_METADATA_KEY: deal_name},
         )
 
+    def notify_plugin_approval(
+        self,
+        recipient_id: UUID,
+        actor: User,
+        type_: NotificationType,
+        entity_type: str,
+        entity_id: UUID,
+        item_name: str,
+        review_note: str | None = None,
+    ) -> None:
+        metadata: dict[str, Any] = {PLUGIN_ITEM_NAME_METADATA_KEY: item_name}
+        if review_note:
+            metadata[RESPONSE_NOTE_METADATA_KEY] = review_note
+        self._create_if_enabled(
+            recipient_id=recipient_id,
+            actor_id=actor.id,
+            type_=type_,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            is_enabled=lambda settings: settings.system_updates,
+            metadata=metadata,
+        )
+
+    def notify_booking(
+        self,
+        recipient_id: UUID,
+        actor: User,
+        type_: NotificationType,
+        booking_id: UUID,
+        booking_number: str,
+        item_name: str,
+        note: str | None = None,
+    ) -> None:
+        metadata: dict[str, Any] = {
+            ORDER_NUMBER_METADATA_KEY: booking_number,
+            PLUGIN_ITEM_NAME_METADATA_KEY: item_name,
+        }
+        if note:
+            metadata[RESPONSE_NOTE_METADATA_KEY] = note
+        self._create_if_enabled(
+            recipient_id=recipient_id,
+            actor_id=actor.id,
+            type_=type_,
+            entity_type=BOOKING_ENTITY_TYPE,
+            entity_id=booking_id,
+            is_enabled=lambda settings: settings.system_updates,
+            metadata=metadata,
+        )
+
+    def notify_finance(
+        self,
+        recipient_id: UUID,
+        actor_id: UUID | None,
+        type_: NotificationType,
+        entity_type: str,
+        entity_id: UUID,
+        amount: str,
+        reference: str = "",
+    ) -> None:
+        self._create_if_enabled(
+            recipient_id=recipient_id,
+            actor_id=actor_id,
+            type_=type_,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            is_enabled=lambda settings: settings.system_updates,
+            metadata={AMOUNT_METADATA_KEY: amount, ORDER_NUMBER_METADATA_KEY: reference},
+        )
+
     def notify_delivery(
         self,
         recipient_id: UUID,
@@ -467,7 +556,11 @@ class NotificationService:
         type_: NotificationType,
         request_id: UUID,
         order_number: str,
+        handover_otp: str | None = None,
     ) -> None:
+        metadata = {ORDER_NUMBER_METADATA_KEY: order_number}
+        if handover_otp is not None:
+            metadata[HANDOVER_OTP_METADATA_KEY] = handover_otp
         self._create_if_enabled(
             recipient_id=recipient_id,
             actor_id=actor_id,
@@ -475,8 +568,13 @@ class NotificationService:
             entity_type=DELIVERY_ENTITY_TYPE,
             entity_id=request_id,
             is_enabled=lambda settings: settings.system_updates,
-            metadata={ORDER_NUMBER_METADATA_KEY: order_number},
+            metadata=metadata,
         )
+
+    def delivery_notified_since(
+        self, recipient_id: UUID, type_: NotificationType, request_id: UUID, since: datetime
+    ) -> bool:
+        return self._notifications.exists_for_entity_since(recipient_id, type_, request_id, since)
 
     def notify_lost_found_nearby(
         self, recipient_id: UUID, actor: User, item_id: UUID, item_title: str, item_kind: str
@@ -728,9 +826,12 @@ class NotificationService:
             review_note=metadata.get(REVIEW_NOTE_METADATA_KEY, ""),
             business_name=metadata.get(BUSINESS_NAME_METADATA_KEY, ""),
             deal_name=metadata.get(DEAL_NAME_METADATA_KEY, ""),
+            plugin_item_name=metadata.get(PLUGIN_ITEM_NAME_METADATA_KEY, ""),
             order_number=metadata.get(ORDER_NUMBER_METADATA_KEY, ""),
+            handover_otp=metadata.get(HANDOVER_OTP_METADATA_KEY, ""),
             item_title=metadata.get(ITEM_TITLE_METADATA_KEY, ""),
             item_kind=metadata.get(ITEM_KIND_METADATA_KEY, ""),
+            amount=metadata.get(AMOUNT_METADATA_KEY, ""),
         )
         note = metadata.get(RESPONSE_NOTE_METADATA_KEY)
         if note:

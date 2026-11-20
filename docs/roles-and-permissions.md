@@ -97,6 +97,8 @@ keeps full access even if a new permission is added before the seeder runs.
 | `business.delete_any` | ✓ |  |  |  |  |  |
 | `business.escalate` | ✓ | ✓ |  |  |  |  |
 | `business.create_any` | ✓ | ✓ |  |  |  |  |
+| `earning.view_any` | ✓ |  |  |  |  |  |
+| `payout.manage` | ✓ |  |  |  |  |  |
 | `deal.create` | ✓ |  | ✓ | ✓ | ✓ | ✓ |
 | `deal.view_any` | ✓ |  |  |  |  |  |
 | `role_upgrade_request.create` | ✓ |  | ✓ | ✓ | ✓ | ✓ |

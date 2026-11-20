@@ -16,6 +16,7 @@ def _with_relations() -> list[ExecutableOption]:
         joinedload(DeliveryRoute.village).options(defer(GisVillage.geom)),
         joinedload(DeliveryRoute.vehicle),
         joinedload(DeliveryRoute.promoter),
+        joinedload(DeliveryRoute.courier),
     ]
 
 
@@ -32,6 +33,15 @@ class DeliveryRouteRepository:
             select(DeliveryRoute)
             .options(*_with_relations())
             .where(DeliveryRoute.user_id == user_id)
+            .order_by(DeliveryRoute.created_at)
+        )
+        return list(self._db.scalars(stmt))
+
+    def list_by_courier(self, courier_id: UUID) -> list[DeliveryRoute]:
+        stmt = (
+            select(DeliveryRoute)
+            .options(*_with_relations())
+            .where(DeliveryRoute.courier_id == courier_id)
             .order_by(DeliveryRoute.created_at)
         )
         return list(self._db.scalars(stmt))

@@ -2,7 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from app.api.deps import CurrentActiveUserDep, DbSessionDep
+from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaymentGatewayDep
 from app.core.messages import DealMessages
 from app.core.openapi_tags import ApiTag
 from app.plugins.deps import PluginRegistryDep
@@ -20,7 +20,8 @@ def place_deal_order(
     payload: DealOrderCreate,
     db: DbSessionDep,
     registry: PluginRegistryDep,
+    gateway: PaymentGatewayDep,
     current_user: CurrentActiveUserDep,
 ) -> SuccessResponse[OrderRead]:
-    order = DealOrderService(db, registry).place(deal_id, payload, current_user)
+    order = DealOrderService(db, registry, gateway).place(deal_id, payload, current_user)
     return SuccessResponse(message=DealMessages.ORDER_PLACED, data=order)

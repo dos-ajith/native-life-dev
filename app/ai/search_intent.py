@@ -15,12 +15,18 @@ SEARCH_INTENT_INSTRUCTIONS = (
     "You convert a Native Life app user's message into a search request. Native Life "
     "is a location-based app with posts and businesses. Reply with one JSON object and "
     "nothing else, using exactly these keys:\n"
-    '{"search": boolean, "intent": string or null, "keywords": [string], '
+    '{"search": boolean, "create_deal": boolean, "intent": string or null, '
+    '"keywords": [string], '
     '"location": string or null, "near_me": boolean, '
     '"budget": "low" | "medium" | "high" | null}\n'
     "- search: true when the user wants to discover, find, browse or get recommendations "
     "for places, food, stays, trips, experiences, businesses or posts. false for "
-    "greetings, questions about how the app works, and unrelated requests.\n"
+    "greetings, questions about how the app works, and unrelated requests. Also false "
+    "when the user wants to create, sell, list, post or save something (for example a "
+    "deal), or is answering a question about it such as a title, category, price, "
+    "quantity, date or address.\n"
+    "- create_deal: true when the user says they want to create, start, post or sell "
+    "something as a deal or offer; otherwise false. When true, search must be false.\n"
     "- intent: a short snake_case label such as food_discovery, stay_discovery, "
     "trip_planning or post_search.\n"
     "- keywords: up to 8 lowercase single words in singular base form that posts or "
@@ -39,6 +45,7 @@ SEARCH_INTENT_INSTRUCTIONS = (
 
 class SearchIntent(BaseModel):
     search: bool = False
+    create_deal: bool = False
     intent: str | None = None
     keywords: list[str] = Field(default_factory=list)
     location: str | None = None
@@ -66,7 +73,11 @@ class SearchIntent(BaseModel):
 
     @property
     def is_searchable(self) -> bool:
-        return self.search and bool(self.keywords or self.location or self.near_me)
+        return (
+            self.search
+            and not self.create_deal
+            and bool(self.keywords or self.location or self.near_me)
+        )
 
 
 def _no_tools(name: str, arguments: dict[str, Any]) -> dict[str, Any]:

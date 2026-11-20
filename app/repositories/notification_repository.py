@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import func, select, update
@@ -39,6 +40,21 @@ class NotificationRepository:
             )
             or 0
         ) > 0
+
+    def exists_for_entity_since(
+        self, recipient_id: UUID, type_: NotificationType, entity_id: UUID, since: datetime
+    ) -> bool:
+        found = self._db.scalar(
+            select(Notification.id)
+            .where(
+                Notification.recipient_id == recipient_id,
+                Notification.type == type_,
+                Notification.entity_id == entity_id,
+                Notification.created_at >= since,
+            )
+            .limit(1)
+        )
+        return found is not None
 
     def list_recipient_ids_for_entity(
         self, entity_id: UUID, types: Sequence[NotificationType]

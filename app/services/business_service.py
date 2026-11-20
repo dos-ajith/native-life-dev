@@ -17,6 +17,7 @@ from app.core.timezone import app_now
 from app.models.business import Business, BusinessStatus, BusinessVerificationStatus
 from app.models.business_document import BusinessDocument
 from app.models.business_image import BusinessImage
+from app.models.gis_village import GisVillage
 from app.models.user import User, UserStatus
 from app.repositories.business_repository import BusinessDiscoveryRow, BusinessRepository
 from app.repositories.gis_village_repository import GisVillageRepository
@@ -92,9 +93,16 @@ class BusinessService:
         self._villages = GisVillageRepository(db)
         self._notifications = NotificationService(db)
 
-    def _notify_reviewers(self, business: Business, actor: User) -> None:
-        village = None
-        if business.latitude is not None and business.longitude is not None:
+    def _village_at(self, latitude: float, longitude: float) -> GisVillage:
+        village = self._villages.find_containing_point(latitude, longitude)
+        if village is None:
+            raise BusinessRuleError(BusinessMessages.OUTSIDE_COVERAGE)
+        return village
+
+    def _notify_reviewers(
+        self, business: Business, actor: User, village: GisVillage | None = None
+    ) -> None:
+        if village is None and business.latitude is not None and business.longitude is not None:
             village = self._villages.find_containing_point(business.latitude, business.longitude)
         self._notifications.notify_business_submitted(
             actor,
@@ -114,6 +122,7 @@ class BusinessService:
         self._ensure_can_create(actor)
         self._ensure_name_available(actor.id, payload.name)
         self._categories.ensure_assignable(payload.category_id)
+        village = self._village_at(payload.latitude, payload.longitude)
         created = self._persist(
             Business(
                 owner_id=actor.id,
@@ -121,6 +130,10 @@ class BusinessService:
                 name=payload.name,
                 description=payload.description,
                 location=_location_from(payload),
+                address_line=payload.address_line,
+                landmark=payload.landmark,
+                pincode=payload.pincode,
+                village_id=village.id,
                 status=BusinessStatus.INACTIVE,
                 verification_status=BusinessVerificationStatus.PENDING,
             ),
@@ -130,7 +143,7 @@ class BusinessService:
             ip_address,
             user_agent,
         )
-        self._notify_reviewers(created.business, actor)
+        self._notify_reviewers(created.business, actor, village)
         return created
 
     def create_for_owner(
@@ -158,6 +171,10 @@ class BusinessService:
                 name=payload.name,
                 description=payload.description,
                 location=_location_from(payload),
+                address_line=payload.address_line,
+                landmark=payload.landmark,
+                pincode=payload.pincode,
+                village_id=self._village_at(payload.latitude, payload.longitude).id,
                 status=BusinessStatus.ACTIVE,
                 verification_status=BusinessVerificationStatus.VERIFIED,
                 reviewed_by=admin.id,
@@ -364,18 +381,23 @@ class BusinessService:
         business = self.get(business_id)
         self.ensure_can_modify(business, actor, PermissionName.BUSINESS_UPDATE_ANY)
         data = payload.model_dump(exclude_none=True, exclude={"latitude", "longitude"})
+        if "landmark" in payload.model_fields_set and payload.landmark is None:
+            data["landmark"] = None
         if data.get("status") == BusinessStatus.ACTIVE and business.status != BusinessStatus.ACTIVE:
             self._ensure_can_publish(business, actor)
         if "category_id" in data and data["category_id"] != business.category_id:
             self._categories.ensure_assignable(data["category_id"])
         if "name" in data:
             self._ensure_name_available(business.owner_id, data["name"], business.id)
+        village = None
+        if payload.latitude is not None and payload.longitude is not None:
+            village = self._village_at(payload.latitude, payload.longitude)
         for field, value in data.items():
             setattr(business, field, value)
-        location = _location_from(payload)
         updated_fields = list(data.keys())
-        if location is not None:
-            business.location = location
+        if village is not None:
+            business.village_id = village.id
+            business.location = _location_from(payload)
             updated_fields.append("location")
         saved = self._businesses.save(business)
         self._activity_logs.log(

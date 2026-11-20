@@ -10,9 +10,14 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.category import Category
+from app.models.gis_village import GisVillage
 
 if TYPE_CHECKING:
     from app.models.user import User
+
+ADDRESS_LINE_LENGTH = 255
+LANDMARK_LENGTH = 150
+PINCODE_LENGTH = 6
 
 
 class BusinessStatus(enum.StrEnum):
@@ -73,8 +78,16 @@ class Business(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     escalation_note: Mapped[str | None] = mapped_column(Text(), default=None)
     deleted_at: Mapped[datetime | None] = mapped_column(default=None)
 
+    address_line: Mapped[str | None] = mapped_column(String(ADDRESS_LINE_LENGTH), default=None)
+    landmark: Mapped[str | None] = mapped_column(String(LANDMARK_LENGTH), default=None)
+    pincode: Mapped[str | None] = mapped_column(String(PINCODE_LENGTH), default=None)
+    village_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("gis_villages.id", ondelete="RESTRICT"), default=None
+    )
+
     owner: Mapped["User"] = relationship(foreign_keys=[owner_id])
     category: Mapped[Category | None] = relationship()
+    village: Mapped[GisVillage | None] = relationship()
 
     @property
     def latitude(self) -> float | None:

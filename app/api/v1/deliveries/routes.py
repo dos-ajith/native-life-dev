@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, status
 
 from app.api.deps import DbSessionDep
-from app.api.v1.deals.permissions import DeliverySettingsManagerDep
+from app.api.v1.deliveries.permissions import VerifiedPromoterDep
 from app.core.messages import DeliveryRouteMessages
 from app.core.openapi_tags import ApiTag
 from app.schemas.delivery_route import DeliveryRouteCreate, DeliveryRouteRead, DeliveryRouteUpdate
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/me/delivery-routes", tags=[ApiTag.DELIVERY_ROUTES])
 
 @router.get("", response_model=SuccessResponse[list[DeliveryRouteRead]])
 def list_my_routes(
-    db: DbSessionDep, current_user: DeliverySettingsManagerDep
+    db: DbSessionDep, current_user: VerifiedPromoterDep
 ) -> SuccessResponse[list[DeliveryRouteRead]]:
     routes = DeliveryRouteService(db).list_for(current_user)
     return SuccessResponse(
@@ -28,7 +28,7 @@ def list_my_routes(
     "", response_model=SuccessResponse[DeliveryRouteRead], status_code=status.HTTP_201_CREATED
 )
 def create_my_route(
-    payload: DeliveryRouteCreate, db: DbSessionDep, current_user: DeliverySettingsManagerDep
+    payload: DeliveryRouteCreate, db: DbSessionDep, current_user: VerifiedPromoterDep
 ) -> SuccessResponse[DeliveryRouteRead]:
     route = DeliveryRouteService(db).create(payload, current_user)
     return SuccessResponse(
@@ -38,7 +38,7 @@ def create_my_route(
 
 @router.get("/{route_id}", response_model=SuccessResponse[DeliveryRouteRead])
 def get_my_route(
-    route_id: UUID, db: DbSessionDep, current_user: DeliverySettingsManagerDep
+    route_id: UUID, db: DbSessionDep, current_user: VerifiedPromoterDep
 ) -> SuccessResponse[DeliveryRouteRead]:
     route = DeliveryRouteService(db).get_owned(route_id, current_user)
     return SuccessResponse(
@@ -51,7 +51,7 @@ def update_my_route(
     route_id: UUID,
     payload: DeliveryRouteUpdate,
     db: DbSessionDep,
-    current_user: DeliverySettingsManagerDep,
+    current_user: VerifiedPromoterDep,
 ) -> SuccessResponse[DeliveryRouteRead]:
     route = DeliveryRouteService(db).update(route_id, payload, current_user)
     return SuccessResponse(
@@ -61,7 +61,7 @@ def update_my_route(
 
 @router.delete("/{route_id}", response_model=SuccessResponse[None])
 def delete_my_route(
-    route_id: UUID, db: DbSessionDep, current_user: DeliverySettingsManagerDep
+    route_id: UUID, db: DbSessionDep, current_user: VerifiedPromoterDep
 ) -> SuccessResponse[None]:
     DeliveryRouteService(db).delete(route_id, current_user)
     return SuccessResponse(message=DeliveryRouteMessages.DELETED, data=None)

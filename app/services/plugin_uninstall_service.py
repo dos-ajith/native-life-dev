@@ -15,7 +15,7 @@ from app.models.user import User
 from app.plugins.discovery import discover_plugins
 from app.plugins.errors import PluginError
 from app.plugins.media import delete_plugin_media
-from app.plugins.packaging import PACKAGES_DIRECTORY, package_plugin
+from app.plugins.packaging import PACKAGES_DIRECTORY, back_up_plugin
 from app.plugins.runtime import unload_from_running_app
 from app.repositories.plugin_repository import PluginRepository
 from app.schemas.plugin import PluginUninstallRead
@@ -96,7 +96,7 @@ class PluginUninstallService:
 
     def _back_up(self, key: str) -> Path:
         try:
-            return package_plugin(self._plugins_dir, key, self._packages_dir).path
+            return back_up_plugin(self._plugins_dir, key, self._packages_dir).path
         except (PluginError, OSError) as exc:
             message = exc.message if isinstance(exc, PluginError) else str(exc)
             raise BusinessRuleError(

@@ -16,18 +16,27 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 ROUTE_NAME_LENGTH = 100
+ROUTE_LABEL_LENGTH = 150
 
 
 class DeliveryRoute(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "delivery_routes"
-    __table_args__ = (Index("ix_delivery_routes_user_id", "user_id"),)
+    __table_args__ = (
+        Index("ix_delivery_routes_user_id", "user_id"),
+        Index("ix_delivery_routes_courier_id", "courier_id"),
+    )
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     village_id: Mapped[UUID] = mapped_column(ForeignKey("gis_villages.id", ondelete="RESTRICT"))
     vehicle_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("delivery_vehicles.id", ondelete="SET NULL"), default=None
     )
+    courier_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
     name: Mapped[str] = mapped_column(String(ROUTE_NAME_LENGTH))
+    start_label: Mapped[str | None] = mapped_column(String(ROUTE_LABEL_LENGTH), default=None)
+    end_label: Mapped[str | None] = mapped_column(String(ROUTE_LABEL_LENGTH), default=None)
     start_point: Mapped[Any] = mapped_column(
         Geometry(geometry_type="POINT", srid=4326, spatial_index=False)
     )
@@ -47,6 +56,7 @@ class DeliveryRoute(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     village: Mapped[GisVillage] = relationship()
     promoter: Mapped["User"] = relationship(foreign_keys=[user_id])
     vehicle: Mapped[DeliveryVehicle | None] = relationship()
+    courier: Mapped["User | None"] = relationship(foreign_keys=[courier_id])
 
     @property
     def path_coordinates(self) -> list[tuple[float, float]] | None:

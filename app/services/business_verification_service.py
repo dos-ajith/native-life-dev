@@ -14,6 +14,7 @@ from app.models.business import Business, BusinessStatus, BusinessVerificationSt
 from app.models.business_document import BusinessDocument, BusinessDocumentStatus
 from app.models.business_image import BusinessImage
 from app.models.user import User
+from app.plugins.registry import PluginRegistry
 from app.repositories.business_document_repository import BusinessDocumentRepository
 from app.repositories.business_image_repository import BusinessImageRepository
 from app.repositories.business_repository import BusinessCounts, BusinessRepository
@@ -24,6 +25,7 @@ from app.schemas.pagination import PaginationParams
 from app.services.activity_log_service import ActivityLogService
 from app.services.authorization_service import is_super_admin
 from app.services.business_attachment_storage import BusinessUploads
+from app.services.business_plugin_service import BusinessPluginService
 from app.services.business_service import BusinessService, CreatedBusiness
 from app.services.notification_service import NotificationService
 
@@ -67,6 +69,7 @@ class BusinessVerificationService:
         self._villages = GisVillageRepository(db)
         self._notifications = NotificationService(db)
         self._activity_logs = ActivityLogService(db)
+        self._business_plugins = BusinessPluginService(db)
 
     def list_for_review(
         self, query: BusinessReviewQuery, params: PaginationParams, admin: User
@@ -150,7 +153,7 @@ class BusinessVerificationService:
         )
         return saved
 
-    def approve(self, business_id: UUID, admin: User) -> Business:
+    def approve(self, business_id: UUID, admin: User, registry: PluginRegistry) -> Business:
         business = self._get_resolvable(business_id, admin)
         business.verification_status = BusinessVerificationStatus.VERIFIED
         business.status = BusinessStatus.ACTIVE
@@ -163,6 +166,7 @@ class BusinessVerificationService:
             entity_id=saved.id,
             metadata={"owner_id": str(saved.owner_id)},
         )
+        self._business_plugins.enable_for_category(saved, admin, registry)
         self._notifications.notify_business_approved(saved.owner_id, admin, saved.id, saved.name)
         return saved
 

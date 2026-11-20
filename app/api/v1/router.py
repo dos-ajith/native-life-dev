@@ -9,6 +9,8 @@ from app.api.v1.ai import routes as ai_routes
 from app.api.v1.auth import google_routes as google_auth_routes
 from app.api.v1.auth import phone_routes as phone_auth_routes
 from app.api.v1.auth import routes as auth_routes
+from app.api.v1.bookings import business as booking_business_routes
+from app.api.v1.bookings import routes as booking_routes
 from app.api.v1.business_plugins import routes as business_plugin_routes
 from app.api.v1.businesses import admin_routes as business_admin_routes
 from app.api.v1.businesses import documents as business_document_routes
@@ -32,11 +34,14 @@ from app.api.v1.deals import orders as deal_order_routes
 from app.api.v1.deals import owner_review as deal_owner_review_routes
 from app.api.v1.deals import participation as deal_participation_routes
 from app.api.v1.deals import routes as deal_routes
+from app.api.v1.deliveries import courier as delivery_courier_routes
 from app.api.v1.deliveries import customer as delivery_customer_routes
 from app.api.v1.deliveries import requests as delivery_request_routes
 from app.api.v1.deliveries import routes as delivery_route_routes
+from app.api.v1.deliveries import team as delivery_team_routes
 from app.api.v1.deliveries import tracking as delivery_tracking_routes
 from app.api.v1.deliveries import vehicles as delivery_vehicle_routes
+from app.api.v1.earnings import routes as earning_routes
 from app.api.v1.events import images as event_image_routes
 from app.api.v1.events import routes as event_routes
 from app.api.v1.explore import routes as explore_routes
@@ -55,6 +60,8 @@ from app.api.v1.orders import routes as order_routes
 from app.api.v1.orders import seller as order_seller_routes
 from app.api.v1.pages import mobile as mobile_page_routes
 from app.api.v1.pages import routes as page_routes
+from app.api.v1.payments import routes as payment_routes
+from app.api.v1.payouts import routes as payout_routes
 from app.api.v1.permissions import routes as permission_routes
 from app.api.v1.plugins import admin_routes as plugin_admin_routes
 from app.api.v1.popular_places import admin_routes as popular_place_admin_routes
@@ -150,11 +157,13 @@ api_router.include_router(deal_image_routes.router)
 api_router.include_router(deal_acceptance_routes.router)
 api_router.include_router(deal_acceptance_routes.me_router)
 api_router.include_router(deal_delivery_routes.router)
+api_router.include_router(delivery_team_routes.router)
 api_router.include_router(delivery_vehicle_routes.router)
 api_router.include_router(delivery_route_routes.router)
 api_router.include_router(delivery_request_routes.router)
 api_router.include_router(delivery_tracking_routes.router)
 api_router.include_router(delivery_customer_routes.router)
+api_router.include_router(delivery_courier_routes.router)
 api_router.include_router(deal_delivery_routes.settings_router)
 api_router.include_router(deal_participation_routes.router)
 api_router.include_router(deal_participation_routes.me_router)
@@ -163,5 +172,11 @@ api_router.include_router(cart_routes.router)
 api_router.include_router(order_routes.router)
 api_router.include_router(order_routes.business_router)
 api_router.include_router(order_business_routes.router)
+api_router.include_router(booking_routes.router)
+api_router.include_router(booking_routes.place_router)
+api_router.include_router(booking_business_routes.router)
+api_router.include_router(payment_routes.router)
 api_router.include_router(order_seller_routes.router)
 api_router.include_router(plugin_admin_routes.router)
+api_router.include_router(earning_routes.router)
+api_router.include_router(payout_routes.router)

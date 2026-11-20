@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 
-from app.core.permissions import GUEST_PERMISSIONS, RoleSlug
+from app.core.permissions import ADMIN_ROLE_SLUGS, GUEST_PERMISSIONS, RoleSlug
 from app.models.role import Role
 from app.models.user import User
 
@@ -21,6 +21,10 @@ def has_any_permission(user: User, permissions: Iterable[str]) -> bool:
 
 def is_super_admin(user: User) -> bool:
     return any(role.slug == RoleSlug.SUPER_ADMIN for role in user.approved_roles)
+
+
+def is_admin(user: User) -> bool:
+    return any(role.slug in ADMIN_ROLE_SLUGS for role in user.approved_roles)
 
 
 def guest_has_permission(permission: str) -> bool:

@@ -199,6 +199,7 @@ class BusinessMessages:
     NAME_ALREADY_USED = "You already have a business with this name"
     INVALID_CATEGORY = "Category does not exist or is not active"
     LOCATION_INCOMPLETE = "latitude and longitude must be provided together"
+    OUTSIDE_COVERAGE = "The business location must be inside a supported village"
     RADIUS_REQUIRES_LOCATION = "radius_meters requires latitude and longitude"
     DOCUMENT_ADDED = "Business document added"
     DOCUMENTS_RETRIEVED = "Business documents retrieved"
@@ -391,6 +392,45 @@ class DealMessages:
     LEAVE_BLOCKED_BY_ORDERS = "You cannot leave a deal while you have an order on it"
 
 
+class BookingMessages:
+    PLACED = "Booking requested"
+    RETRIEVED = "Booking retrieved"
+    LIST_RETRIEVED = "Bookings retrieved"
+    CONFIRMED = "Booking confirmed"
+    REJECTED = "Booking rejected"
+    CANCELLED = "Booking cancelled"
+    COMPLETED = "Booking completed"
+    NOT_FOUND = "Booking not found"
+    UNAVAILABLE = "This business does not take bookings"
+    ITEM_UNAVAILABLE = "This item cannot be booked right now"
+    BUSINESS_NOT_ACTIVE = "This business is not accepting bookings"
+    OWN_BUSINESS = "You cannot book your own business"
+    START_IN_PAST = "The start date cannot be in the past"
+    END_BEFORE_START = "The end date cannot be before the start date"
+    NOT_BUSINESS_OWNER = "Only the business owner can respond to a booking"
+    NOT_YOUR_BOOKING = "You can only access your own bookings"
+    NOT_REQUESTED = "Only a requested booking can be confirmed or rejected"
+    NOT_CONFIRMED = "Only a confirmed booking can be completed or cancelled by the business"
+    NOT_CANCELLABLE = "This booking can no longer be cancelled"
+
+
+class PaymentMessages:
+    LINK_DESCRIPTION = (
+        "{item} · {party_size} × {unit_price} = {subtotal} + tax {tax_percent}% {tax_amount}"
+    )
+    RECEIVED = "Payment received"
+    STATUS_RETRIEVED = "Payment status retrieved"
+    WEBHOOK_PROCESSED = "Webhook processed"
+    NO_PAYMENT = "No payment link was found"
+    SIGNATURE_INVALID = "The payment signature is invalid"
+    GATEWAY_FAILED = "The payment gateway could not be reached; try again"
+    GATEWAY_DISABLED = "Online payment is not configured"
+    ORDER_LINK_DESCRIPTION = (
+        "Order {order_number} · items {items_total} (incl. tax {tax_amount})"
+        " + delivery {delivery_fee}"
+    )
+
+
 class OrderMessages:
     RETRIEVED = "Order retrieved"
     LIST_RETRIEVED = "Orders retrieved"
@@ -400,9 +440,14 @@ class OrderMessages:
     CANCELLED = "Order cancelled"
     NOT_FOUND = "Order not found"
     USE_CANCEL = "Use the cancel endpoint to cancel an order"
+    DELIVERED_BY_COURIER = (
+        "Delivered orders are completed by the delivery person with an OTP and a photo"
+    )
     TRANSITION_INVALID = "An order cannot move from '{current}' to '{target}'"
     NOT_CANCELLABLE = "An order with status '{current}' cannot be cancelled"
     CONFLICT = "The order could not be saved; try again"
+    PAYMENT_REQUIRED = "This order is paid online; it can be shipped once the payment is received"
+    PAYMENT_NOT_COMPLETED = "Online payment was not completed"
 
 
 class DeliveryMessages:
@@ -414,6 +459,8 @@ class DeliveryMessages:
     WORKING_DAYS_INVALID = "working_days must list each weekday once, from 1 (Monday) to 7 (Sunday)"
     END_BEFORE_START = "route_end_time must be after route_start_time"
     NOT_ALLOWED = "Your account role cannot manage delivery settings"
+    PROMOTER_ONLY = "Only a verified Promoter can manage delivery vehicles, routes and requests"
+    TRACKING_NOT_ALLOWED = "Only the route's Promoter or assigned courier can update its location"
     ROUTE_UNAVAILABLE = "Choose a route that is available for your delivery address"
     ROUTE_REQUIRED = "Choose a delivery route for this delivery option"
     ELIGIBLE_ROUTES_RETRIEVED = "Available delivery routes retrieved"
@@ -428,6 +475,23 @@ class DeliveryMessages:
     )
 
 
+class DeliveryTeamMessages:
+    CREATED = "Delivery team member added"
+    LIST_RETRIEVED = "Delivery team retrieved"
+    PROMOTERS_RETRIEVED = "Promoters retrieved"
+    PROMOTER_REQUIRED = "Choose a Promoter for this delivery team member"
+    PROMOTER_INVALID = "Choose a verified Promoter"
+    MEMBER_NOT_FOUND = "Delivery team member not found"
+    NOT_ALLOWED = "Only a verified Promoter can add members to their own delivery team"
+    ROLE_MISSING = "Delivery Team role is not configured"
+    COURIER_ONLY = "Only a delivery team member can use this"
+    PROFILE_RETRIEVED = "Delivery team profile retrieved"
+    ROUTES_RETRIEVED = "Assigned routes retrieved"
+    ROUTE_RETRIEVED = "Assigned route retrieved"
+    REQUESTS_RETRIEVED = "Assigned delivery requests retrieved"
+    REQUEST_RETRIEVED = "Assigned delivery request retrieved"
+
+
 class DeliveryVehicleMessages:
     CREATED = "Vehicle added"
     LIST_RETRIEVED = "Vehicles retrieved"
@@ -435,6 +499,10 @@ class DeliveryVehicleMessages:
     UPDATED = "Vehicle updated"
     DELETED = "Vehicle deleted"
     NOT_FOUND = "Vehicle not found"
+    INACTIVE = "This vehicle is deactivated; choose an active vehicle"
+    IN_USE = "This vehicle is used by a route; deactivate it instead of deleting it"
+    NOT_COURIERS = "This vehicle does not belong to the route's courier"
+    TEAM_LIST_RETRIEVED = "Team vehicles retrieved"
 
 
 class DeliveryRouteMessages:
@@ -464,6 +532,20 @@ class DeliveryRequestMessages:
     ROUTE_CANNOT_SERVE = "This route cannot serve the delivery address right now"
     NOT_RETRYABLE = "Choose another route only after the promoter declined or the request expired"
     ORDER_CLOSED = "This order can no longer be delivered"
+    STARTED = "Delivery started"
+    COMPLETED = "Delivery completed"
+    PROOF_NOT_FOUND = "No delivery proof for this order"
+    NOT_DELIVERABLE = "This delivery cannot be changed in its current state"
+    ALREADY_DELIVERED = "This delivery is already complete"
+    ORDER_NOT_CONFIRMED = "The seller has not confirmed this order yet"
+    TOO_EARLY = "This delivery is scheduled for a later day"
+    NOT_STARTED = "Start the delivery first"
+    OTP_INVALID = "The OTP is not correct"
+    OTP_EXPIRED = "The OTP has expired; start the delivery again to send a new one"
+    OTP_LOCKED = "Too many wrong OTPs; start the delivery again to send a new one"
+    OTP_RESEND_TOO_SOON = (
+        "The OTP was just sent to the customer; wait a little before sending it again"
+    )
 
 
 class CartMessages:
@@ -614,10 +696,28 @@ class NotificationMessages:
         "{actor} asks to publish the deal '{deal_name}' for your business again"
     )
     DEAL_BLOCKED = "{actor} blocked your deal '{deal_name}'"
+    PLUGIN_APPROVAL_REQUESTED = "{actor} submitted '{plugin_item_name}' for your approval"
+    PLUGIN_APPROVAL_APPROVED = "{actor} approved '{plugin_item_name}'"
+    PLUGIN_APPROVAL_REJECTED = "{actor} did not approve '{plugin_item_name}'"
+    BOOKING_REQUESTED = "{actor} requested booking {order_number} for '{plugin_item_name}'"
+    BOOKING_CONFIRMED = "Your booking {order_number} for '{plugin_item_name}' was confirmed"
+    BOOKING_REJECTED = "Your booking {order_number} for '{plugin_item_name}' was not accepted"
+    BOOKING_CANCELLED = "Booking {order_number} for '{plugin_item_name}' was cancelled"
+    BOOKING_COMPLETED = "Your booking {order_number} for '{plugin_item_name}' is complete"
+    BOOKING_PAID = "{actor} paid for booking {order_number} for '{plugin_item_name}'"
+    COD_DUES_OWED = "You owe {amount} in platform fee and commission for cash order {order_number}"
+    DUES_STATEMENT = "You have {amount} in unpaid COD dues. Please pay them to the platform"
+    DUES_PAID = "Your COD dues payment of {amount} was received"
+    PAYOUT_PAID = "Payout {order_number} of {amount} has been sent to you"
     DEAL_REPUBLISH_APPROVED = "{actor} approved your deal '{deal_name}'. It is published again."
     DEAL_REPUBLISH_REJECTED = "{actor} rejected publishing your deal '{deal_name}' again"
     DELIVERY_REQUESTED = "New delivery request for order {order_number}"
     DELIVERY_ACCEPTED = "A promoter accepted the delivery of your order {order_number}"
+    DELIVERY_STARTED = (
+        "Your order {order_number} is out for delivery. Your handover OTP is {handover_otp}. "
+        "Share it with the delivery person only when you have your parcel"
+    )
+    DELIVERY_DELIVERED = "Your order {order_number} was delivered"
     DELIVERY_REJECTED = (
         "The promoter declined the delivery of your order {order_number}. "
         "Please choose another route."
@@ -698,6 +798,32 @@ class AIMessages:
     AUDIO_TOO_LARGE = "The audio file is too large"
     SPEECH_TEXT_TOO_LONG = "The text is too long to be spoken"
     TRANSCRIPT_EMPTY = "No speech was detected in the audio"
+    DEAL_OPTION_CONFIRM = "Yes, create it"
+    DEAL_OPTION_CANCEL = "Cancel this deal"
+    DEAL_OPTION_CHANGE = "I want to change something"
+    DEAL_OPTION_CATEGORY_PROMPT = "Category: {name}"
+    DEAL_OPTION_SELF_PICKUP = "Self pickup"
+    DEAL_OPTION_INSTANT = "Instant delivery"
+    DEAL_OPTION_ROUTE = "Route delivery"
+    DEAL_CANCELLED = "Your deal was cancelled and nothing was created."
+    DEAL_DRAFT_CREATED = (
+        "Your draft deal “{title}” has been created. Add cover images and submit it "
+        "in the app when you're ready."
+    )
+    DEAL_NONE_IN_PROGRESS = (
+        "There is no deal in progress. Tell me what you'd like to sell to start one."
+    )
+    DEAL_CREATE_FAILED = "I couldn't create the deal yet: {problems}"
+    DEAL_QUESTION_NAME = "What would you like to call this deal?"
+    DEAL_QUESTION_CATEGORY = "Which category fits this deal? Pick one below."
+    DEAL_QUESTION_ITEMS = (
+        "What are you selling? Tell me the item, quantity, unit, original price and deal price."
+    )
+    DEAL_QUESTION_STARTS_AT = "When should the deal start?"
+    DEAL_QUESTION_VALID_UNTIL = "When should the deal end?"
+    DEAL_QUESTION_DELIVERY = "How will buyers get it? Pick an option below."
+    DEAL_QUESTION_PICKUP = "Where can buyers pick it up, or what are the delivery details?"
+    DEAL_QUESTION_CONFIRM = "All details are ready. Shall I create the draft deal?"
 
 
 class UserSettingsMessages:
@@ -717,6 +843,7 @@ class UserSettingsMessages:
 
 class DocsMessages:
     WEBSOCKET_DOCS_NOT_FOUND = "WebSocket API documentation not found"
+    PAYMENT_DOCS_NOT_FOUND = "Payment integration guide not found"
 
 
 class RelativeTimeMessages:
@@ -835,10 +962,14 @@ class StorageMessages:
     INVALID_IMAGE_TYPE = "Image must be JPEG, PNG, or WebP"
     IMAGE_TOO_LARGE = "Image must be 5MB or smaller"
     PLUGIN_IMAGE_TOO_LARGE = "Image must be {limit_mb}MB or smaller"
+    PLUGIN_INVALID_VIDEO_TYPE = "Video must be an MP4 file"
+    PLUGIN_VIDEO_TOO_LARGE = "Video must be {limit_mb}MB or smaller"
     INVALID_VIDEO_TYPE = "Video must be MP4, MOV, or WebM"
     VIDEO_TOO_LARGE = "Video must be 100MB or smaller"
     INVALID_DOCUMENT_TYPE = "Document must be a JPEG, PNG, WebP, or PDF file"
     DOCUMENT_TOO_LARGE = "Document must be 10MB or smaller"
+    INVALID_PROOF_TYPE = "Delivery proof must be a JPEG, PNG, or WebP image"
+    PROOF_TOO_LARGE = "Delivery proof must be 10MB or smaller"
 
 
 class RoleUpgradeRequestMessages:
@@ -1055,6 +1186,7 @@ class CommunityMessages:
 
 
 class PluginMessages:
+    BOOKING_PROVIDER_DUPLICATE = "A plugin can register only one booking provider"
     LIST_RETRIEVED = "Plugins retrieved"
     RETRIEVED = "Plugin retrieved"
     LOAD_REPORT_RETRIEVED = "Plugin load report retrieved"
@@ -1295,3 +1427,59 @@ class BusinessPluginMessages:
         "The business or plugin was removed while the plugin was being enabled; reload and try "
         "again"
     )
+
+
+class EarningMessages:
+    LIST_RETRIEVED = "Earnings retrieved"
+    SUMMARY_RETRIEVED = "Earnings summary retrieved"
+    FEE_PERCENT_INVALID = (
+        "{key} must be a percentage from {minimum} to {maximum} with at most two decimals"
+    )
+    DATE_RANGE_INVALID = "date_from must be on or before date_to"
+    COMMISSION_SHARES_INVALID = (
+        "commission_shares must be JSON with super_admin, native_admin and promoter "
+        "percentages that add up to 100"
+    )
+    COMMISSION_SHARES_TOTAL_INVALID = (
+        "commission_shares are shares of the commission and must add up to 100, but they add "
+        "up to {total}. Example: {{\"super_admin\": \"50\", \"native_admin\": \"30\", "
+        "\"promoter\": \"20\"}}"
+    )
+    PAYOUT_FREQUENCY_INVALID = "payout_frequency must be weekly or monthly"
+
+
+class PayoutMessages:
+    DUE_RETRIEVED = "Payouts due retrieved"
+    LIST_RETRIEVED = "Payouts retrieved"
+    RETRIEVED = "Payout retrieved"
+    CREATED = "Payout created"
+    BULK_CREATED = "Payouts created"
+    PAID = "Payout marked as paid"
+    SENT = "Payout sent through RazorpayX"
+    CANCELLED = "Payout cancelled"
+    NOT_FOUND = "Payout not found"
+    NOTHING_DUE = "Nothing is due for this payee"
+    NOT_DRAFT = "Only draft payouts can be paid, sent or cancelled"
+    PAYEE_INVALID = "A business payout needs business_id; other payouts need user_id"
+    NO_ACCOUNT = "The payee has not added payout bank details"
+    RAZORPAYX_DISABLED = "RazorpayX payouts are not configured"
+    RAZORPAYX_FAILED = "RazorpayX rejected the payout"
+    WEBHOOK_INVALID = "Invalid RazorpayX webhook signature"
+    WEBHOOK_PROCESSED = "Webhook processed"
+
+
+class PayoutAccountMessages:
+    RETRIEVED = "Payout account retrieved"
+    SAVED = "Payout account saved"
+    NOT_FOUND = "No payout account added yet"
+    ENCRYPTION_DISABLED = "Payout accounts are not configured on this server"
+    DETAILS_REQUIRED = "Add a bank account with IFSC, or a UPI ID"
+
+
+class DuesMessages:
+    RETRIEVED = "COD dues retrieved"
+    LINK_CREATED = "Payment link created for your COD dues"
+    NOTHING_OWED = "You have no COD dues to pay"
+    LIST_RETRIEVED = "COD dues retrieved"
+    PAYMENTS_RETRIEVED = "COD dues payments retrieved"
+    LINK_DESCRIPTION = "COD dues: platform fee and commission ({amount})"

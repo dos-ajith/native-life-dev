@@ -21,10 +21,25 @@ IMAGE_EXTENSIONS = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".w
 SAFE_SEGMENT_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 BYTES_PER_MB = 1024 * 1024
 WEBP_FORMAT_OFFSET = 8
+VIDEO_EXTENSION = ".mp4"
+VIDEO_CONTENT_TYPE = "video/mp4"
+MP4_BOX_MARKER = b"ftyp"
+MP4_BOX_OFFSET = 4
+MP4_BRAND_OFFSET = 8
+MP4_HEADER_BYTES = 12
+QUICKTIME_BRAND = b"qt  "
+UPLOAD_CHUNK_BYTES = BYTES_PER_MB
 
 
 @dataclass(frozen=True)
 class StoredImage:
+    url: str
+    content_type: str
+    size_bytes: int
+
+
+@dataclass(frozen=True)
+class StoredVideo:
     url: str
     content_type: str
     size_bytes: int
@@ -49,6 +64,24 @@ def _ensure_safe_segment(value: str) -> str:
     return value
 
 
+def _is_mp4(header: bytes) -> bool:
+    return (
+        len(header) == MP4_HEADER_BYTES
+        and header[MP4_BOX_OFFSET : MP4_BOX_OFFSET + len(MP4_BOX_MARKER)] == MP4_BOX_MARKER
+        and header[MP4_BRAND_OFFSET:] != QUICKTIME_BRAND
+    )
+
+
+def _media_target(plugin_key: str, subdirectory: str, extension: str) -> tuple[Path, str]:
+    relative = Path(
+        PLUGIN_MEDIA_DIRECTORY, _ensure_safe_segment(plugin_key), _ensure_safe_segment(subdirectory)
+    )
+    directory = Path(get_settings().upload_dir) / relative
+    directory.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid.uuid4()}{extension}"
+    return directory / filename, f"{MEDIA_URL_PREFIX}/{relative.as_posix()}/{filename}"
+
+
 def save_plugin_image(
     file: UploadFile, plugin_key: str, subdirectory: str, max_bytes: int
 ) -> StoredImage:
@@ -60,18 +93,44 @@ def save_plugin_image(
     content_type = _detect_image_type(contents)
     if content_type is None:
         raise BusinessRuleError(StorageMessages.INVALID_IMAGE_TYPE)
-    relative = Path(
-        PLUGIN_MEDIA_DIRECTORY, _ensure_safe_segment(plugin_key), _ensure_safe_segment(subdirectory)
-    )
-    directory = Path(get_settings().upload_dir) / relative
-    directory.mkdir(parents=True, exist_ok=True)
-    filename = f"{uuid.uuid4()}{IMAGE_EXTENSIONS[content_type]}"
-    (directory / filename).write_bytes(contents)
-    return StoredImage(
-        url=f"{MEDIA_URL_PREFIX}/{relative.as_posix()}/{filename}",
-        content_type=content_type,
-        size_bytes=len(contents),
-    )
+    path, url = _media_target(plugin_key, subdirectory, IMAGE_EXTENSIONS[content_type])
+    path.write_bytes(contents)
+    return StoredImage(url=url, content_type=content_type, size_bytes=len(contents))
+
+
+def _write_limited(file: UploadFile, header: bytes, path: Path, max_bytes: int) -> int:
+    size = len(header)
+    try:
+        with path.open("wb") as target:
+            target.write(header)
+            while chunk := file.file.read(UPLOAD_CHUNK_BYTES):
+                size += len(chunk)
+                if size > max_bytes:
+                    raise BusinessRuleError(
+                        StorageMessages.PLUGIN_VIDEO_TOO_LARGE.format(
+                            limit_mb=max_bytes // BYTES_PER_MB
+                        )
+                    )
+                target.write(chunk)
+    except Exception:
+        path.unlink(missing_ok=True)
+        raise
+    return size
+
+
+def save_plugin_video(
+    file: UploadFile, plugin_key: str, subdirectory: str, max_bytes: int
+) -> StoredVideo:
+    header = file.file.read(MP4_HEADER_BYTES)
+    if not _is_mp4(header):
+        raise BusinessRuleError(StorageMessages.PLUGIN_INVALID_VIDEO_TYPE)
+    path, url = _media_target(plugin_key, subdirectory, VIDEO_EXTENSION)
+    size = _write_limited(file, header, path, max_bytes)
+    return StoredVideo(url=url, content_type=VIDEO_CONTENT_TYPE, size_bytes=size)
+
+
+def delete_plugin_video(url: str) -> None:
+    delete_plugin_image(url)
 
 
 def delete_plugin_image(url: str) -> None:

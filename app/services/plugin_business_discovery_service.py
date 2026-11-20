@@ -18,6 +18,7 @@ class NearbyBusiness:
     id: UUID
     name: str
     distance_km: float
+    description: str | None = None
 
 
 @dataclass(frozen=True)
@@ -52,7 +53,10 @@ def _scope(rows: list[tuple[Business, float]]) -> NativeBusinessScope:
         has_native_place=True,
         businesses=tuple(
             NearbyBusiness(
-                id=business.id, name=business.name, distance_km=round(meters / METERS_PER_KM, 1)
+                id=business.id,
+                name=business.name,
+                distance_km=round(meters / METERS_PER_KM, 1),
+                description=business.description,
             )
             for business, meters in rows
         ),

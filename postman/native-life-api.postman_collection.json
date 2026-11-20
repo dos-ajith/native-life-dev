@@ -160,6 +160,46 @@
     {
       "key": "tax_rate_id",
       "value": ""
+    },
+    {
+      "key": "promoter_id",
+      "value": ""
+    },
+    {
+      "key": "delivery_courier_id",
+      "value": ""
+    },
+    {
+      "key": "location_id",
+      "value": ""
+    },
+    {
+      "key": "second_location_id",
+      "value": ""
+    },
+    {
+      "key": "package_id",
+      "value": ""
+    },
+    {
+      "key": "media_id",
+      "value": ""
+    },
+    {
+      "key": "promoter_business_id",
+      "value": ""
+    },
+    {
+      "key": "route_point_id",
+      "value": ""
+    },
+    {
+      "key": "booking_id",
+      "value": ""
+    },
+    {
+      "key": "razorpay_webhook_signature",
+      "value": ""
     }
   ],
   "item": [
@@ -3517,6 +3557,152 @@
                       ]
                     },
                     "description": "Event detail with organizer, images (with captions) and coordinates."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "8. Packages",
+              "item": [
+                {
+                  "name": "Package categories",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/explore/categories",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "explore",
+                        "categories"
+                      ]
+                    },
+                    "description": "Travel and Resorts with the number of published packages in each. Powers the Services tile in Explore."
+                  }
+                },
+                {
+                  "name": "Locations with packages",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/explore/locations?page=1&page_size=20&q=",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "explore",
+                        "locations"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        },
+                        {
+                          "key": "q",
+                          "value": "",
+                          "description": "Optional location name search",
+                          "disabled": true
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Packages by location",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/explore/packages?location_id={{location_id}}&page=1&page_size=20&q=&category=travel",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "explore",
+                        "packages"
+                      ],
+                      "query": [
+                        {
+                          "key": "location_id",
+                          "value": "{{location_id}}",
+                          "description": "Optional. Matches the primary location or any visibility location. Omit for all published packages."
+                        },
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        },
+                        {
+                          "key": "q",
+                          "value": "",
+                          "description": "Optional title search",
+                          "disabled": true
+                        },
+                        {
+                          "key": "category",
+                          "value": "travel",
+                          "description": "travel or resort",
+                          "disabled": true
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Package detail",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/explore/packages/{{package_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "explore",
+                        "packages",
+                        "{{package_id}}"
+                      ]
+                    }
                   }
                 }
               ]
@@ -7161,6 +7347,21 @@
                           "type": "text"
                         },
                         {
+                          "key": "address_line",
+                          "value": "TC 12/345, Technopark Road",
+                          "type": "text"
+                        },
+                        {
+                          "key": "landmark",
+                          "value": "Near Technopark Phase 1 gate",
+                          "type": "text"
+                        },
+                        {
+                          "key": "pincode",
+                          "value": "695581",
+                          "type": "text"
+                        },
+                        {
                           "key": "images",
                           "type": "file",
                           "src": []
@@ -7386,7 +7587,7 @@
                     "description": "Updates a business. Allowed for the owner or a user with `business.update_any`.\n\n**Path**\n- `business_id` (uuid)\n\n**Body** (all optional)\n- `name` (string, max 255 chars)\n- `category_id` (uuid) — must be an active category\n- `description` (string)\n- `status` (`active` | `inactive`) — publishing (`active`) needs an approved Business / Service Provider role (or `business.update_any`) and a `verified` business; an unverified business gets 422 (an admin approves it instead)\n- `latitude` / `longitude` (numbers, send together) — replaces the location; omit both to leave it unchanged. The example values are test coordinates only",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"name\": \"Renamed Business\",\n  \"latitude\": 8.5241,\n  \"longitude\": 76.9366,\n  \"status\": \"inactive\"\n}"
+                      "raw": "{\n  \"name\": \"Renamed Business\",\n  \"latitude\": 8.5241,\n  \"longitude\": 76.9366,\n  \"address_line\": \"TC 12/345, Technopark Road\",\n  \"landmark\": \"Near Technopark Phase 1 gate\",\n  \"pincode\": \"695581\",\n  \"status\": \"inactive\"\n}"
                     }
                   }
                 },
@@ -8781,6 +8982,1631 @@
                 }
               ],
               "description": "E-commerce plugin v1.3.0. Flow: import the ZIP (installs it), enable it globally (admin), enable it for the business (owner), grant plugin.ecommerce.* permissions, then use the folders below. Folder 7 lists expected error responses; the status assertions only pass in the matching state."
+            },
+            {
+              "name": "Packages",
+              "item": [
+                {
+                  "name": "List locations",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/package-locations?page=1&page_size=20&q=",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "package-locations"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        },
+                        {
+                          "key": "q",
+                          "value": "",
+                          "description": "Optional name search",
+                          "disabled": true
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Create location",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/package-locations",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "package-locations"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"Kochi\",\n  \"latitude\": \"9.9312\",\n  \"longitude\": \"76.2673\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const body = pm.response.json();",
+                          "if (body.success) { pm.collectionVariables.set('location_id', body.data.id); }"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "1. Create package draft (step 1)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"title\": \"Weekend getaway\",\n  \"description\": \"Stay, dine and explore\",\n  \"route_points\": [\n    {\n      \"name\": \"Fort Kochi\",\n      \"latitude\": 9.9658,\n      \"longitude\": 76.2421\n    },\n    {\n      \"name\": \"Munnar\",\n      \"latitude\": 10.0889,\n      \"longitude\": 77.0595\n    }\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const body = pm.response.json();",
+                          "if (body.success) { pm.collectionVariables.set('package_id', body.data.id); }",
+                          "if (body.success && body.data.route_points && body.data.route_points.length) { pm.collectionVariables.set('route_point_id', body.data.route_points[0].id); }"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "My packages (Active / Inactive tab)",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages?tab=inactive&page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages"
+                      ],
+                      "query": [
+                        {
+                          "key": "tab",
+                          "value": "inactive",
+                          "description": "active (published), inactive (draft, unpublished, rejected) or pending"
+                        },
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get package (resume)",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "1. Update information (step 1)",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/information",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "information"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"title\": \"Weekend getaway\",\n  \"description\": \"Stay, dine and explore\",\n  \"route_points\": [\n    {\n      \"name\": \"Fort Kochi\",\n      \"latitude\": 9.9658,\n      \"longitude\": 76.2421\n    },\n    {\n      \"name\": \"Munnar\",\n      \"latitude\": 10.0889,\n      \"longitude\": 77.0595\n    }\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const body = pm.response.json();",
+                          "if (body.success && body.data.route_points && body.data.route_points.length) { pm.collectionVariables.set('route_point_id', body.data.route_points[0].id); }"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Upload media (step 2)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/media",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "media"
+                      ]
+                    },
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "files",
+                          "type": "file",
+                          "src": [],
+                          "description": "JPG, PNG or MP4, up to 50 MB each; repeat the key for several files. First item is the cover."
+                        }
+                      ]
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const body = pm.response.json();",
+                          "if (body.success) { pm.collectionVariables.set('media_id', body.data.media[body.data.media.length - 1].id); }"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Reorder media",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/media/order",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "media",
+                        "order"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"media_ids\": [\n    \"{{media_id}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "2. Delete media",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/media/{{media_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "media",
+                        "{{media_id}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "2. Set YouTube link and extra content",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/extras",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "extras"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"youtube_url\": \"https://www.youtube.com/watch?v=abc123XYZ\",\n  \"extra_content\": \"Free parking\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "3. Optional inclusions (what each business provides)",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/inclusions",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "inclusions"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"inclusions\": [\n    {\n      \"business_name\": \"Lake View Resort\",\n      \"provides\": \"2 nights stay\"\n    },\n    {\n      \"business_name\": \"Spice Kitchen\",\n      \"provides\": \"Dinner for two\"\n    }\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "4. Set pricing (step 4)",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/pricing",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "pricing"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"source\": \"manual\",\n  \"direct_value\": 5000,\n  \"package_price\": 3999,\n  \"tax_percent\": 18\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "description": "source manual: send direct_value and package_price. source business_default: send only package_price; the original price is the business default price. tax_percent (0-100, default 0) is the GST % added on top when a booking is paid."
+                  }
+                },
+                {
+                  "name": "5. Set visibility locations (step 5)",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/visibility",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "visibility"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"primary_location_id\": \"{{location_id}}\",\n  \"location_ids\": [\n    \"{{second_location_id}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "6. Preview (customer-facing view)",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/preview",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "preview"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "6. Publish (owner-created or unpublished packages)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/publish",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "publish"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "6. Approve a promoter's package (business owner)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/approve",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "approve"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "6. Reject a promoter's package (business owner)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/reject",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "reject"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"note\": \"Please add a photo for each location\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "Unpublish",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/unpublish",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "unpublish"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Related orders of a package",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/packages/{{package_id}}/orders?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "packages",
+                        "{{package_id}}",
+                        "orders"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "All package orders of the business",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/package-orders?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "package-orders"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Promoter (create for a business)",
+                  "item": [
+                    {
+                      "name": "Businesses I can create packages for",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/businesses?category=travel",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "businesses"
+                          ],
+                          "query": [
+                            {
+                              "key": "category",
+                              "value": "travel",
+                              "description": "travel or resort"
+                            }
+                          ]
+                        }
+                      },
+                      "event": [
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const body = pm.response.json();",
+                              "if (body.success) { pm.collectionVariables.set('promoter_business_id', body.data.businesses[0].id); }"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "name": "List locations",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/package-locations?page=1&page_size=20&q=",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "package-locations"
+                          ],
+                          "query": [
+                            {
+                              "key": "page",
+                              "value": "1"
+                            },
+                            {
+                              "key": "page_size",
+                              "value": "20"
+                            },
+                            {
+                              "key": "q",
+                              "value": "",
+                              "description": "Optional name search",
+                              "disabled": true
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "Create location",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/package-locations",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "package-locations"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"name\": \"Kochi\",\n  \"latitude\": \"9.9312\",\n  \"longitude\": \"76.2673\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      },
+                      "event": [
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const body = pm.response.json();",
+                              "if (body.success) { pm.collectionVariables.set('location_id', body.data.id); }"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "name": "My packages (Active / Inactive tab)",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages?tab=inactive&page=1&page_size=20",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages"
+                          ],
+                          "query": [
+                            {
+                              "key": "tab",
+                              "value": "inactive",
+                              "description": "active (published), inactive (draft, unpublished, rejected) or pending"
+                            },
+                            {
+                              "key": "page",
+                              "value": "1"
+                            },
+                            {
+                              "key": "page_size",
+                              "value": "20"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "1. Create package draft (choose Travel or Resort)",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"category\": \"travel\",\n  \"title\": \"Weekend getaway\",\n  \"description\": \"Stay, dine and explore\",\n  \"route_points\": [\n    {\n      \"name\": \"Fort Kochi\",\n      \"latitude\": 9.9658,\n      \"longitude\": 76.2421\n    },\n    {\n      \"name\": \"Munnar\",\n      \"latitude\": 10.0889,\n      \"longitude\": 77.0595\n    }\n  ]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      },
+                      "event": [
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const body = pm.response.json();",
+                              "if (body.success) { pm.collectionVariables.set('package_id', body.data.id); }",
+                              "if (body.success && body.data.route_points && body.data.route_points.length) { pm.collectionVariables.set('route_point_id', body.data.route_points[0].id); }"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "name": "Get package (resume)",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "1. Update information",
+                      "request": {
+                        "method": "PUT",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}/information",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}",
+                            "information"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"title\": \"Weekend getaway\",\n  \"description\": \"Stay, dine and explore\",\n  \"route_points\": [\n    {\n      \"name\": \"Fort Kochi\",\n      \"latitude\": 9.9658,\n      \"longitude\": 76.2421\n    },\n    {\n      \"name\": \"Munnar\",\n      \"latitude\": 10.0889,\n      \"longitude\": 77.0595\n    }\n  ]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      },
+                      "event": [
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const body = pm.response.json();",
+                              "if (body.success && body.data.route_points && body.data.route_points.length) { pm.collectionVariables.set('route_point_id', body.data.route_points[0].id); }"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "name": "2. Upload media",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}/media",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}",
+                            "media"
+                          ]
+                        },
+                        "body": {
+                          "mode": "formdata",
+                          "formdata": [
+                            {
+                              "key": "files",
+                              "type": "file",
+                              "src": [],
+                              "description": "JPG, PNG or MP4, up to 50 MB each; repeat the key for several files. First item is the cover."
+                            },
+                            {
+                              "key": "route_point_id",
+                              "type": "text",
+                              "value": "{{route_point_id}}",
+                              "description": "The location (route point) these files belong to. Optional for a resort."
+                            }
+                          ]
+                        }
+                      },
+                      "event": [
+                        {
+                          "listen": "test",
+                          "script": {
+                            "type": "text/javascript",
+                            "exec": [
+                              "const body = pm.response.json();",
+                              "if (body.success) { pm.collectionVariables.set('media_id', body.data.media[body.data.media.length - 1].id); }"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "name": "2. Reorder media",
+                      "request": {
+                        "method": "PUT",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}/media/order",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}",
+                            "media",
+                            "order"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"media_ids\": [\n    \"{{media_id}}\"\n  ]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "2. Delete media",
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}/media/{{media_id}}",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}",
+                            "media",
+                            "{{media_id}}"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "2. Set YouTube link and extra content",
+                      "request": {
+                        "method": "PUT",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}/extras",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}",
+                            "extras"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"youtube_url\": \"https://www.youtube.com/watch?v=abc123XYZ\",\n  \"extra_content\": \"Free parking\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "3. Select the business",
+                      "request": {
+                        "method": "PUT",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}/business",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}",
+                            "business"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"business_id\": \"{{promoter_business_id}}\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "3. Optional inclusions (what each business provides)",
+                      "request": {
+                        "method": "PUT",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}/inclusions",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}",
+                            "inclusions"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"inclusions\": [\n    {\n      \"business_name\": \"Lake View Resort\",\n      \"provides\": \"2 nights stay\"\n    },\n    {\n      \"business_name\": \"Spice Kitchen\",\n      \"provides\": \"Dinner for two\"\n    }\n  ]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "4. Set pricing",
+                      "request": {
+                        "method": "PUT",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}/pricing",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}",
+                            "pricing"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"source\": \"manual\",\n  \"direct_value\": 5000,\n  \"package_price\": 3999,\n  \"tax_percent\": 18\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "description": "source manual: send direct_value and package_price. source business_default: send only package_price; the original price is the business default price. tax_percent (0-100, default 0) is the GST % added on top when a booking is paid."
+                      }
+                    },
+                    {
+                      "name": "5. Set visibility locations",
+                      "request": {
+                        "method": "PUT",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}/visibility",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}",
+                            "visibility"
+                          ]
+                        },
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"primary_location_id\": \"{{location_id}}\",\n  \"location_ids\": [\n    \"{{second_location_id}}\"\n  ]\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "6. Preview (customer-facing view)",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}/preview",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}",
+                            "preview"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "6. Submit for approval",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}/submit",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}",
+                            "submit"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "Unpublish",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}/unpublish",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}",
+                            "unpublish"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "name": "Related orders of my package",
+                      "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{access_token}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{base_url}}/plugins/packages/promoter/packages/{{package_id}}/orders?page=1&page_size=20",
+                          "host": [
+                            "{{base_url}}"
+                          ],
+                          "path": [
+                            "plugins",
+                            "packages",
+                            "promoter",
+                            "packages",
+                            "{{package_id}}",
+                            "orders"
+                          ],
+                          "query": [
+                            {
+                              "key": "page",
+                              "value": "1"
+                            },
+                            {
+                              "key": "page_size",
+                              "value": "20"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Get the Packages category",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/package-category",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "package-category"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Set the Packages category (business owner)",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/package-category",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "package-category"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"category\": \"travel\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "Get the default package price",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/package-default-price",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "package-default-price"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Set the default package price (business owner)",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/plugins/packages/businesses/{{business_id}}/package-default-price",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "plugins",
+                        "packages",
+                        "businesses",
+                        "{{business_id}}",
+                        "package-default-price"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"default_price\": 5000\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
             }
           ]
         },
@@ -9786,7 +11612,7 @@
                         "orders"
                       ]
                     },
-                    "description": "Any signed-in user who has joined the published deal (see Participation). `address_id` (optional) is one of your saved delivery addresses; it is copied onto the order as `shipping_address`, together with its map pin (`shipping_latitude`, `shipping_longitude`, `shipping_village_id`), so later edits to the address don't change the order. `items` is a list of `{deal_item_id, quantity}` (each deal item once). Product stock is taken immediately and the order starts as `pending` with `order_type` `deal`. Fails if the deal is not published or running, the quantity exceeds what is left in the deal or in stock, or the deal price is above the product's current selling price. Saves `order_id`. `delivery_option` is required: `instant`, `route` or `self_pickup` (see Delivery > List deal delivery options). Instant and route need `address_id`; self_pickup ignores it. The order stores the option, the fee (`delivery_fee`, added to `total_amount`) and the deal's accepting promoter (`promoter_id`). For `delivery_option` route, `route_id` is required: pick one from Delivery > Customer Delivery > List available routes. The promoter must accept before the stop is added to the route; instant orders are offered to the deal's promoter and need no route_id. `payment_method` is optional and only `cash_on_delivery` is supported for now.",
+                    "description": "Any signed-in user who has joined the published deal (see Participation). `address_id` (optional) is one of your saved delivery addresses; it is copied onto the order as `shipping_address`, together with its map pin (`shipping_latitude`, `shipping_longitude`, `shipping_village_id`), so later edits to the address don't change the order. `items` is a list of `{deal_item_id, quantity}` (each deal item once). Product stock is taken immediately and the order starts as `pending` with `order_type` `deal`. Fails if the deal is not published or running, the quantity exceeds what is left in the deal or in stock, or the deal price is above the product's current selling price. Saves `order_id`. `delivery_option` is required: `instant`, `route` or `self_pickup` (see Delivery > List deal delivery options). Instant and route need `address_id`; self_pickup ignores it. The order stores the option, the fee (`delivery_fee`, added to `total_amount`) and the deal's accepting promoter (`promoter_id`). For `delivery_option` route, `route_id` is required: pick one from Delivery > Customer Delivery > List available routes. The promoter must accept before the stop is added to the route; instant orders are offered to the deal's promoter and need no route_id. `payment_method` is `cash_on_delivery` (default) or `online`; online needs PAYMENT_PROVIDER=razorpay and returns the order with status awaiting_payment and payment {status, payment_url, total_amount, expires_at}: it is hidden from order lists, its delivery request is held and the cart keeps the items. The order is created (status pending, cart cleared, delivery request sent) only when the payment succeeds; if the link expires (ORDER_PAYMENT_EXPIRE_MINUTES, 30 by default) or is cancelled, it is discarded and the stock released.",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"customer_name\": \"Asha Nair\",\n  \"delivery_option\": \"route\",\n  \"payment_method\": \"cash_on_delivery\",\n  \"customer_phone\": \"+919876543210\",\n  \"address_id\": \"{{address_id}}\",\n  \"notes\": \"Call before delivery\",\n  \"route_id\": \"{{delivery_route_id}}\",\n  \"items\": [\n    {\n      \"deal_item_id\": \"{{deal_item_id}}\",\n      \"quantity\": 2\n    }\n  ]\n}"
@@ -10134,7 +11960,7 @@
                         "checkout"
                       ]
                     },
-                    "description": "Places one order from all your cart lines for `deal_id`. Same rules and response as Place deal order; `address_id` is one of your saved delivery addresses. Saves `order_id`. `delivery_option` is required, as for Place deal order. For `delivery_option` route, `route_id` is required: pick one from Delivery > Customer Delivery > List available routes. The promoter must accept before the stop is added to the route; instant orders are offered to the deal's promoter and need no route_id. `payment_method` is optional and only `cash_on_delivery` is supported for now.",
+                    "description": "Places one order from all your cart lines for `deal_id`. Same rules and response as Place deal order; `address_id` is one of your saved delivery addresses. Saves `order_id`. `delivery_option` is required, as for Place deal order. For `delivery_option` route, `route_id` is required: pick one from Delivery > Customer Delivery > List available routes. The promoter must accept before the stop is added to the route; instant orders are offered to the deal's promoter and need no route_id. `payment_method` is `cash_on_delivery` (default) or `online`; online needs PAYMENT_PROVIDER=razorpay and returns the order with status awaiting_payment and payment {status, payment_url, total_amount, expires_at}: it is hidden from order lists, its delivery request is held and the cart keeps the items. The order is created (status pending, cart cleared, delivery request sent) only when the payment succeeds; if the link expires (ORDER_PAYMENT_EXPIRE_MINUTES, 30 by default) or is cancelled, it is discarded and the stock released.",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"customer_name\": \"Asha Nair\",\n  \"delivery_option\": \"route\",\n  \"payment_method\": \"cash_on_delivery\",\n  \"deal_id\": \"{{deal_id}}\",\n  \"customer_phone\": \"+919876543210\",\n  \"address_id\": \"{{address_id}}\",\n  \"notes\": \"Call before delivery\",\n  \"route_id\": \"{{delivery_route_id}}\"\n}"
@@ -10310,7 +12136,7 @@
                         "checkout"
                       ]
                     },
-                    "description": "Places one direct order from all your product lines for this business, with the same rules and response as Place direct order (stock is reserved, delivery request created, cash on delivery). On success those cart lines are removed; if the order fails the cart is kept. Track it with My orders and Get order delivery. Saves `order_id`.",
+                    "description": "Places one direct order from all your product lines for this business, with the same rules and response as Place direct order (stock is reserved, delivery request created). `payment_method` is `cash_on_delivery` (default) or `online`; online needs PAYMENT_PROVIDER=razorpay and returns the order with status awaiting_payment and payment {status, payment_url, total_amount, expires_at}: it is hidden from order lists, its delivery request is held and the cart keeps the items. The order is created (status pending, cart cleared, delivery request sent) only when the payment succeeds; if the link expires (ORDER_PAYMENT_EXPIRE_MINUTES, 30 by default) or is cancelled, it is discarded and the stock released. On success those cart lines are removed; if the order fails the cart is kept. Track it with My orders and Get order delivery. Saves `order_id`.",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"customer_name\": \"Asha Nair\",\n  \"delivery_option\": \"route\",\n  \"payment_method\": \"cash_on_delivery\",\n  \"customer_phone\": \"+919876543210\",\n  \"address_id\": \"{{address_id}}\",\n  \"notes\": \"Call before delivery\",\n  \"route_id\": \"{{delivery_route_id}}\"\n}"
@@ -10356,7 +12182,7 @@
                         "checkout"
                       ]
                     },
-                    "description": "Bulk order: places one order per business from all your product lines in one request. Delivery address, option, route, payment and notes apply to every order. All or nothing: if any line fails (inactive product, not enough stock, bad route) no order is placed and the cart is kept. Each order carries its tax (`tax_amount`, per item `tax_percent`/`tax_amount`) and `total_amount` = items + tax + delivery fee. Returns the list of orders. Pick a route from Delivery > Customer Delivery > List available routes (without deal_id).",
+                    "description": "Bulk order: places one order per business from all your product lines in one request. Delivery address, option, route, payment and notes apply to every order. `payment_method` is `cash_on_delivery` (default) or `online`; online needs PAYMENT_PROVIDER=razorpay and returns the order with status awaiting_payment and payment {status, payment_url, total_amount, expires_at}: it is hidden from order lists, its delivery request is held and the cart keeps the items. The order is created (status pending, cart cleared, delivery request sent) only when the payment succeeds; if the link expires (ORDER_PAYMENT_EXPIRE_MINUTES, 30 by default) or is cancelled, it is discarded and the stock released. Online orders get one payment link per order. All or nothing: if any line fails (inactive product, not enough stock, bad route) no order is placed and the cart is kept. Each order carries its tax (`tax_amount`, per item `tax_percent`/`tax_amount`) and `total_amount` = items + tax + delivery fee. Returns the list of orders. Pick a route from Delivery > Customer Delivery > List available routes (without deal_id).",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"customer_name\": \"Asha Nair\",\n  \"delivery_option\": \"route\",\n  \"payment_method\": \"cash_on_delivery\",\n  \"customer_phone\": \"+919876543210\",\n  \"address_id\": \"{{address_id}}\",\n  \"notes\": \"Call before delivery\",\n  \"route_id\": \"{{delivery_route_id}}\"\n}"
@@ -10501,7 +12327,7 @@
                         "orders"
                       ]
                     },
-                    "description": "Buy products straight from a business, without a deal. `delivery_option` is instant, route or self_pickup. Route needs `route_id`; instant is offered to every promoter whose route reaches the address; self_pickup is free and needs no address. `payment_method` is optional and only `cash_on_delivery` is supported for now.",
+                    "description": "Buy products straight from a business, without a deal. `delivery_option` is instant, route or self_pickup. Route needs `route_id`; instant is offered to every promoter whose route reaches the address; self_pickup is free and needs no address. `payment_method` is `cash_on_delivery` (default) or `online`; online needs PAYMENT_PROVIDER=razorpay and returns the order with status awaiting_payment and payment {status, payment_url, total_amount, expires_at}: it is hidden from order lists, its delivery request is held and the cart keeps the items. The order is created (status pending, cart cleared, delivery request sent) only when the payment succeeds; if the link expires (ORDER_PAYMENT_EXPIRE_MINUTES, 30 by default) or is cancelled, it is discarded and the stock released.",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"customer_name\": \"Asha Nair\",\n  \"delivery_option\": \"route\",\n  \"payment_method\": \"cash_on_delivery\",\n  \"customer_phone\": \"+919876543210\",\n  \"address_id\": \"{{address_id}}\",\n  \"route_id\": \"{{delivery_route_id}}\",\n  \"notes\": \"Call before delivery\",\n  \"items\": [\n    {\n      \"product_id\": \"{{product_id}}\",\n      \"quantity\": 2\n    }\n  ]\n}"
@@ -10607,7 +12433,7 @@
                         "status"
                       ]
                     },
-                    "description": "Moves the order one step forward: pending → confirmed → shipped → delivered. Use Cancel to cancel.",
+                    "description": "Moves the order one step forward: pending → confirmed → shipped → delivered. Use Cancel to cancel. Confirming does not take payment (an online order got its Razorpay link at checkout); shipping is refused until it is paid.",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"status\": \"confirmed\"\n}"
@@ -10740,7 +12566,7 @@
                         "status"
                       ]
                     },
-                    "description": "pending > confirmed > shipped > delivered, one step at a time.",
+                    "description": "pending > confirmed > shipped > delivered, one step at a time. Confirming does not take payment (an online order got its Razorpay link at checkout); shipping is refused until it is paid.",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"status\": \"confirmed\"\n}"
@@ -10781,6 +12607,530 @@
                   }
                 }
               ]
+            },
+            {
+              "name": "My Bookings",
+              "item": [
+                {
+                  "name": "Request a booking",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/businesses/{{business_id}}/bookings",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "businesses",
+                        "{{business_id}}",
+                        "bookings"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"item_id\": \"{{package_id}}\",\n  \"start_date\": \"2026-12-20\",\n  \"end_date\": \"2026-12-23\",\n  \"party_size\": 2,\n  \"customer_name\": \"Asha Nair\",\n  \"customer_phone\": \"+919876543210\",\n  \"note\": \"Window seat if possible\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "description": "Asks a business to book one of its items (for example a package). The business owner confirms or rejects. The price is snapshotted at request time."
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const body = pm.response.json();",
+                          "if (body.success) { pm.collectionVariables.set('booking_id', body.data.id); }"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "List my bookings",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/bookings?page=1&page_size=20&status=requested",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "bookings"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        },
+                        {
+                          "key": "status",
+                          "value": "requested",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Bookings you requested, newest first. Optional `status` (requested, confirmed, rejected, cancelled, completed)."
+                  }
+                },
+                {
+                  "name": "Get my booking",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/bookings/{{booking_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "bookings",
+                        "{{booking_id}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Cancel my booking",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/bookings/{{booking_id}}/cancel",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "bookings",
+                        "{{booking_id}}",
+                        "cancel"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"reason\": \"Plans changed\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "description": "Allowed while the booking is requested or confirmed."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Business Bookings",
+              "item": [
+                {
+                  "name": "List business bookings",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/businesses/{{business_id}}/bookings?page=1&page_size=20&status=requested",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "businesses",
+                        "{{business_id}}",
+                        "bookings"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        },
+                        {
+                          "key": "status",
+                          "value": "requested",
+                          "disabled": true
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get business booking",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/businesses/{{business_id}}/bookings/{{booking_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "businesses",
+                        "{{business_id}}",
+                        "bookings",
+                        "{{booking_id}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Confirm booking",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/businesses/{{business_id}}/bookings/{{booking_id}}/confirm",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "businesses",
+                        "{{business_id}}",
+                        "bookings",
+                        "{{booking_id}}",
+                        "confirm"
+                      ]
+                    },
+                    "description": "Business owner only. Requested bookings only. When PAYMENT_PROVIDER=razorpay, confirming creates a Razorpay payment link and the booking response carries payment {status, payment_url, subtotal, tax_percent, tax_amount, total_amount}."
+                  }
+                },
+                {
+                  "name": "Reject booking",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/businesses/{{business_id}}/bookings/{{booking_id}}/reject",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "businesses",
+                        "{{business_id}}",
+                        "bookings",
+                        "{{booking_id}}",
+                        "reject"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"note\": \"Fully booked on those dates\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "description": "Business owner only. A note is required."
+                  }
+                },
+                {
+                  "name": "Cancel confirmed booking",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/businesses/{{business_id}}/bookings/{{booking_id}}/cancel",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "businesses",
+                        "{{business_id}}",
+                        "bookings",
+                        "{{booking_id}}",
+                        "cancel"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"reason\": \"Weather warning\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "description": "Business owner only. Confirmed bookings only."
+                  }
+                },
+                {
+                  "name": "Complete booking",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/businesses/{{business_id}}/bookings/{{booking_id}}/complete",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "businesses",
+                        "{{business_id}}",
+                        "bookings",
+                        "{{booking_id}}",
+                        "complete"
+                      ]
+                    },
+                    "description": "Business owner only. Confirmed bookings only."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Payments",
+              "item": [
+                {
+                  "name": "Sync my booking payment",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/bookings/{{booking_id}}/payment/sync",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "bookings",
+                        "{{booking_id}}",
+                        "payment",
+                        "sync"
+                      ]
+                    },
+                    "description": "Customer only. Asks Razorpay for the latest payment link status and returns the booking with its payment."
+                  }
+                },
+                {
+                  "name": "Sync my order payment",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/orders/{{order_id}}/payment/sync",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "orders",
+                        "{{order_id}}",
+                        "payment",
+                        "sync"
+                      ]
+                    },
+                    "description": "Customer only, for online orders. Asks Razorpay for the latest payment link status and returns the order with its payment. When it is paid, the awaiting_payment order becomes pending (visible to the seller, cart cleared, delivery request sent); an expired or cancelled link discards it."
+                  }
+                },
+                {
+                  "name": "Razorpay payment callback",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{base_url}}/payments/razorpay/callback?razorpay_payment_id=pay_XXXXXXXX&razorpay_payment_link_id=plink_XXXXXXXX&razorpay_payment_link_reference_id=BKXXXXXXXX&razorpay_payment_link_status=paid&razorpay_signature=signature-from-razorpay",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "payments",
+                        "razorpay",
+                        "callback"
+                      ],
+                      "query": [
+                        {
+                          "key": "razorpay_payment_id",
+                          "value": "pay_XXXXXXXX"
+                        },
+                        {
+                          "key": "razorpay_payment_link_id",
+                          "value": "plink_XXXXXXXX"
+                        },
+                        {
+                          "key": "razorpay_payment_link_reference_id",
+                          "value": "BKXXXXXXXX"
+                        },
+                        {
+                          "key": "razorpay_payment_link_status",
+                          "value": "paid"
+                        },
+                        {
+                          "key": "razorpay_signature",
+                          "value": "signature-from-razorpay"
+                        }
+                      ]
+                    },
+                    "description": "No auth. Serves both bookings and online orders. Razorpay redirects the customer's browser here after payment; the signature is verified with the key secret. Returns subject (booking or order), subject_id, status, total_amount, currency and paid_at. With PAYMENT_WEB_RETURN_URL set it redirects (303) to the web app with payment_subject, payment_subject_id and payment_status; without it, it answers JSON (mobile apps intercept this URL in their WebView). For an online order, paid turns the awaiting_payment order into a pending order (visible to the seller, cart cleared, delivery request sent); expired or cancelled discards it."
+                  }
+                },
+                {
+                  "name": "Razorpay webhook",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "X-Razorpay-Signature",
+                        "value": "{{razorpay_webhook_signature}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/payments/razorpay/webhook",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "payments",
+                        "razorpay",
+                        "webhook"
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"event\": \"payment_link.paid\",\n  \"payload\": {\n    \"payment_link\": {\n      \"entity\": {\n        \"id\": \"plink_XXXXXXXX\",\n        \"status\": \"paid\"\n      }\n    },\n    \"payment\": {\n      \"entity\": {\n        \"id\": \"pay_XXXXXXXX\"\n      }\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "description": "No auth. Serves both bookings and online orders. The signature is HMAC-SHA256 of the raw body with RAZORPAY_WEBHOOK_SECRET. Handles payment_link.paid, payment_link.expired and payment_link.cancelled. For an online order, paid turns the awaiting_payment order into a pending order (visible to the seller, cart cleared, delivery request sent); expired or cancelled discards it."
+                  }
+                },
+                {
+                  "name": "RazorpayX webhook",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "X-Razorpay-Signature",
+                        "value": "{{razorpayx_signature}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/payments/razorpayx/webhook",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "payments",
+                        "razorpayx",
+                        "webhook"
+                      ],
+                      "query": []
+                    },
+                    "description": "Called by RazorpayX (payout.processed / failed / reversed / rejected). Signed with RAZORPAYX_WEBHOOK_SECRET.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"event\": \"payout.processed\",\n  \"payload\": {\n    \"payout\": {\n      \"entity\": {\n        \"id\": \"pout_x\",\n        \"utr\": \"UTR1\"\n      }\n    }\n  }\n}"
+                    }
+                  }
+                }
+              ]
             }
           ]
         },
@@ -10789,8 +13139,112 @@
           "description": "Promoter delivery setup (vehicles, routes), incoming requests and stops, live tracking, and the customer's view of delivery.",
           "item": [
             {
+              "name": "Team",
+              "description": "A Promoter's delivery team. Every delivery team member belongs to exactly one Promoter.",
+              "item": [
+                {
+                  "name": "Add delivery team member",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/delivery-team",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "delivery-team"
+                      ]
+                    },
+                    "description": "Verified Promoter, Native Admin or Super Admin. A Promoter caller always owns the new member and any `promoter_id` in the body is ignored. Native Admin and Super Admin must send `promoter_id` (a verified Promoter; pick one from `List Promoters`).",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"first_name\": \"Courier\",\n  \"last_name\": \"Rider\",\n  \"email\": \"courier@example.com\",\n  \"phone\": \"+919876543210\",\n  \"password\": \"Courier-pass-123\",\n  \"promoter_id\": \"{{promoter_id}}\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "List my delivery team",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/delivery-team",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "delivery-team"
+                      ]
+                    },
+                    "description": "Verified Promoter only. Returns only the caller's own team members."
+                  }
+                },
+                {
+                  "name": "List Promoters",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/delivery-team/promoters",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "delivery-team",
+                        "promoters"
+                      ]
+                    },
+                    "description": "Native Admin or Super Admin. Verified, active Promoters, to fill the Promoter dropdown when adding a delivery team member."
+                  }
+                },
+                {
+                  "name": "List team vehicles",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/delivery-team/vehicles",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "delivery-team",
+                        "vehicles"
+                      ]
+                    },
+                    "description": "Verified Promoter only. Read-only list of the vehicles owned by your own delivery team, with `courier_id` and `courier_name`, to choose from when creating a route. Promoters cannot create or edit these vehicles."
+                  }
+                }
+              ]
+            },
+            {
               "name": "Vehicles",
-              "description": "Vehicles a promoter delivers with. A vehicle is a label (type and name or number) that can be attached to a route.",
+              "description": "Vehicles a delivery team member owns. Only the delivery person creates, edits, deactivates or deletes their vehicles; the Promoter only picks from them when building a route (see `List team vehicles`). Set `is_active` to false to deactivate; a deactivated vehicle cannot be chosen for a route.",
               "item": [
                 {
                   "name": "List my vehicles",
@@ -10812,7 +13266,7 @@
                         "delivery-vehicles"
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default)."
+                    "description": "Delivery team member only; Promoters, admins and every other role get 403. Scoped to the caller's own vehicles."
                   }
                 },
                 {
@@ -10839,7 +13293,7 @@
                         "delivery-vehicles"
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default). `vehicle_type`: bicycle, bike, auto, van or truck.",
+                    "description": "Delivery team member only; Promoters, admins and every other role get 403. Scoped to the caller's own vehicles. `vehicle_type`: bicycle, bike, auto, van or truck.",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"vehicle_type\": \"bike\",\n  \"name\": \"KL 01 AB 1234\",\n  \"is_active\": true\n}"
@@ -10867,7 +13321,7 @@
                         "{{delivery_vehicle_id}}"
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default)."
+                    "description": "Delivery team member only; Promoters, admins and every other role get 403. Scoped to the caller's own vehicles."
                   }
                 },
                 {
@@ -10895,7 +13349,7 @@
                         "{{delivery_vehicle_id}}"
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default). Send only the fields to change.",
+                    "description": "Delivery team member only; Promoters, admins and every other role get 403. Scoped to the caller's own vehicles. Send only the fields to change.",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"name\": \"KL 01 AB 5678\",\n  \"is_active\": false\n}"
@@ -10923,14 +13377,14 @@
                         "{{delivery_vehicle_id}}"
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default). Routes using the vehicle keep working with no vehicle."
+                    "description": "Delivery team member only. An unused vehicle is deleted; a vehicle referenced by any route is refused with 409, so deactivate it with `PATCH` (`is_active: false`) instead."
                   }
                 }
               ]
             },
             {
               "name": "Routes",
-              "description": "A promoter's delivery routes inside their primary native village: a start point, an end point and a coverage radius around the line between them.",
+              "description": "A Promoter's delivery routes inside their primary native village: a start point, an end point and a coverage radius around the line between them. A route can have a courier from the Promoter's team and one of that courier's vehicles.",
               "item": [
                 {
                   "name": "List my routes",
@@ -10952,7 +13406,7 @@
                         "delivery-routes"
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default)."
+                    "description": "Verified Promoter only; Business, Club, delivery team, Native Admin and Super Admin get 403. Scoped to the caller's own routes."
                   }
                 },
                 {
@@ -10979,10 +13433,10 @@
                         "delivery-routes"
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default). Needs a primary native place; the route is created in that village. `coverage_radius_m` is 100 to 20000. `vehicle_id` is optional and must be one of your vehicles. `path` is an optional road path (2 to 5000 points); when present, coverage is measured along it instead of the straight start-to-end line. Changing start or end without sending a new `path` clears the saved path.",
+                    "description": "Verified Promoter only; Business, Club, delivery team, Native Admin and Super Admin get 403. Scoped to the caller's own routes. Needs a primary native place; the route is created in that village. `coverage_radius_m` is 100 to 20000. `vehicle_id` is optional (see `List team vehicles`). `path` is an optional road path (2 to 5000 points); when present, coverage is measured along it instead of the straight start-to-end line. Changing start or end without sending a new `path` clears the saved path. `courier_id` is optional: a delivery team member on your own team (404 otherwise); a route can stay unassigned. `vehicle_id` must be an active vehicle owned by your own delivery team, and when the route has a `courier_id` it must be that courier's vehicle (422 otherwise). `start_label` and `end_label` are optional place names (up to 150 characters) so people can recognise the start and end points; they are returned on every route response.",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"name\": \"Morning route\",\n  \"start_point\": {\n    \"latitude\": 9.9312,\n    \"longitude\": 76.2673\n  },\n  \"end_point\": {\n    \"latitude\": 9.9816,\n    \"longitude\": 76.2999\n  },\n  \"path\": [\n    {\"latitude\": 9.9312, \"longitude\": 76.2673},\n    {\"latitude\": 9.9816, \"longitude\": 76.2999}\n  ],\n  \"coverage_radius_m\": 1500,\n  \"vehicle_id\": \"{{delivery_vehicle_id}}\",\n  \"is_active\": true\n}"
+                      "raw": "{\n  \"name\": \"Morning route\",\n  \"start_point\": {\n    \"latitude\": 9.9312,\n    \"longitude\": 76.2673\n  },\n  \"start_label\": \"Kazhakkoottam junction\",\n  \"end_label\": \"Technopark gate\",\n  \"end_point\": {\n    \"latitude\": 9.9816,\n    \"longitude\": 76.2999\n  },\n  \"path\": [\n    {\"latitude\": 9.9312, \"longitude\": 76.2673},\n    {\"latitude\": 9.9816, \"longitude\": 76.2999}\n  ],\n  \"coverage_radius_m\": 1500,\n  \"vehicle_id\": \"{{delivery_vehicle_id}}\",\n  \"courier_id\": \"{{delivery_courier_id}}\",\n  \"is_active\": true\n}"
                     }
                   }
                 },
@@ -11007,7 +13461,7 @@
                         "{{delivery_route_id}}"
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default)."
+                    "description": "Verified Promoter only; Business, Club, delivery team, Native Admin and Super Admin get 403. Scoped to the caller's own routes."
                   }
                 },
                 {
@@ -11035,10 +13489,10 @@
                         "{{delivery_route_id}}"
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default). Send only the fields to change; `vehicle_id: null` removes the vehicle.",
+                    "description": "Verified Promoter only; Business, Club, delivery team, Native Admin and Super Admin get 403. Scoped to the caller's own routes. Send only the fields to change; `vehicle_id: null` removes the vehicle. `courier_id` and `vehicle_id` are re-checked only when they change, and a new courier needs a matching vehicle in the same request (or `vehicle_id: null`); send `null` to unassign. Responses include `courier` (id, name) and `vehicle`. Send `start_label` / `end_label` to rename a point, or `null` to clear it.",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"name\": \"Evening route\",\n  \"coverage_radius_m\": 2000,\n  \"is_active\": true\n}"
+                      "raw": "{\n  \"name\": \"Evening route\",\n  \"coverage_radius_m\": 2000,\n  \"start_label\": \"Kazhakkoottam junction\",\n  \"end_label\": null,\n  \"courier_id\": \"{{delivery_courier_id}}\",\n  \"is_active\": true\n}"
                     }
                   }
                 },
@@ -11063,7 +13517,7 @@
                         "{{delivery_route_id}}"
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default)."
+                    "description": "Verified Promoter only; Business, Club, delivery team, Native Admin and Super Admin get 403. Scoped to the caller's own routes."
                   }
                 }
               ]
@@ -11098,7 +13552,7 @@
                         }
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default). `status` defaults to requested; also accepted, rejected, expired, cancelled."
+                    "description": "Verified Promoter only (delivery team members, Native Admin and Super Admin get 403). `status` defaults to requested; also accepted, rejected, expired, cancelled."
                   }
                 },
                 {
@@ -11127,7 +13581,7 @@
                         "accept"
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default). Route requests use their route. For instant requests send `route_id`: one of your active routes that reaches the address. The customer is notified and the address is pinned on the route for the delivery date.",
+                    "description": "Verified Promoter only (delivery team members, Native Admin and Super Admin get 403). Route requests use their route. For instant requests send `route_id`: one of your active routes that reaches the address. The customer is notified and the address is pinned on the route for the delivery date.",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"route_id\": \"{{delivery_route_id}}\"\n}"
@@ -11156,7 +13610,7 @@
                         "reject"
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default). Only for a request addressed to you. The customer is notified to pick another route."
+                    "description": "Verified Promoter only (delivery team members, Native Admin and Super Admin get 403). Only for a request addressed to you. The customer is notified to pick another route."
                   }
                 },
                 {
@@ -11187,7 +13641,32 @@
                         }
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default). Accepted deliveries pinned on this route; `delivery_date` defaults to today."
+                    "description": "Verified Promoter only (delivery team members, Native Admin and Super Admin get 403). Accepted deliveries pinned on this route; `delivery_date` defaults to today."
+                  }
+                },
+                {
+                  "name": "Get delivery proof",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/delivery-requests/{{delivery_request_id}}/proof",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "delivery-requests",
+                        "{{delivery_request_id}}",
+                        "proof"
+                      ]
+                    },
+                    "description": "Verified Promoter who accepted the request. Returns the handover photo once it has been delivered."
                   }
                 }
               ]
@@ -11222,7 +13701,7 @@
                         "location"
                       ]
                     },
-                    "description": "Needs a role listed in the `delivery_settings_roles` setting (promoter by default). Send the rider's current position; customers read it on Get order delivery.",
+                    "description": "The route's owning verified Promoter or its assigned courier (`courier_id`); anyone else gets 403, or 404 for another route. Send the rider's current position; customers read it on Get order delivery.",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"latitude\": 9.95,\n  \"longitude\": 76.28\n}"
@@ -11368,7 +13847,7 @@
                         "delivery"
                       ]
                     },
-                    "description": "Latest delivery request for the order: status (requested, accepted, rejected, expired, cancelled), route, promoter, delivery date and, once accepted, the rider's last position."
+                    "description": "Latest delivery request for the order: status (requested, accepted, rejected, expired, cancelled), route, promoter, delivery date and, once accepted, the rider's last position. While the delivery person is out for delivery, `handover_otp` holds the 6-digit code to read out at handover (the same code is in the notification) (only you see it, and only until it is used or expires); `started_at`, `delivered_at` and `proof_available` show progress."
                   }
                 },
                 {
@@ -11403,6 +13882,265 @@
                       "mode": "raw",
                       "raw": "{\n  \"route_id\": \"{{delivery_route_id}}\"\n}"
                     }
+                  }
+                },
+                {
+                  "name": "Get delivery proof",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/orders/{{order_id}}/delivery/proof",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "orders",
+                        "{{order_id}}",
+                        "delivery",
+                        "proof"
+                      ]
+                    },
+                    "description": "The buyer of the order. Returns the photo the delivery person took at handover, once the order is delivered."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Courier (Delivery Team)",
+              "description": "Read-only endpoints for a delivery team member: their profile, the routes assigned to them and the delivery requests on those routes. Writes stay with the Promoter.",
+              "item": [
+                {
+                  "name": "My profile",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/courier/profile",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "courier",
+                        "profile"
+                      ]
+                    },
+                    "description": "Delivery team member only; Promoters, admins and every other role get 403. Name, your Promoter's name and phone, and the vehicle of your active assigned route (null when none)."
+                  }
+                },
+                {
+                  "name": "My routes",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/courier/routes",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "courier",
+                        "routes"
+                      ]
+                    },
+                    "description": "Delivery team member only; Promoters, admins and every other role get 403. Routes where you are the assigned courier, with the vehicle read-only."
+                  }
+                },
+                {
+                  "name": "My route",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/courier/routes/{{delivery_route_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "courier",
+                        "routes",
+                        "{{delivery_route_id}}"
+                      ]
+                    },
+                    "description": "Delivery team member only; Promoters, admins and every other role get 403. One of your assigned routes; 404 for any other route."
+                  }
+                },
+                {
+                  "name": "My delivery requests",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/courier/requests?status=accepted&delivery_date=2026-11-14",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "courier",
+                        "requests"
+                      ],
+                      "query": [
+                        {
+                          "key": "status",
+                          "value": "accepted",
+                          "disabled": true
+                        },
+                        {
+                          "key": "delivery_date",
+                          "value": "2026-11-14",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Delivery team member only; Promoters, admins and every other role get 403. Delivery requests on your assigned routes. Optional filters: `status` (requested, accepted, rejected, expired, cancelled) and `delivery_date` (YYYY-MM-DD)."
+                  }
+                },
+                {
+                  "name": "My delivery request",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/courier/requests/{{delivery_request_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "courier",
+                        "requests",
+                        "{{delivery_request_id}}"
+                      ]
+                    },
+                    "description": "Delivery team member only; Promoters, admins and every other role get 403. One request on your assigned routes; 404 otherwise."
+                  }
+                },
+                {
+                  "name": "Start delivery",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/courier/requests/{{delivery_request_id}}/start",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "courier",
+                        "requests",
+                        "{{delivery_request_id}}",
+                        "start"
+                      ]
+                    },
+                    "description": "Delivery team member, on a request of one of your routes. The seller must have confirmed the order and the delivery day must have come. Marks the order shipped, creates a 6-digit handover OTP and sends the customer a `delivery_started` notification whose text contains the OTP (it is also on their order delivery screen). You never receive the OTP: ask the customer for it at the door. Calling it again while the OTP is valid resends the same OTP to the customer as a new notification (422 if you resend within 30 seconds); it does not change the OTP or reset the wrong-attempt counter. Once the OTP expired or was locked by wrong guesses, calling it issues a new OTP."
+                  }
+                },
+                {
+                  "name": "Complete delivery",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/courier/requests/{{delivery_request_id}}/complete",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "courier",
+                        "requests",
+                        "{{delivery_request_id}}",
+                        "complete"
+                      ]
+                    },
+                    "description": "Delivery team member. Multipart form: `otp` (the 6 digits the customer reads out) and `proof_image` (a photo of the handed-over parcel: JPEG, PNG or WebP, up to 10 MB). A wrong OTP returns 422 and counts as an attempt; after 5 wrong attempts the OTP is locked until you start the delivery again. On success the request becomes `delivered` and the order `delivered`.",
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "otp",
+                          "value": "123456",
+                          "type": "text"
+                        },
+                        {
+                          "key": "proof_image",
+                          "type": "file",
+                          "src": []
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get delivery proof",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/courier/requests/{{delivery_request_id}}/proof",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "courier",
+                        "requests",
+                        "{{delivery_request_id}}",
+                        "proof"
+                      ]
+                    },
+                    "description": "Delivery team member. Returns the proof photo of a delivery you completed."
                   }
                 }
               ]
@@ -11876,6 +14614,519 @@
                       ]
                     },
                     "description": "Users you have blocked, newest first."
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "1.11 Earnings",
+          "item": [
+            {
+              "name": "My Earnings",
+              "item": [
+                {
+                  "name": "List my earnings",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/earnings?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "earnings"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        },
+                        {
+                          "key": "status",
+                          "value": "available",
+                          "disabled": true
+                        },
+                        {
+                          "key": "source_type",
+                          "value": "order",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_from",
+                          "value": "2026-11-01",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_to",
+                          "value": "2026-11-30",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Promoter delivery fees and individual-seller deal sales, newest first."
+                  }
+                },
+                {
+                  "name": "My earnings summary",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/earnings/summary",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "earnings",
+                        "summary"
+                      ],
+                      "query": [
+                        {
+                          "key": "status",
+                          "value": "available",
+                          "disabled": true
+                        },
+                        {
+                          "key": "source_type",
+                          "value": "order",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_from",
+                          "value": "2026-11-01",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_to",
+                          "value": "2026-11-30",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Totals per beneficiary type and currency: pending, available, reversed, platform fee, cash fee owed."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Business Earnings",
+              "item": [
+                {
+                  "name": "List business earnings",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/businesses/{{business_id}}/earnings?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "businesses",
+                        "{{business_id}}",
+                        "earnings"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        },
+                        {
+                          "key": "status",
+                          "value": "available",
+                          "disabled": true
+                        },
+                        {
+                          "key": "source_type",
+                          "value": "order",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_from",
+                          "value": "2026-11-01",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_to",
+                          "value": "2026-11-30",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Earnings of one business (owner or `business.view_any`), newest first."
+                  }
+                },
+                {
+                  "name": "Business earnings summary",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/businesses/{{business_id}}/earnings/summary",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "businesses",
+                        "{{business_id}}",
+                        "earnings",
+                        "summary"
+                      ],
+                      "query": [
+                        {
+                          "key": "status",
+                          "value": "available",
+                          "disabled": true
+                        },
+                        {
+                          "key": "source_type",
+                          "value": "order",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_from",
+                          "value": "2026-11-01",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_to",
+                          "value": "2026-11-30",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Business totals, including the platform fee owed on cash payments."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Payouts & Bank Details",
+              "item": [
+                {
+                  "name": "Get my payout account",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/payout-account",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "payout-account"
+                      ],
+                      "query": []
+                    },
+                    "description": "Personal bank / UPI details (promoter, native admin, individual seller). Account number masked."
+                  }
+                },
+                {
+                  "name": "Save my payout account",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/payout-account",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "payout-account"
+                      ],
+                      "query": []
+                    },
+                    "description": "Bank account + IFSC, or UPI ID. Account number is stored encrypted.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"account_holder_name\": \"EMart Traders\",\n  \"account_number\": \"123456784821\",\n  \"ifsc\": \"SBIN0001234\",\n  \"upi_id\": \"emart@upi\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Get business payout account",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/businesses/{{business_id}}/payout-account",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "businesses",
+                        "{{business_id}}",
+                        "payout-account"
+                      ],
+                      "query": []
+                    },
+                    "description": "Business bank / UPI details (owner or business.view_any)."
+                  }
+                },
+                {
+                  "name": "Save business payout account",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/businesses/{{business_id}}/payout-account",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "businesses",
+                        "{{business_id}}",
+                        "payout-account"
+                      ],
+                      "query": []
+                    },
+                    "description": "Business owner only.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"account_holder_name\": \"EMart Traders\",\n  \"account_number\": \"123456784821\",\n  \"ifsc\": \"SBIN0001234\",\n  \"upi_id\": \"emart@upi\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "List my payouts",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/payouts?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "payouts"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        }
+                      ]
+                    },
+                    "description": "Payouts sent to me as promoter / native admin / individual seller."
+                  }
+                },
+                {
+                  "name": "List business payouts",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/businesses/{{business_id}}/payouts?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "businesses",
+                        "{{business_id}}",
+                        "payouts"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        }
+                      ]
+                    },
+                    "description": "Payouts sent to the business."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "COD Dues",
+              "item": [
+                {
+                  "name": "My COD dues",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/dues",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "dues"
+                      ],
+                      "query": []
+                    },
+                    "description": "Individual seller: unpaid platform fee + commission on delivered cash orders."
+                  }
+                },
+                {
+                  "name": "Pay my COD dues",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/dues/pay",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "dues",
+                        "pay"
+                      ],
+                      "query": []
+                    },
+                    "description": "Opens (or reuses) a Razorpay payment link for the total outstanding."
+                  }
+                },
+                {
+                  "name": "Business COD dues",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/businesses/{{business_id}}/dues",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "businesses",
+                        "{{business_id}}",
+                        "dues"
+                      ],
+                      "query": []
+                    },
+                    "description": "Outstanding COD dues of the business."
+                  }
+                },
+                {
+                  "name": "Pay business COD dues",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/me/businesses/{{business_id}}/dues/pay",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "me",
+                        "businesses",
+                        "{{business_id}}",
+                        "dues",
+                        "pay"
+                      ],
+                      "query": []
+                    },
+                    "description": "Razorpay link for the business's outstanding dues."
                   }
                 }
               ]
@@ -14308,6 +17559,21 @@
                       "type": "text"
                     },
                     {
+                      "key": "address_line",
+                      "value": "TC 12/345, Technopark Road",
+                      "type": "text"
+                    },
+                    {
+                      "key": "landmark",
+                      "value": "Near Technopark Phase 1 gate",
+                      "type": "text"
+                    },
+                    {
+                      "key": "pincode",
+                      "value": "695581",
+                      "type": "text"
+                    },
+                    {
                       "key": "images",
                       "type": "file",
                       "src": []
@@ -15194,7 +18460,7 @@
                         "ask"
                       ]
                     },
-                    "description": "Authenticated. Sends a prompt to the AI assistant. The app searches posts and businesses first and gives the results to the AI, which may also use read-only tools (get_post, search_posts, get_post_comments, get_post_tags, get_user_posts). 503 if the AI provider is not configured.\n\n**Body**\n- `prompt` (string, required)\n- `latitude`, `longitude` (number, optional, together) — enables \"near me\" queries; matching posts are ranked by distance and returned with `distance_km`\n- `radius_km` (number, optional, requires coordinates)\n\n**Creating a deal with the assistant**\nUsers holding the deal-create permission also get a question-and-answer flow that creates a DRAFT individual-seller deal (tools: list_deal_categories, save_deal_details, create_deal_draft, discard_deal_details). Answers collected so far are stored server-side in the `ai_drafts` table (one row per user per kind, expires after 24h) and are deleted when the deal is created or discarded, so each `POST /ai/ask` just continues from what is saved.\n\n**Response**\n- `data.created` (object, optional) — `{kind, id, title, status}`; set only when a draft deal was created. It is never published: cover images and submit still happen through the deals endpoints.\n- Deals for a business are not created through the assistant."
+                    "description": "Authenticated. Sends a prompt to the AI assistant. The app searches posts and businesses first and gives the results to the AI, which may also use read-only tools (get_post, search_posts, get_post_comments, get_post_tags, get_user_posts). 503 if the AI provider is not configured.\n\n**Body**\n- `prompt` (string, required)\n- `latitude`, `longitude` (number, optional, together) — enables \"near me\" queries; matching posts are ranked by distance and returned with `distance_km`\n- `radius_km` (number, optional, requires coordinates)\n\n**Creating a deal with the assistant**\nUsers holding the deal-create permission also get a question-and-answer flow that creates a DRAFT individual-seller deal (the app turns each message into draft changes itself, so the draft is saved even if the assistant forgets to). Answers collected so far are stored server-side in the `ai_drafts` table (one row per user per kind, expires after 24h) and are deleted when the deal is created or discarded, so each `POST /ai/ask` just continues from what is saved.\n\n**Response**\n- `data.created` (object, optional) — `{kind, id, title, status}`; set only when a draft deal was created. It is never published: cover images and submit still happen through the deals endpoints.\n- \n- `data.next_step` (object, optional) - present while a deal draft is in progress: `{flow, field, input, options}`. `input` is `text`, `datetime`, `choice` or `confirm`; `field` is the draft field being asked for (null on `confirm`). Each option is `{id, label, prompt}`: render `label` as a button and, when tapped, send its `prompt` to `POST /ai/ask` as the next message (typing a custom answer also works). Absent when the deal is created or cancelled.\nDeals for a business are not created through the assistant."
                   }
                 },
                 {
@@ -15296,6 +18562,499 @@
                       ]
                     },
                     "description": "Authenticated. Returns raw audio (wav or mp3, per server config) spoken in the chosen avatar's voice. Drive the avatar's mouth from the audio level while it plays."
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "2.7 Earnings & Payouts",
+          "item": [
+            {
+              "name": "Earnings",
+              "item": [
+                {
+                  "name": "List all earnings",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/earnings?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "earnings"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        },
+                        {
+                          "key": "beneficiary_type",
+                          "value": "platform",
+                          "disabled": true
+                        },
+                        {
+                          "key": "business_id",
+                          "value": "{{business_id}}",
+                          "disabled": true
+                        },
+                        {
+                          "key": "user_id",
+                          "value": "{{user_id}}",
+                          "disabled": true
+                        },
+                        {
+                          "key": "status",
+                          "value": "available",
+                          "disabled": true
+                        },
+                        {
+                          "key": "source_type",
+                          "value": "order",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_from",
+                          "value": "2026-11-01",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_to",
+                          "value": "2026-11-30",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Every ledger entry. Requires `earning.view_any`."
+                  }
+                },
+                {
+                  "name": "Earnings summary (platform revenue)",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/earnings/summary?beneficiary_type=platform",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "earnings",
+                        "summary"
+                      ],
+                      "query": [
+                        {
+                          "key": "beneficiary_type",
+                          "value": "platform",
+                          "disabled": false
+                        },
+                        {
+                          "key": "business_id",
+                          "value": "{{business_id}}",
+                          "disabled": true
+                        },
+                        {
+                          "key": "user_id",
+                          "value": "{{user_id}}",
+                          "disabled": true
+                        },
+                        {
+                          "key": "status",
+                          "value": "available",
+                          "disabled": true
+                        },
+                        {
+                          "key": "source_type",
+                          "value": "order",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_from",
+                          "value": "2026-11-01",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_to",
+                          "value": "2026-11-30",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Totals per beneficiary type; filter beneficiary_type=platform for platform fee revenue. Requires `earning.view_any`."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Payouts",
+              "item": [
+                {
+                  "name": "Payouts due",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/payouts/due",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "payouts",
+                        "due"
+                      ],
+                      "query": [
+                        {
+                          "key": "period_end",
+                          "value": "2026-11-30",
+                          "disabled": true
+                        },
+                        {
+                          "key": "payee_type",
+                          "value": "business",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Per payee: available net, COD dues owed, payout amount. Requires payout.manage."
+                  }
+                },
+                {
+                  "name": "Create payout",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/payouts",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "payouts"
+                      ],
+                      "query": []
+                    },
+                    "description": "Draft payout for one payee (business_id for business, user_id otherwise).",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"payee_type\": \"business\",\n  \"business_id\": \"{{business_id}}\",\n  \"currency\": \"INR\",\n  \"period_end\": null\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Create payouts for all due",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/payouts/bulk",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "payouts",
+                        "bulk"
+                      ],
+                      "query": []
+                    },
+                    "description": "Draft payouts for every payee with a positive amount.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"period_end\": null,\n  \"payee_type\": null\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "List payouts",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/payouts?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "payouts"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        },
+                        {
+                          "key": "status",
+                          "value": "draft",
+                          "disabled": true
+                        },
+                        {
+                          "key": "payee_type",
+                          "value": "business",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Payout history."
+                  }
+                },
+                {
+                  "name": "Get payout",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/payouts/{{payout_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "payouts",
+                        "{{payout_id}}"
+                      ],
+                      "query": []
+                    },
+                    "description": "Payout with bank details (masked) and every earnings line."
+                  }
+                },
+                {
+                  "name": "Mark payout paid (manual)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/payouts/{{payout_id}}/mark-paid",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "payouts",
+                        "{{payout_id}}",
+                        "mark-paid"
+                      ],
+                      "query": []
+                    },
+                    "description": "After a manual bank / UPI transfer: records the UTR, settles the earnings.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"payment_reference\": \"UTR432112345678\",\n  \"paid_at\": null,\n  \"note\": null\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Send payout via RazorpayX",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/payouts/{{payout_id}}/send",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "payouts",
+                        "{{payout_id}}",
+                        "send"
+                      ],
+                      "query": []
+                    },
+                    "description": "Needs PAYOUT_PROVIDER=razorpayx; the RazorpayX webhook marks it paid or failed."
+                  }
+                },
+                {
+                  "name": "Cancel payout",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/payouts/{{payout_id}}/cancel",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "payouts",
+                        "{{payout_id}}",
+                        "cancel"
+                      ],
+                      "query": []
+                    },
+                    "description": "Draft only; its earnings become due again."
+                  }
+                },
+                {
+                  "name": "Export payouts CSV",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/payouts/export",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "payouts",
+                        "export"
+                      ],
+                      "query": [
+                        {
+                          "key": "status",
+                          "value": "draft",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Bank upload sheet (drafts by default) with full account numbers."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "COD Dues",
+              "item": [
+                {
+                  "name": "COD dues owed",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/dues",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "dues"
+                      ],
+                      "query": []
+                    },
+                    "description": "Who owes what (unpaid COD platform fee + commission)."
+                  }
+                },
+                {
+                  "name": "COD dues payments",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/dues/payments?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "dues",
+                        "payments"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        }
+                      ]
+                    },
+                    "description": "Dues payment links and their status."
                   }
                 }
               ]

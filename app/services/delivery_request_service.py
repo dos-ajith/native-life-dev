@@ -40,6 +40,8 @@ from app.services.delivery_plan_service import (
 )
 from app.services.delivery_schedule import is_within_working_hours, next_working_day
 from app.services.delivery_timeout_service import DeliveryTimeoutService
+from app.services.earning_ledger import EarningLedger
+from app.services.handover_otp import handover_otp, otp_expires_at, otp_is_active
 from app.services.notification_service import NotificationService
 
 ENTITY_TYPE = "delivery_request"
@@ -70,8 +72,11 @@ class DeliveryRequestService:
         self._timeouts = DeliveryTimeoutService(db)
         self._notifications = NotificationService(db, publisher)
         self._activity_logs = ActivityLogService(db)
+        self._earnings = EarningLedger(db)
 
-    def create(self, order: Order, plan: DeliveryPlan) -> DeliveryRequest | None:
+    def create(
+        self, order: Order, plan: DeliveryPlan, hold: bool = False
+    ) -> DeliveryRequest | None:
         if (
             plan.option == DeliveryOption.SELF_PICKUP
             or plan.delivery_date is None
@@ -90,13 +95,44 @@ class DeliveryRequestService:
             now = deal_clock_now()
             request.escalated_at = now
             request.expires_at = now + self._timeouts.claim_window()
+        if hold:
+            request.status = DeliveryRequestStatus.AWAITING_PAYMENT
+            request.held_at = deal_clock_now()
+            request.held_notify_promoter_ids = [str(item) for item in plan.notify_promoter_ids]
         return self._requests.add(request)
+
+    def release_held(self, order: Order) -> list[DeliveryRequest]:
+        now = deal_clock_now()
+        released = self._requests.list_held_for_order(order.id)
+        for request in released:
+            held_for = now - (request.held_at or now)
+            request.expires_at = request.expires_at + held_for
+            if request.escalated_at is not None:
+                request.escalated_at = request.escalated_at + held_for
+            request.status = DeliveryRequestStatus.REQUESTED
+            request.held_at = None
+        return released
+
+    def announce_released(self, request: DeliveryRequest, order: Order, actor: User) -> None:
+        notify_ids = tuple(UUID(item) for item in request.held_notify_promoter_ids or [])
+        request.held_notify_promoter_ids = None
+        self._db.commit()
+        self._log_and_notify(request, notify_ids, order, actor)
 
     def announce(
         self, request: DeliveryRequest | None, plan: DeliveryPlan, order: Order, actor: User
     ) -> None:
         if request is None:
             return
+        self._log_and_notify(request, plan.notify_promoter_ids, order, actor)
+
+    def _log_and_notify(
+        self,
+        request: DeliveryRequest,
+        notify_promoter_ids: tuple[UUID, ...],
+        order: Order,
+        actor: User,
+    ) -> None:
         self._activity_logs.log(
             actor=actor,
             action=ActivityAction.DELIVERY_REQUESTED,
@@ -104,7 +140,7 @@ class DeliveryRequestService:
             entity_id=request.id,
             metadata={"order_id": str(order.id), "option": request.option.value},
         )
-        for promoter_id in plan.notify_promoter_ids:
+        for promoter_id in notify_promoter_ids:
             self._notifications.notify_delivery(
                 promoter_id,
                 actor.id,
@@ -114,7 +150,8 @@ class DeliveryRequestService:
             )
 
     def cancel_for_order(self, order_id: UUID) -> None:
-        for request in self._requests.list_active_for_order(order_id):
+        held = self._requests.list_held_for_order(order_id)
+        for request in [*self._requests.list_active_for_order(order_id), *held]:
             request.status = DeliveryRequestStatus.CANCELLED
             request.decided_at = deal_clock_now()
 
@@ -188,6 +225,7 @@ class DeliveryRequestService:
             entity_id=request.id,
             metadata={"order_id": str(order.id), "route_id": str(route_id)},
         )
+        self._earnings.sync_order(order.id, actor)
         self._notifications.notify_delivery(
             order.customer_id,
             actor.id,
@@ -213,6 +251,7 @@ class DeliveryRequestService:
                 entity_id=request.id,
                 metadata={"order_id": str(order.id)},
             )
+            self._earnings.sync_order(order.id, actor)
             self._announce_escalation(request.id, order.order_number, candidates)
             return self._read(request)
         request.status = DeliveryRequestStatus.REJECTED
@@ -260,6 +299,7 @@ class DeliveryRequestService:
         order.promoter_id = plan.promoter_id
         request = self.create(order, plan)
         self._db.commit()
+        self._earnings.sync_order(order.id, actor)
         self.announce(request, plan, order, actor)
         if request is None:
             raise NotFoundError(DeliveryRequestMessages.NO_DELIVERY)
@@ -414,6 +454,11 @@ class DeliveryRequestService:
                 ),
                 updated_at=route.location_updated_at,
             )
+        otp_visible = (
+            with_rider
+            and request.status == DeliveryRequestStatus.ACCEPTED
+            and otp_is_active(request, deal_clock_now())
+        )
         return DeliveryRequestRead(
             id=request.id,
             order_id=order.id,
@@ -426,6 +471,16 @@ class DeliveryRequestService:
             fee=order.delivery_fee if order.delivery_fee is not None else Decimal(0),
             route_id=request.route_id,
             route_name=route.name if route is not None else None,
+            route_start=(
+                GeoPoint(latitude=route.start_latitude, longitude=route.start_longitude)
+                if route is not None
+                else None
+            ),
+            route_end=(
+                GeoPoint(latitude=route.end_latitude, longitude=route.end_longitude)
+                if route is not None
+                else None
+            ),
             promoter_id=request.promoter_id,
             promoter_name=_person_name(promoter),
             customer_name=order.customer_name,
@@ -436,4 +491,11 @@ class DeliveryRequestService:
                 and request.escalated_at is not None
             ),
             rider_location=rider,
+            started_at=request.started_at,
+            delivered_at=request.delivered_at,
+            handover_otp=(
+                handover_otp(request.id, request.handover_otp_version) if otp_visible else None
+            ),
+            handover_otp_expires_at=otp_expires_at(request) if otp_visible else None,
+            proof_available=request.proof_image_path is not None,
         )

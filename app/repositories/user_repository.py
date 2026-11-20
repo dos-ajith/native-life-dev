@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import Exists, ScalarSelect, func, or_, select, update
 from sqlalchemy.orm import InstrumentedAttribute, Session, aliased
 
+from app.core.permissions import RoleSlug
 from app.core.timezone import app_now
 from app.models.permission import Permission
 from app.models.post import Post, PostStatus
@@ -12,6 +13,7 @@ from app.models.role import Role
 from app.models.user import User, UserStatus
 from app.models.user_follow import UserFollow
 from app.models.user_follow_request import UserFollowRequest
+from app.models.user_has_role import user_has_roles
 from app.models.user_native_place import UserNativePlace
 from app.schemas.pagination import PaginationParams
 
@@ -162,6 +164,27 @@ class UserRepository:
             .limit(params.page_size)
         ).all()
         return list(items), total
+
+    def list_by_promoter(self, promoter_id: UUID) -> Sequence[User]:
+        return self._db.scalars(
+            select(User)
+            .where(User.promoter_id == promoter_id, User.deleted_at.is_(None))
+            .order_by(User.first_name, User.last_name)
+        ).all()
+
+    def list_verified_promoters(self) -> Sequence[User]:
+        return self._db.scalars(
+            select(User)
+            .join(user_has_roles, user_has_roles.c.user_id == User.id)
+            .join(Role, Role.id == user_has_roles.c.role_id)
+            .where(
+                Role.slug == RoleSlug.PROMOTER,
+                user_has_roles.c.verified_at.is_not(None),
+                User.deleted_at.is_(None),
+                User.status == UserStatus.ACTIVE,
+            )
+            .order_by(User.first_name, User.last_name)
+        ).all()
 
     def list_discoverable(
         self,

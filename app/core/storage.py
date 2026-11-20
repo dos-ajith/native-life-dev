@@ -29,6 +29,9 @@ ROLE_UPGRADE_DOCUMENTS_SUBDIR = "role_upgrade_documents"
 BUSINESS_DOCUMENTS_SUBDIR = "business_documents"
 AADHAAR_DOCUMENTS_SUBDIR = "aadhaar_documents"
 DEAL_IMAGES_SUBDIR = "deal_images"
+DELIVERY_PROOFS_SUBDIR = "delivery_proofs"
+MAX_DELIVERY_PROOF_BYTES = 10 * 1024 * 1024
+ALLOWED_DELIVERY_PROOF_TYPES = ALLOWED_PROFILE_IMAGE_TYPES
 CONTENT_TYPE_ALIASES = {"image/jpg": "image/jpeg", "image/pjpeg": "image/jpeg"}
 GENERIC_CONTENT_TYPES = frozenset({"", "application/octet-stream", "binary/octet-stream"})
 FILE_SIGNATURES = (
@@ -214,6 +217,19 @@ def save_business_document(file: UploadFile, private_upload_dir: str) -> tuple[s
 
 def save_aadhaar_document(file: UploadFile, private_upload_dir: str) -> tuple[str, str, int]:
     return _save_private_document(file, private_upload_dir, AADHAAR_DOCUMENTS_SUBDIR)
+
+
+def save_delivery_proof(file: UploadFile, private_upload_dir: str) -> str:
+    storage_path, _, _ = _save_private_upload(
+        file,
+        private_upload_dir,
+        DELIVERY_PROOFS_SUBDIR,
+        ALLOWED_DELIVERY_PROOF_TYPES,
+        MAX_DELIVERY_PROOF_BYTES,
+        StorageMessages.INVALID_PROOF_TYPE,
+        StorageMessages.PROOF_TOO_LARGE,
+    )
+    return storage_path
 
 
 def save_deal_image(file: UploadFile, private_upload_dir: str) -> tuple[str, str, int]:

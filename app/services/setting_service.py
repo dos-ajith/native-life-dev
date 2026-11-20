@@ -28,6 +28,7 @@ from app.services.delivery_timeout_service import (
     DELIVERY_TIMEOUT_SETTING_KEYS,
     DeliveryTimeoutService,
 )
+from app.services.finance_settings_service import FINANCE_SETTING_KEYS, FinanceSettingsService
 
 ENTITY_TYPE = "setting"
 
@@ -95,6 +96,8 @@ class SettingService:
             DeliveryAccessService(self._db).ensure_valid(value)
         elif key in DELIVERY_TIMEOUT_SETTING_KEYS:
             DeliveryTimeoutService(self._db).ensure_valid(key, value)
+        elif key in FINANCE_SETTING_KEYS:
+            FinanceSettingsService(self._db).ensure_valid(key, value)
 
     def _refresh_caches_if_affected(self, *keys: str) -> None:
         if APP_TIMEZONE_SETTING_KEY in keys:

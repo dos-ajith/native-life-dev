@@ -3,6 +3,7 @@ class RoleName:
     NATIVE_ADMIN = "Native Admin"
     INDIVIDUAL_USER = "Individual User"
     PROMOTER = "Promoter"
+    DELIVERY_TEAM = "Delivery Team"
     CLUB_COMMUNITY = "Club / Community"
     BUSINESS_SERVICE_PROVIDER = "Business / Service Provider"
 
@@ -12,6 +13,7 @@ class RoleSlug:
     NATIVE_ADMIN = "native-admin"
     INDIVIDUAL_USER = "individual-user"
     PROMOTER = "promoter"
+    DELIVERY_TEAM = "delivery-team"
     CLUB_COMMUNITY = "club-community"
     BUSINESS_SERVICE_PROVIDER = "business-service-provider"
 
@@ -23,6 +25,7 @@ CANONICAL_ROLE_SLUGS = (
     RoleSlug.PROMOTER,
     RoleSlug.CLUB_COMMUNITY,
     RoleSlug.BUSINESS_SERVICE_PROVIDER,
+    RoleSlug.DELIVERY_TEAM,
 )
 ADMIN_ROLE_SLUGS = frozenset({RoleSlug.SUPER_ADMIN, RoleSlug.NATIVE_ADMIN})
 VERIFIED_ACCOUNT_ROLE_SLUGS = (
@@ -129,8 +132,15 @@ class PermissionName:
     ROLE_UPGRADE_REQUEST_APPROVE = "role_upgrade_request.approve"
     ROLE_UPGRADE_REQUEST_REJECT = "role_upgrade_request.reject"
 
+    DELIVERY_TEAM_CREATE = "delivery_team.create"
+    DELIVERY_TEAM_VIEW_OWN = "delivery_team.view_own"
+    DELIVERY_TEAM_SELECT_PROMOTER = "delivery_team.select_promoter"
+
     PLUGIN_VIEW = "plugin.view"
     PLUGIN_MANAGE = "plugin.manage"
+
+    EARNING_VIEW_ANY = "earning.view_any"
+    PAYOUT_MANAGE = "payout.manage"
 
 
 GUEST_PERMISSIONS = frozenset({PermissionName.POST_VIEW, PermissionName.PAGE_READ})

@@ -10,7 +10,9 @@ from app.models.business_document import BusinessDocument, BusinessDocumentStatu
 from app.models.business_image import BusinessImage
 from app.schemas.base import BaseReadSchema
 from app.schemas.category import CategoryRef, CategoryWithParentRead
+from app.schemas.native_place import NativePlaceRead
 from app.schemas.post import Latitude, Longitude
+from app.schemas.user_address import AddressLandmark, AddressLine, AddressPincode
 from app.schemas.validators import AlphanumericStr, NonBlankStr
 
 BusinessName = Annotated[AlphanumericStr, Field(max_length=255)]
@@ -39,6 +41,11 @@ class BusinessCreate(BusinessLocationInput):
     name: BusinessName
     category_id: UUID
     description: BusinessDescription | None = None
+    latitude: Latitude
+    longitude: Longitude
+    address_line: AddressLine
+    landmark: AddressLandmark | None = None
+    pincode: AddressPincode
     document_types: list[DocumentType] = Field(default_factory=list)
 
 
@@ -47,6 +54,9 @@ class BusinessUpdate(BusinessLocationInput):
     category_id: UUID | None = None
     description: BusinessDescription | None = None
     status: BusinessStatus | None = None
+    address_line: AddressLine | None = None
+    landmark: AddressLandmark | None = None
+    pincode: AddressPincode | None = None
 
 
 class BusinessRead(BaseReadSchema):
@@ -57,6 +67,10 @@ class BusinessRead(BaseReadSchema):
     category: CategoryWithParentRead | None
     latitude: float | None
     longitude: float | None
+    address_line: str | None
+    landmark: str | None
+    pincode: str | None
+    place: NativePlaceRead | None
     status: BusinessStatus
     verification_status: BusinessVerificationStatus
     review_note: str | None
@@ -84,6 +98,10 @@ class BusinessRead(BaseReadSchema):
             category=category_read,
             latitude=business.latitude,
             longitude=business.longitude,
+            address_line=business.address_line,
+            landmark=business.landmark,
+            pincode=business.pincode,
+            place=NativePlaceRead.from_village(business.village) if business.village else None,
             status=business.status,
             verification_status=business.verification_status,
             review_note=business.review_note,

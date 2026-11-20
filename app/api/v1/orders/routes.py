@@ -3,8 +3,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
-from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaginationDep
-from app.core.messages import OrderMessages
+from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaginationDep, PaymentGatewayDep
+from app.core.messages import OrderMessages, PaymentMessages
 from app.core.openapi_tags import ApiTag
 from app.plugins.deps import PluginRegistryDep
 from app.schemas.direct_order import DirectOrderCreate
@@ -12,6 +12,7 @@ from app.schemas.order import OrderCancel, OrderListQuery, OrderRead
 from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
 from app.services.direct_order_service import DirectOrderService
+from app.services.order_payment_service import OrderPaymentService
 from app.services.order_service import OrderService
 
 router = APIRouter(prefix="/me/orders", tags=[ApiTag.ORDERS])
@@ -52,6 +53,22 @@ def cancel_my_order(
     return SuccessResponse(message=OrderMessages.CANCELLED, data=order)
 
 
+@router.post(
+    "/{order_id}/payment/sync",
+    response_model=SuccessResponse[OrderRead],
+    tags=[ApiTag.PAYMENTS],
+)
+def sync_my_order_payment(
+    order_id: UUID,
+    db: DbSessionDep,
+    gateway: PaymentGatewayDep,
+    registry: PluginRegistryDep,
+    current_user: CurrentActiveUserDep,
+) -> SuccessResponse[OrderRead]:
+    order = OrderPaymentService(db, gateway, registry).sync_for_customer(order_id, current_user)
+    return SuccessResponse(message=PaymentMessages.STATUS_RETRIEVED, data=order)
+
+
 @business_router.post(
     "", response_model=SuccessResponse[OrderRead], status_code=status.HTTP_201_CREATED
 )
@@ -60,7 +77,8 @@ def place_direct_order(
     payload: DirectOrderCreate,
     db: DbSessionDep,
     registry: PluginRegistryDep,
+    gateway: PaymentGatewayDep,
     current_user: CurrentActiveUserDep,
 ) -> SuccessResponse[OrderRead]:
-    order = DirectOrderService(db, registry).place(business_id, payload, current_user)
+    order = DirectOrderService(db, registry, gateway).place(business_id, payload, current_user)
     return SuccessResponse(message=OrderMessages.PLACED, data=order)

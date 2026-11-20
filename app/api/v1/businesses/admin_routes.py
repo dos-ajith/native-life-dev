@@ -12,6 +12,7 @@ from app.api.v1.businesses.permissions import (
 )
 from app.core.messages import BusinessMessages
 from app.core.openapi_tags import ApiTag
+from app.plugins.deps import PluginRegistryDep
 from app.schemas.business import BusinessCreate, BusinessCreatedRead, BusinessDocumentRead
 from app.schemas.business_review import (
     BusinessCountsRead,
@@ -56,9 +57,12 @@ def create_business_for_owner(
     owner_id: Annotated[UUID, Form()],
     name: Annotated[str, Form()],
     category_id: Annotated[UUID, Form()],
+    latitude: Annotated[float, Form()],
+    longitude: Annotated[float, Form()],
+    address_line: Annotated[str, Form()],
+    pincode: Annotated[str, Form()],
     description: Annotated[str | None, Form()] = None,
-    latitude: Annotated[float | None, Form()] = None,
-    longitude: Annotated[float | None, Form()] = None,
+    landmark: Annotated[str | None, Form()] = None,
     images: Annotated[list[UploadFile] | None, File()] = None,
     documents: Annotated[list[UploadFile] | None, File()] = None,
     document_types: Annotated[list[str] | None, Form()] = None,
@@ -69,6 +73,9 @@ def create_business_for_owner(
         description=description,
         latitude=latitude,
         longitude=longitude,
+        address_line=address_line,
+        landmark=landmark,
+        pincode=pincode,
         document_types=document_types or [],
     )
     uploads = BusinessUploads(
@@ -132,9 +139,9 @@ def escalate_business(
 
 @router.post("/{business_id}/approve", response_model=SuccessResponse[BusinessReviewRead])
 def approve_business(
-    business_id: UUID, db: DbSessionDep, admin: BusinessReviewDep
+    business_id: UUID, db: DbSessionDep, registry: PluginRegistryDep, admin: BusinessReviewDep
 ) -> SuccessResponse[BusinessReviewRead]:
-    business = BusinessVerificationService(db).approve(business_id, admin)
+    business = BusinessVerificationService(db).approve(business_id, admin, registry)
     return SuccessResponse(
         message=BusinessMessages.APPROVED,
         data=BusinessReviewRead.from_business_for_review(business),

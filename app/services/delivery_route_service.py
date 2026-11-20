@@ -15,9 +15,11 @@ from app.repositories.user_native_place_repository import UserNativePlaceReposit
 from app.schemas.delivery_route import DeliveryRouteCreate, DeliveryRouteUpdate, GeoPoint
 from app.services.activity_log_service import ActivityLogService
 from app.services.delivery_vehicle_service import DeliveryVehicleService
+from app.services.promoter_team_scope import PromoterTeamScope
 
 ENTITY_TYPE = "delivery_route"
 POINT_FIELDS = ("start_point", "end_point")
+LABEL_FIELDS = ("start_label", "end_label")
 
 
 def _point(coordinates: GeoPoint) -> Any:
@@ -35,6 +37,7 @@ class DeliveryRouteService:
         self._routes = DeliveryRouteRepository(db)
         self._native_places = UserNativePlaceRepository(db)
         self._vehicles = DeliveryVehicleService(db)
+        self._team = PromoterTeamScope(db)
         self._activity_logs = ActivityLogService(db)
 
     def list_for(self, actor: User) -> list[DeliveryRoute]:
@@ -47,8 +50,12 @@ class DeliveryRouteService:
         return route
 
     def create(self, payload: DeliveryRouteCreate, actor: User) -> DeliveryRoute:
+        if payload.courier_id is not None:
+            self._team.team_member(actor.id, payload.courier_id)
         if payload.vehicle_id is not None:
-            self._vehicles.get_owned(payload.vehicle_id, actor)
+            self._vehicles.ensure_selectable(payload.vehicle_id, actor)
+            if payload.courier_id is not None:
+                self._vehicles.ensure_belongs_to_courier(payload.vehicle_id, payload.courier_id)
         self._ensure_unique(
             actor,
             payload.name,
@@ -61,7 +68,10 @@ class DeliveryRouteService:
                 user_id=actor.id,
                 village_id=self._native_village_id(actor),
                 vehicle_id=payload.vehicle_id,
+                courier_id=payload.courier_id,
                 name=payload.name,
+                start_label=payload.start_label,
+                end_label=payload.end_label,
                 start_point=_point(payload.start_point),
                 end_point=_point(payload.end_point),
                 path=_line(payload.path),
@@ -82,8 +92,20 @@ class DeliveryRouteService:
     def update(self, route_id: UUID, payload: DeliveryRouteUpdate, actor: User) -> DeliveryRoute:
         route = self.get_owned(route_id, actor)
         changes = payload.model_dump(exclude_unset=True)
-        if changes.get("vehicle_id") is not None:
-            self._vehicles.get_owned(changes["vehicle_id"], actor)
+        courier_id = changes.get("courier_id", route.courier_id)
+        vehicle_id = changes.get("vehicle_id", route.vehicle_id)
+        courier_changed = courier_id is not None and courier_id != route.courier_id
+        vehicle_changed = vehicle_id is not None and vehicle_id != route.vehicle_id
+        if courier_id is not None and courier_changed:
+            self._team.team_member(actor.id, courier_id)
+        if vehicle_id is not None and vehicle_changed:
+            self._vehicles.ensure_selectable(vehicle_id, actor)
+        if (
+            courier_id is not None
+            and vehicle_id is not None
+            and (courier_changed or vehicle_changed)
+        ):
+            self._vehicles.ensure_belongs_to_courier(vehicle_id, courier_id)
         start = payload.start_point or GeoPoint(
             latitude=route.start_latitude, longitude=route.start_longitude
         )
@@ -102,6 +124,11 @@ class DeliveryRouteService:
                 setattr(route, field, changes[field])
         if "vehicle_id" in changes:
             route.vehicle_id = changes["vehicle_id"]
+        if "courier_id" in changes:
+            route.courier_id = changes["courier_id"]
+        for field in LABEL_FIELDS:
+            if field in changes:
+                setattr(route, field, changes[field])
         for field in POINT_FIELDS:
             if changes.get(field) is not None:
                 setattr(route, field, _point(getattr(payload, field)))

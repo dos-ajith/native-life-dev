@@ -103,6 +103,25 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     mail_from_email: str | None = None
 
+    payment_provider: Literal["disabled", "razorpay"] = "disabled"
+    razorpay_key_id: str | None = None
+    razorpay_key_secret: SecretStr | None = None
+    razorpay_webhook_secret: SecretStr | None = None
+    razorpay_api_base_url: str = "https://api.razorpay.com/v1"
+    razorpay_request_timeout_seconds: float = Field(default=10.0, gt=0)
+    payment_link_expire_minutes: int = Field(default=1440, ge=16)
+    order_payment_expire_minutes: int = Field(default=30, ge=16)
+    payment_callback_url: str | None = None
+    payment_web_return_url: str | None = None
+
+    payout_account_encryption_key: SecretStr | None = None
+    payout_provider: Literal["disabled", "razorpayx"] = "disabled"
+    razorpayx_key_id: str | None = None
+    razorpayx_key_secret: SecretStr | None = None
+    razorpayx_webhook_secret: SecretStr | None = None
+    razorpayx_account_number: str | None = None
+    razorpayx_api_base_url: str = "https://api.razorpay.com/v1"
+
     support_url: str | None = None
     privacy_policy_url: str | None = None
     terms_of_service_url: str | None = None
@@ -143,6 +162,39 @@ class Settings(BaseSettings):
             ]
             if missing:
                 raise ValueError(f"SMS_PROVIDER=twilio requires {', '.join(missing)}")
+        return self
+
+    @model_validator(mode="after")
+    def _validate_payment_provider(self) -> "Settings":
+        if self.payment_provider == "razorpay":
+            missing = [
+                name
+                for name, value in (
+                    ("RAZORPAY_KEY_ID", self.razorpay_key_id),
+                    ("RAZORPAY_KEY_SECRET", self.razorpay_key_secret),
+                    ("PAYMENT_CALLBACK_URL", self.payment_callback_url),
+                )
+                if not value
+            ]
+            if missing:
+                raise ValueError(f"PAYMENT_PROVIDER=razorpay requires {', '.join(missing)}")
+        return self
+
+    @model_validator(mode="after")
+    def _validate_payout_provider(self) -> "Settings":
+        if self.payout_provider == "razorpayx":
+            missing = [
+                name
+                for name, value in (
+                    ("RAZORPAYX_KEY_ID", self.razorpayx_key_id),
+                    ("RAZORPAYX_KEY_SECRET", self.razorpayx_key_secret),
+                    ("RAZORPAYX_ACCOUNT_NUMBER", self.razorpayx_account_number),
+                    ("PAYOUT_ACCOUNT_ENCRYPTION_KEY", self.payout_account_encryption_key),
+                )
+                if not value
+            ]
+            if missing:
+                raise ValueError(f"PAYOUT_PROVIDER=razorpayx requires {', '.join(missing)}")
         return self
 
 

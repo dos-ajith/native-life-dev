@@ -73,6 +73,8 @@ class DeliveryRequestRead(BaseReadSchema):
     fee: Decimal
     route_id: UUID | None
     route_name: str | None
+    route_start: GeoPoint | None = None
+    route_end: GeoPoint | None = None
     promoter_id: UUID | None
     promoter_name: str | None
     customer_name: str
@@ -80,6 +82,11 @@ class DeliveryRequestRead(BaseReadSchema):
     destination: GeoPoint | None
     open_for_claim: bool = False
     rider_location: RiderLocationRead | None = None
+    started_at: datetime | None = None
+    delivered_at: datetime | None = None
+    handover_otp: str | None = None
+    handover_otp_expires_at: datetime | None = None
+    proof_available: bool = False
 
 
 class DeliveryStopRead(BaseReadSchema):

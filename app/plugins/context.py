@@ -6,6 +6,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.ai.tools.base import AITool
 from app.core.messages import PluginMessages
+from app.plugins.booking import BookingProvider
 from app.plugins.deal_commerce import DealCommerceProvider
 from app.plugins.errors import PluginError
 from app.plugins.manifest import PluginManifest
@@ -17,6 +18,7 @@ class PluginContribution:
     model_bases: tuple[type[DeclarativeBase], ...]
     ai_tools: tuple[AITool[Any], ...] = ()
     deal_commerce: DealCommerceProvider | None = None
+    booking_provider: BookingProvider | None = None
 
 
 class PluginContext:
@@ -26,6 +28,7 @@ class PluginContext:
         self._model_bases: list[type[DeclarativeBase]] = []
         self._ai_tools: list[AITool[Any]] = []
         self._deal_commerce: DealCommerceProvider | None = None
+        self._booking_provider: BookingProvider | None = None
         self._closed = False
 
     @property
@@ -61,6 +64,12 @@ class PluginContext:
             raise PluginError(PluginMessages.DEAL_COMMERCE_DUPLICATE)
         self._deal_commerce = provider
 
+    def register_booking_provider(self, provider: BookingProvider) -> None:
+        self._ensure_open()
+        if self._booking_provider is not None:
+            raise PluginError(PluginMessages.BOOKING_PROVIDER_DUPLICATE)
+        self._booking_provider = provider
+
     def close(self) -> PluginContribution:
         self._closed = True
         return PluginContribution(
@@ -68,6 +77,7 @@ class PluginContext:
             model_bases=tuple(self._model_bases),
             ai_tools=tuple(self._ai_tools),
             deal_commerce=self._deal_commerce,
+            booking_provider=self._booking_provider,
         )
 
     def _ensure_open(self) -> None:

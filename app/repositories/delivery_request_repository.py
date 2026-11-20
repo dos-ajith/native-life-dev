@@ -3,7 +3,7 @@ from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, and_, exists, func, or_, select
+from sqlalchemy import ColumnElement, Select, and_, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.delivery_request import (
@@ -131,6 +131,31 @@ class DeliveryRequestRepository:
             )
         )
 
+    def list_for_courier(
+        self, courier_id: UUID, status: DeliveryRequestStatus | None, delivery_date: date | None
+    ) -> list[DeliveryRequest]:
+        query = self._courier_requests(courier_id)
+        if status is not None:
+            query = query.where(DeliveryRequest.status == status)
+        if delivery_date is not None:
+            query = query.where(DeliveryRequest.delivery_date == delivery_date)
+        return list(
+            self._db.scalars(
+                query.order_by(DeliveryRequest.delivery_date, DeliveryRequest.created_at)
+            )
+        )
+
+    def get_for_courier(self, request_id: UUID, courier_id: UUID) -> DeliveryRequest | None:
+        query = self._courier_requests(courier_id).where(DeliveryRequest.id == request_id)
+        return self._db.scalars(query).first()
+
+    def _courier_requests(self, courier_id: UUID) -> Select[Any]:
+        return (
+            select(DeliveryRequest)
+            .join(DeliveryRoute, DeliveryRoute.id == DeliveryRequest.route_id)
+            .where(DeliveryRoute.courier_id == courier_id)
+        )
+
     def list_stops(self, route_id: UUID, delivery_date: date) -> list[DeliveryRequest]:
         return list(
             self._db.scalars(
@@ -141,6 +166,16 @@ class DeliveryRequestRepository:
                     DeliveryRequest.status.in_(ACTIVE_REQUEST_STATUSES),
                 )
                 .order_by(DeliveryRequest.created_at)
+            )
+        )
+
+    def list_held_for_order(self, order_id: UUID) -> list[DeliveryRequest]:
+        return list(
+            self._db.scalars(
+                select(DeliveryRequest).where(
+                    DeliveryRequest.order_id == order_id,
+                    DeliveryRequest.status == DeliveryRequestStatus.AWAITING_PAYMENT,
+                )
             )
         )
 

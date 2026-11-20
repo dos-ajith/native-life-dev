@@ -15,6 +15,7 @@ from sqlalchemy.orm import DeclarativeBase
 from app.ai.tools.base import AITool
 from app.core.messages import PluginMessages
 from app.models.base import Base as CoreBase
+from app.plugins.booking import BookingProvider
 from app.plugins.boundaries import find_boundary_violations
 from app.plugins.context import PluginContext
 from app.plugins.deal_commerce import DealCommerceProvider
@@ -46,6 +47,7 @@ class LoadedPlugin:
     model_bases: tuple[type[DeclarativeBase], ...]
     ai_tools: tuple[AITool[Any], ...] = ()
     deal_commerce: DealCommerceProvider | None = None
+    booking_provider: BookingProvider | None = None
 
     @property
     def key(self) -> str:
@@ -218,6 +220,7 @@ def _register(candidate: PluginCandidate) -> LoadedPlugin:
         model_bases=contribution.model_bases,
         ai_tools=contribution.ai_tools,
         deal_commerce=contribution.deal_commerce,
+        booking_provider=contribution.booking_provider,
     )
 
 

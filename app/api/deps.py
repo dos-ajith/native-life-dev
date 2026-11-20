@@ -12,6 +12,7 @@ from app.core.exceptions import AuthenticationError, AuthorizationError
 from app.core.google_auth import GoogleTokenVerifier, get_google_token_verifier
 from app.core.jwt import TokenClaims, parse_token_claims
 from app.core.messages import AuthMessages
+from app.core.payments import PaymentGateway, get_payment_gateway
 from app.core.sms import SmsProvider, get_sms_provider
 from app.models.user import User
 from app.schemas.geography import ReverseGeocodeQuery
@@ -33,6 +34,13 @@ def get_sms_provider_dependency(settings: SettingsDep) -> SmsProvider | None:
 
 
 SmsProviderDep = Annotated[SmsProvider | None, Depends(get_sms_provider_dependency)]
+
+
+def get_payment_gateway_dependency(settings: SettingsDep) -> PaymentGateway | None:
+    return get_payment_gateway(settings)
+
+
+PaymentGatewayDep = Annotated[PaymentGateway | None, Depends(get_payment_gateway_dependency)]
 
 
 def get_google_token_verifier_dependency(settings: SettingsDep) -> GoogleTokenVerifier | None:

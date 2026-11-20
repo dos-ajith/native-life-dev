@@ -14,6 +14,8 @@ class EmailType(enum.StrEnum):
     EMAIL_VERIFICATION = "email_verification"
     ROLE_UPGRADE_APPROVED = "role_upgrade_approved"
     ROLE_UPGRADE_REJECTED = "role_upgrade_rejected"
+    PLUGIN_APPROVAL_REQUESTED = "plugin_approval_requested"
+    BOOKING_REQUESTED = "booking_requested"
 
 
 class EmailStatus(enum.StrEnum):

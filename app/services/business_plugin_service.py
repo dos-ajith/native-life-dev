@@ -86,7 +86,11 @@ class BusinessPluginService:
             business=business,
             categories=chain,
             business_type=business_type_of(chain),
-            offers=self._offers(business, chain, registry),
+            offers=(
+                self._offers(business, chain, registry)
+                if business.status == BusinessStatus.ACTIVE
+                else []
+            ),
         )
 
     def enable(
@@ -130,6 +134,22 @@ class BusinessPluginService:
             actor, ActivityAction.BUSINESS_PLUGIN_ENABLED, saved, plugin, ip_address, user_agent
         )
         return plugin, saved
+
+    def enable_for_category(
+        self, business: Business, actor: User, registry: PluginRegistry
+    ) -> list[BusinessPlugin]:
+        if business.status != BusinessStatus.ACTIVE:
+            return []
+        enabled: list[BusinessPlugin] = []
+        for plugin in self._compatible_plugins(self._category_chain(business)).values():
+            if not self._is_usable(plugin, registry):
+                continue
+            created = self._insert_active(business, plugin, actor)
+            if created is None:
+                continue
+            self._log(actor, ActivityAction.BUSINESS_PLUGIN_ENABLED, created, plugin, None, None)
+            enabled.append(created)
+        return enabled
 
     def disable(
         self,

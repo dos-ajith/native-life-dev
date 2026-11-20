@@ -97,6 +97,9 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     deleted_at: Mapped[datetime | None] = mapped_column(default=None)
     last_seen_at: Mapped[datetime | None] = mapped_column(default=None)
     created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    promoter_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
 
     roles: Mapped[list["Role"]] = relationship(secondary=user_has_roles, back_populates="users")
     role_assignments: Mapped[list[UserRoleAssignment]] = relationship(

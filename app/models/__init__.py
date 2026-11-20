@@ -3,6 +3,8 @@ from app.models.activity_log import ActivityLog
 from app.models.ai_draft import AIDraft
 from app.models.auth_identity import AuthIdentity
 from app.models.base import Base
+from app.models.booking import Booking
+from app.models.booking_payment import BookingPayment
 from app.models.business import Business
 from app.models.business_document import BusinessDocument
 from app.models.business_image import BusinessImage
@@ -28,6 +30,8 @@ from app.models.delivery_settings import DeliverySettings
 from app.models.delivery_vehicle import DeliveryVehicle
 from app.models.device_token import DeviceToken
 from app.models.direct_message import DirectMessage
+from app.models.dues_payment import DuesPayment
+from app.models.earning import Earning
 from app.models.email import Email
 from app.models.email_verification_otp import EmailVerificationOtp
 from app.models.event import Event
@@ -41,7 +45,10 @@ from app.models.lost_found_item import LostFoundItem
 from app.models.native_place_suggestion import NativePlaceSuggestion
 from app.models.notification import Notification
 from app.models.order import Order, OrderItem
+from app.models.order_payment import OrderPayment
 from app.models.page import Page
+from app.models.payout import Payout
+from app.models.payout_account import PayoutAccount
 from app.models.permission import Permission
 from app.models.phone_otp_challenge import PhoneOtpChallenge
 from app.models.plugin import Plugin
@@ -85,6 +92,8 @@ __all__ = [
     "AIDraft",
     "AuthIdentity",
     "Base",
+    "Booking",
+    "BookingPayment",
     "Business",
     "BusinessDocument",
     "BusinessImage",
@@ -97,6 +106,8 @@ __all__ = [
     "DealItem",
     "DealNative",
     "DealParticipant",
+    "DuesPayment",
+    "Earning",
     "Event",
     "EventImage",
     "LostFoundImage",
@@ -120,8 +131,11 @@ __all__ = [
     "NativePlaceSuggestion",
     "Notification",
     "Order",
+    "OrderPayment",
     "OrderItem",
     "Page",
+    "Payout",
+    "PayoutAccount",
     "Permission",
     "PhoneOtpChallenge",
     "Plugin",

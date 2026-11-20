@@ -2,11 +2,14 @@ import enum
 from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import Enum, ForeignKey, Index, text
+from sqlalchemy import Enum, ForeignKey, Index, SmallInteger, String, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.order import DeliveryOption
+
+PROOF_PATH_LENGTH = 512
 
 
 class DeliveryRequestStatus(enum.StrEnum):
@@ -15,6 +18,8 @@ class DeliveryRequestStatus(enum.StrEnum):
     REJECTED = "rejected"
     EXPIRED = "expired"
     CANCELLED = "cancelled"
+    DELIVERED = "delivered"
+    AWAITING_PAYMENT = "awaiting_payment"
 
 
 ACTIVE_REQUEST_STATUSES = frozenset(
@@ -65,5 +70,19 @@ class DeliveryRequest(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     decided_at: Mapped[datetime | None] = mapped_column(default=None)
     escalated_at: Mapped[datetime | None] = mapped_column(default=None)
     passed_over_promoter_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
+    started_at: Mapped[datetime | None] = mapped_column(default=None)
+    delivered_at: Mapped[datetime | None] = mapped_column(default=None)
+    held_at: Mapped[datetime | None] = mapped_column(default=None)
+    held_notify_promoter_ids: Mapped[list[str] | None] = mapped_column(JSONB, default=None)
+    handover_otp_version: Mapped[int] = mapped_column(
+        SmallInteger(), default=0, server_default=text("0")
+    )
+    handover_otp_attempts: Mapped[int] = mapped_column(
+        SmallInteger(), default=0, server_default=text("0")
+    )
+    proof_image_path: Mapped[str | None] = mapped_column(String(PROOF_PATH_LENGTH), default=None)
+    delivered_by_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), default=None
     )

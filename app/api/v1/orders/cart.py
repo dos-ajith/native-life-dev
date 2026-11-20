@@ -2,7 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from app.api.deps import CurrentActiveUserDep, DbSessionDep
+from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaymentGatewayDep
 from app.core.messages import CartMessages
 from app.core.openapi_tags import ApiTag
 from app.plugins.deps import PluginRegistryDep
@@ -83,9 +83,10 @@ def checkout_cart(
     payload: CartCheckout,
     db: DbSessionDep,
     registry: PluginRegistryDep,
+    gateway: PaymentGatewayDep,
     current_user: CurrentActiveUserDep,
 ) -> SuccessResponse[OrderRead]:
-    order = CartService(db, registry).checkout(payload, current_user)
+    order = CartService(db, registry, gateway).checkout(payload, current_user)
     return SuccessResponse(message=CartMessages.CHECKED_OUT, data=order)
 
 
@@ -145,9 +146,10 @@ def checkout_all_product_carts(
     payload: OrderDetails,
     db: DbSessionDep,
     registry: PluginRegistryDep,
+    gateway: PaymentGatewayDep,
     current_user: CurrentActiveUserDep,
 ) -> SuccessResponse[list[OrderRead]]:
-    orders = CartService(db, registry).checkout_all_businesses(payload, current_user)
+    orders = CartService(db, registry, gateway).checkout_all_businesses(payload, current_user)
     return SuccessResponse(message=CartMessages.CHECKED_OUT_ALL, data=orders)
 
 
@@ -161,7 +163,8 @@ def checkout_business_cart(
     payload: OrderDetails,
     db: DbSessionDep,
     registry: PluginRegistryDep,
+    gateway: PaymentGatewayDep,
     current_user: CurrentActiveUserDep,
 ) -> SuccessResponse[OrderRead]:
-    order = CartService(db, registry).checkout_business(business_id, payload, current_user)
+    order = CartService(db, registry, gateway).checkout_business(business_id, payload, current_user)
     return SuccessResponse(message=CartMessages.CHECKED_OUT, data=order)

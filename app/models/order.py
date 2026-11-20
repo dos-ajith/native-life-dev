@@ -1,7 +1,7 @@
 import enum
 from datetime import date, datetime, time
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from geoalchemy2 import Geometry
@@ -22,6 +22,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
+if TYPE_CHECKING:
+    from app.models.order_payment import OrderPayment
+
 ORDER_NUMBER_LENGTH = 40
 CUSTOMER_NAME_LENGTH = 150
 CUSTOMER_PHONE_LENGTH = 30
@@ -34,6 +37,7 @@ TAX_PERCENT_PRECISION = 5
 
 
 class OrderStatus(enum.StrEnum):
+    AWAITING_PAYMENT = "awaiting_payment"
     PENDING = "pending"
     CONFIRMED = "confirmed"
     SHIPPED = "shipped"
@@ -42,6 +46,7 @@ class OrderStatus(enum.StrEnum):
 
 
 ORDER_TRANSITIONS = {
+    OrderStatus.AWAITING_PAYMENT: frozenset(),
     OrderStatus.PENDING: frozenset({OrderStatus.CONFIRMED}),
     OrderStatus.CONFIRMED: frozenset({OrderStatus.SHIPPED}),
     OrderStatus.SHIPPED: frozenset({OrderStatus.DELIVERED}),
@@ -59,6 +64,7 @@ class OrderType(enum.StrEnum):
 
 class PaymentMethod(enum.StrEnum):
     CASH_ON_DELIVERY = "cash_on_delivery"
+    ONLINE = "online"
 
 
 ORDER_NUMBER_SEQUENCE = Sequence("order_number_seq", start=2001, metadata=Base.metadata)
@@ -176,6 +182,21 @@ class Order(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         Numeric(LINE_TOTAL_PRECISION, PRICE_SCALE), server_default=text("0"), default=Decimal(0)
     )
     total_amount: Mapped[Decimal] = mapped_column(Numeric(LINE_TOTAL_PRECISION, PRICE_SCALE))
+    platform_fee_percent: Mapped[Decimal] = mapped_column(
+        Numeric(TAX_PERCENT_PRECISION, PRICE_SCALE), server_default=text("0"), default=Decimal(0)
+    )
+    platform_fee_amount: Mapped[Decimal] = mapped_column(
+        Numeric(LINE_TOTAL_PRECISION, PRICE_SCALE), server_default=text("0"), default=Decimal(0)
+    )
+    commission_percent: Mapped[Decimal] = mapped_column(
+        Numeric(TAX_PERCENT_PRECISION, PRICE_SCALE), server_default=text("0"), default=Decimal(0)
+    )
+    commission_amount: Mapped[Decimal] = mapped_column(
+        Numeric(LINE_TOTAL_PRECISION, PRICE_SCALE), server_default=text("0"), default=Decimal(0)
+    )
+    gateway_charge_percent: Mapped[Decimal] = mapped_column(
+        Numeric(TAX_PERCENT_PRECISION, PRICE_SCALE), server_default=text("0"), default=Decimal(0)
+    )
     cancellation_reason: Mapped[str | None] = mapped_column(
         String(CANCELLATION_REASON_LENGTH), default=None
     )
@@ -186,6 +207,7 @@ class Order(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         lazy="selectin",
         cascade="all, delete-orphan",
     )
+    payment: Mapped["OrderPayment | None"] = relationship(lazy="selectin", viewonly=True)
 
     @property
     def shipping_latitude(self) -> float | None:

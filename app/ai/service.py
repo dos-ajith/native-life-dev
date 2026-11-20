@@ -3,7 +3,14 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.ai.client import AIClient, get_ai_client
-from app.ai.draft_flows import DRAFT_FLOWS, render_draft_progress
+from app.ai.deal_turn import DealTurnHandler, DealTurnOutcome
+from app.ai.draft_flows import DEAL_FLOW, DRAFT_FLOWS, render_draft_progress
+from app.ai.exceptions import (
+    AIProviderError,
+    AIProviderRateLimitedError,
+    AIProviderTimeoutError,
+    AIResponseError,
+)
 from app.ai.policy import NATIVE_LIFE_SYSTEM_PROMPT
 from app.ai.retrieval import NativeLifeRetriever, render_retrieval_context
 from app.ai.search_intent import extract_search_intent
@@ -32,7 +39,7 @@ from app.models.user_settings_enums import AIResponseStyle
 from app.plugins.registry import PluginRegistry
 from app.repositories.plugin_repository import PluginRepository
 from app.repositories.setting_repository import SettingRepository
-from app.schemas.ai import AIAskResponse, PostReferenceRead, UserLocation
+from app.schemas.ai import AIAskResponse, AINextStepRead, PostReferenceRead, UserLocation
 from app.schemas.ai_draft import AICreatedEntityRead
 from app.services.activity_log_service import ActivityLogService
 from app.services.user_settings_service import UserSettingsService
@@ -52,6 +59,12 @@ _RESPONSE_STYLE_INSTRUCTIONS: dict[AIResponseStyle, str] = {
     ),
 }
 
+_ANSWER_FAILURES = (
+    AIProviderError,
+    AIProviderTimeoutError,
+    AIProviderRateLimitedError,
+    AIResponseError,
+)
 _POST_REFERENCE_TOOLS = {"get_post"}
 _POST_LIST_TOOLS = {"search_posts", "get_user_posts"}
 
@@ -187,9 +200,17 @@ class AIService:
         )
         referenced_posts: dict[str, dict[str, Any]] = {}
         created_entity: AICreatedEntityRead | None = None
+        next_step: AINextStepRead | None = None
+        deal_outcome: DealTurnOutcome | None = None
         input_text = prompt
 
-        intent = extract_search_intent(self._client, prompt)
+        intent = None if draft_progress_blocks else extract_search_intent(self._client, prompt)
+        starts_deal = intent is not None and intent.create_deal
+        if DEAL_FLOW in draft_flows and (draft_progress_blocks or starts_deal):
+            deal_outcome = DealTurnHandler(self._client, context).handle(prompt)
+            draft_progress_blocks = deal_outcome.context_blocks
+            created_entity = deal_outcome.created
+            next_step = deal_outcome.next_step
         if intent is not None and intent.is_searchable:
             retrieved = NativeLifeRetriever(self._db, actor, user_location).retrieve(intent)
             input_text = render_retrieval_context(prompt, intent, retrieved, user_location)
@@ -216,14 +237,22 @@ class AIService:
                     referenced_posts[post_id] = reference
             return result
 
-        answer = self._client.run(
-            instructions=self._build_instructions(
-                ai_settings.preferred_language, ai_settings.response_style
-            ),
-            input_text=input_text,
-            tool_schemas=registry.schemas(),
-            handle_tool_call=handle_tool_call,
-        )
+        if deal_outcome is not None and deal_outcome.settled:
+            answer = deal_outcome.fallback_answer
+        else:
+            try:
+                answer = self._client.run(
+                    instructions=self._build_instructions(
+                        ai_settings.preferred_language, ai_settings.response_style
+                    ),
+                    input_text=input_text,
+                    tool_schemas=registry.schemas(),
+                    handle_tool_call=handle_tool_call,
+                )
+            except _ANSWER_FAILURES:
+                if deal_outcome is None:
+                    raise
+                answer = deal_outcome.fallback_answer
         self._activity_logs.log(
             actor=actor,
             action=ActivityAction.AI_RESPONSE_GENERATED,
@@ -234,4 +263,5 @@ class AIService:
             answer=answer,
             posts=[PostReferenceRead.model_validate(item) for item in referenced_posts.values()],
             created=created_entity,
+            next_step=next_step,
         )

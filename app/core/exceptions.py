@@ -34,5 +34,9 @@ class TooManyRequestsError(AppError):
     status_code = 429
 
 
+class BadGatewayError(AppError):
+    status_code = 502
+
+
 class ServiceUnavailableError(AppError):
     status_code = 503

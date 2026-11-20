@@ -68,12 +68,28 @@ def _entry(name: str, data: bytes) -> tuple[zipfile.ZipInfo, bytes]:
     return info, data
 
 
-def package_plugin(plugins_dir: Path, key: str, output_dir: Path) -> PackageResult:
+def _find_candidate(plugins_dir: Path, key: str) -> PluginCandidate:
     candidate = next(
         (item for item in discover_plugins(plugins_dir).candidates if item.key == key), None
     )
     if candidate is None:
         raise PluginError(PluginMessages.PACKAGE_UNKNOWN_KEY.format(key=key))
+    return candidate
+
+
+def package_plugin(plugins_dir: Path, key: str, output_dir: Path) -> PackageResult:
+    return _write_archive(_find_candidate(plugins_dir, key), output_dir)
+
+
+def back_up_plugin(plugins_dir: Path, key: str, output_dir: Path) -> PackageResult:
+    candidate = _find_candidate(plugins_dir, key)
+    existing = output_dir / candidate.key / archive_name(candidate)
+    if not existing.exists():
+        return _write_archive(candidate, output_dir)
+    return PackageResult(key=candidate.key, version=str(candidate.manifest.version), path=existing)
+
+
+def _write_archive(candidate: PluginCandidate, output_dir: Path) -> PackageResult:
     violations = find_boundary_violations(candidate.root)
     if violations:
         raise PluginError("; ".join(violations[:MAX_REPORTED_VIOLATIONS]))

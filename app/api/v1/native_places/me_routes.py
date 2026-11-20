@@ -14,7 +14,7 @@ from app.schemas.village_boundary import UserNativeBoundaryRead
 from app.services.user_native_place_service import UserNativePlaceService
 from app.services.village_boundary_service import VillageBoundaryService
 
-BOUNDARY_CACHE_CONTROL = "private, max-age=86400"
+BOUNDARY_CACHE_CONTROL = "private, no-store"
 
 router = APIRouter(prefix="/users/me/native-places", tags=[ApiTag.NATIVE_PLACES])
 

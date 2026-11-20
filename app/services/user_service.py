@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
@@ -15,7 +15,7 @@ from app.core.exceptions import (
     NotFoundError,
     ServiceUnavailableError,
 )
-from app.core.messages import UserMessages
+from app.core.messages import DeliveryTeamMessages, UserMessages
 from app.core.permissions import ADMIN_ROLE_SLUGS, RoleSlug
 from app.core.security import hash_password
 from app.core.storage import delete_media_file, save_profile_image
@@ -89,6 +89,36 @@ class UserService:
                 "user_type": user.user_type.value,
                 "role_ids": [str(role.id) for role in roles],
             },
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+        return user
+
+    def create_delivery_team_member(
+        self,
+        payload: UserCreate,
+        promoter_id: UUID,
+        acting_user: User,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> User:
+        role = self._roles.get_by_slug(RoleSlug.DELIVERY_TEAM)
+        if role is None:
+            raise ServiceUnavailableError(DeliveryTeamMessages.ROLE_MISSING)
+        user = self._create(
+            payload,
+            UserType.PUBLIC,
+            roles=[role],
+            created_by=acting_user.id,
+            promoter_id=promoter_id,
+            email_verified_at=app_now(),
+        )
+        self._activity_logs.log(
+            actor=acting_user,
+            action=ActivityAction.DELIVERY_TEAM_MEMBER_CREATED,
+            entity_type="user",
+            entity_id=user.id,
+            metadata={"promoter_id": str(promoter_id)},
             ip_address=ip_address,
             user_agent=user_agent,
         )
@@ -173,6 +203,8 @@ class UserService:
         created_by: UUID | None = None,
         image: UploadFile | None = None,
         upload_dir: str | None = None,
+        promoter_id: UUID | None = None,
+        email_verified_at: datetime | None = None,
     ) -> User:
         if self._users.get_by_email(payload.email) is not None:
             raise BusinessRuleError(UserMessages.EMAIL_TAKEN)
@@ -194,6 +226,8 @@ class UserService:
             user_type=user_type,
             roles=roles or [],
             created_by=created_by,
+            promoter_id=promoter_id,
+            email_verified_at=email_verified_at,
             profile_image_url=profile_image_url,
         )
         return self._users.add(user)

@@ -25,7 +25,7 @@ class DeliveryTrackingService:
 
     def update_location(self, route_id: UUID, location: GeoPoint, actor: User) -> None:
         route = self._routes.get_by_id(route_id)
-        if route is None or route.user_id != actor.id:
+        if route is None or actor.id not in (route.user_id, route.courier_id):
             raise NotFoundError(DeliveryRouteMessages.NOT_FOUND)
         now = deal_clock_now()
         route.current_location = point_from_coordinates(location.latitude, location.longitude)

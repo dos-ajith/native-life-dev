@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.models.delivery_route import ROUTE_NAME_LENGTH
+from app.models.delivery_route import ROUTE_LABEL_LENGTH, ROUTE_NAME_LENGTH
 from app.schemas.base import BaseReadSchema
 from app.schemas.delivery_vehicle import DeliveryVehicleRead
 from app.schemas.post import Latitude, Longitude
@@ -20,6 +20,7 @@ MIN_PATH_POINTS = 2
 MAX_PATH_POINTS = 5000
 
 RouteName = Annotated[NonBlankStr, Field(max_length=ROUTE_NAME_LENGTH)]
+RouteLabel = Annotated[NonBlankStr, Field(max_length=ROUTE_LABEL_LENGTH)]
 CoverageRadius = Annotated[int, Field(ge=MIN_COVERAGE_RADIUS_M, le=MAX_COVERAGE_RADIUS_M)]
 
 
@@ -35,9 +36,12 @@ class DeliveryRouteCreate(BaseModel):
     name: RouteName
     start_point: GeoPoint
     end_point: GeoPoint
+    start_label: RouteLabel | None = None
+    end_label: RouteLabel | None = None
     path: RoutePath | None = None
     coverage_radius_m: CoverageRadius
     vehicle_id: UUID | None = None
+    courier_id: UUID | None = None
     is_active: bool = True
 
 
@@ -45,13 +49,21 @@ class DeliveryRouteUpdate(BaseModel):
     name: RouteName | None = None
     start_point: GeoPoint | None = None
     end_point: GeoPoint | None = None
+    start_label: RouteLabel | None = None
+    end_label: RouteLabel | None = None
     path: RoutePath | None = None
     coverage_radius_m: CoverageRadius | None = None
     vehicle_id: UUID | None = None
+    courier_id: UUID | None = None
     is_active: bool | None = None
 
 
 class DeliveryRouteVillageRead(BaseReadSchema):
+    id: UUID
+    name: str
+
+
+class DeliveryRouteCourierRead(BaseModel):
     id: UUID
     name: str
 
@@ -62,9 +74,13 @@ class DeliveryRouteRead(BaseReadSchema):
     village: DeliveryRouteVillageRead
     start_point: GeoPoint
     end_point: GeoPoint
+    start_label: str | None
+    end_label: str | None
     path: list[GeoPoint] | None
     coverage_radius_m: int
     vehicle: DeliveryVehicleRead | None
+    courier_id: UUID | None
+    courier: DeliveryRouteCourierRead | None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -77,6 +93,8 @@ class DeliveryRouteRead(BaseReadSchema):
             village=DeliveryRouteVillageRead.model_validate(route.village),
             start_point=GeoPoint(latitude=route.start_latitude, longitude=route.start_longitude),
             end_point=GeoPoint(latitude=route.end_latitude, longitude=route.end_longitude),
+            start_label=route.start_label,
+            end_label=route.end_label,
             path=(
                 [GeoPoint(latitude=lat, longitude=lng) for lat, lng in route.path_coordinates]
                 if route.path_coordinates is not None
@@ -86,6 +104,15 @@ class DeliveryRouteRead(BaseReadSchema):
             vehicle=(
                 DeliveryVehicleRead.model_validate(route.vehicle)
                 if route.vehicle is not None
+                else None
+            ),
+            courier_id=route.courier_id,
+            courier=(
+                DeliveryRouteCourierRead(
+                    id=route.courier.id,
+                    name=f"{route.courier.first_name} {route.courier.last_name}",
+                )
+                if route.courier is not None
                 else None
             ),
             is_active=route.is_active,

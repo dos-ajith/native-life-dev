@@ -15,6 +15,7 @@ from app.schemas.pagination import PaginationParams
 from app.services.business_service import BusinessService
 from app.services.order_cancellation import OrderCancellation
 from app.services.order_fulfilment import OrderFulfilment
+from app.services.order_payment_service import is_released
 
 
 class BusinessOrderService:
@@ -66,7 +67,7 @@ class BusinessOrderService:
 
     def _order_of(self, business: Business, order_id: UUID) -> Order:
         order = self._orders.get(order_id)
-        if order is None or order.business_id != business.id:
+        if order is None or order.business_id != business.id or not is_released(order):
             raise NotFoundError(OrderMessages.NOT_FOUND)
         return order
 

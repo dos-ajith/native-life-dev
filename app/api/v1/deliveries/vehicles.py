@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, status
 
 from app.api.deps import DbSessionDep
-from app.api.v1.deals.permissions import DeliverySettingsManagerDep
+from app.api.v1.deliveries.permissions import DeliveryTeamMemberDep
 from app.core.messages import DeliveryVehicleMessages
 from app.core.openapi_tags import ApiTag
 from app.schemas.delivery_vehicle import (
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/me/delivery-vehicles", tags=[ApiTag.DELIVERY_VEHICLE
 
 @router.get("", response_model=SuccessResponse[list[DeliveryVehicleRead]])
 def list_my_vehicles(
-    db: DbSessionDep, current_user: DeliverySettingsManagerDep
+    db: DbSessionDep, current_user: DeliveryTeamMemberDep
 ) -> SuccessResponse[list[DeliveryVehicleRead]]:
     vehicles = DeliveryVehicleService(db).list_for(current_user)
     return SuccessResponse(
@@ -32,7 +32,7 @@ def list_my_vehicles(
     "", response_model=SuccessResponse[DeliveryVehicleRead], status_code=status.HTTP_201_CREATED
 )
 def create_my_vehicle(
-    payload: DeliveryVehicleCreate, db: DbSessionDep, current_user: DeliverySettingsManagerDep
+    payload: DeliveryVehicleCreate, db: DbSessionDep, current_user: DeliveryTeamMemberDep
 ) -> SuccessResponse[DeliveryVehicleRead]:
     vehicle = DeliveryVehicleService(db).create(payload, current_user)
     return SuccessResponse(
@@ -42,7 +42,7 @@ def create_my_vehicle(
 
 @router.get("/{vehicle_id}", response_model=SuccessResponse[DeliveryVehicleRead])
 def get_my_vehicle(
-    vehicle_id: UUID, db: DbSessionDep, current_user: DeliverySettingsManagerDep
+    vehicle_id: UUID, db: DbSessionDep, current_user: DeliveryTeamMemberDep
 ) -> SuccessResponse[DeliveryVehicleRead]:
     vehicle = DeliveryVehicleService(db).get_owned(vehicle_id, current_user)
     return SuccessResponse(
@@ -55,7 +55,7 @@ def update_my_vehicle(
     vehicle_id: UUID,
     payload: DeliveryVehicleUpdate,
     db: DbSessionDep,
-    current_user: DeliverySettingsManagerDep,
+    current_user: DeliveryTeamMemberDep,
 ) -> SuccessResponse[DeliveryVehicleRead]:
     vehicle = DeliveryVehicleService(db).update(vehicle_id, payload, current_user)
     return SuccessResponse(
@@ -65,7 +65,7 @@ def update_my_vehicle(
 
 @router.delete("/{vehicle_id}", response_model=SuccessResponse[None])
 def delete_my_vehicle(
-    vehicle_id: UUID, db: DbSessionDep, current_user: DeliverySettingsManagerDep
+    vehicle_id: UUID, db: DbSessionDep, current_user: DeliveryTeamMemberDep
 ) -> SuccessResponse[None]:
     DeliveryVehicleService(db).delete(vehicle_id, current_user)
     return SuccessResponse(message=DeliveryVehicleMessages.DELETED, data=None)

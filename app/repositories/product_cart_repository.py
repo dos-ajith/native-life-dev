@@ -44,6 +44,17 @@ class ProductCartRepository:
         self._db.delete(line)
         self._db.flush()
 
+    def remove_products(self, user_id: UUID, business_id: UUID, product_ids: list[UUID]) -> None:
+        self._db.execute(
+            delete(ProductCartItem)
+            .where(
+                ProductCartItem.user_id == user_id,
+                ProductCartItem.business_id == business_id,
+                ProductCartItem.product_id.in_(product_ids),
+            )
+            .execution_options(synchronize_session=False)
+        )
+
     def remove_for_business(self, user_id: UUID, business_id: UUID) -> int:
         result = self._db.execute(
             delete(ProductCartItem)

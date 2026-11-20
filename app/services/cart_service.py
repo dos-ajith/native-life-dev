@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.activity_actions import ActivityAction
 from app.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
 from app.core.messages import CartMessages, DealMessages
+from app.core.payments import PaymentGateway
 from app.models.cart_item import CartItem
 from app.models.deal import Deal
 from app.models.deal_item import DealItem
@@ -40,13 +41,18 @@ DEAL_ENTITY_TYPE = "deal"
 
 
 class CartService:
-    def __init__(self, db: Session, registry: PluginRegistry | None = None) -> None:
+    def __init__(
+        self,
+        db: Session,
+        registry: PluginRegistry | None = None,
+        gateway: PaymentGateway | None = None,
+    ) -> None:
         self._db = db
         self._carts = CartRepository(db)
         self._deals = DealRepository(db)
         self._participants = DealParticipantRepository(db)
-        self._orders = DealOrderService(db, registry)
-        self._products = ProductCartService(db, registry)
+        self._orders = DealOrderService(db, registry, gateway)
+        self._products = ProductCartService(db, registry, gateway)
         self._activity_logs = ActivityLogService(db)
 
     def get(self, actor: User) -> CartRead:

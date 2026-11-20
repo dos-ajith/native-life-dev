@@ -70,12 +70,28 @@ Enum deal_status {
   "expired"
 }
 
+Enum booking_status {
+  "requested"
+  "confirmed"
+  "rejected"
+  "cancelled"
+  "completed"
+}
+
+Enum payment_status {
+  "pending"
+  "paid"
+  "expired"
+  "cancelled"
+}
+
 Enum order_status {
   "pending"
   "confirmed"
   "shipped"
   "delivered"
   "cancelled"
+  "awaiting_payment"
 }
 
 Enum order_type {
@@ -85,6 +101,7 @@ Enum order_type {
 
 Enum payment_method {
   "cash_on_delivery"
+  "online"
 }
 
 Enum delivery_option {
@@ -99,6 +116,8 @@ Enum delivery_request_status {
   "rejected"
   "expired"
   "cancelled"
+  "delivered"
+  "awaiting_payment"
 }
 
 Enum vehicle_type {
@@ -116,6 +135,38 @@ Enum deal_invitation_status {
   "closed"
 }
 
+Enum earning_beneficiary {
+  business
+  individual_seller
+  promoter
+  platform
+  promoter_commission
+  native_admin
+}
+
+Enum earning_dues_status {
+  owed
+  paid
+  offset
+}
+
+Enum earning_payment_mode {
+  online
+  cash
+}
+
+Enum earning_source {
+  order
+  booking
+}
+
+Enum earning_status {
+  pending
+  available
+  reversed
+  settled
+}
+
 Enum event_status {
   "scheduled"
   "cancelled"
@@ -125,6 +176,8 @@ Enum email_type {
   "email_verification"
   "role_upgrade_approved"
   "role_upgrade_rejected"
+  "plugin_approval_requested"
+  "booking_requested"
 }
 
 Enum device_platform {
@@ -194,7 +247,42 @@ Enum notification_type {
   "lost_found_found"
   "lost_found_claimed"
   "lost_found_closed"
+  "plugin_approval_requested"
+  "plugin_approval_approved"
+  "plugin_approval_rejected"
+  "booking_requested"
+  "booking_confirmed"
+  "booking_rejected"
+  "booking_cancelled"
+  "booking_completed"
+  "booking_paid"
+  "cod_dues_owed"
+  "dues_statement"
+  "dues_paid"
+  "payout_paid"
   "business_submitted"
+  "delivery_started"
+  "delivery_delivered"
+}
+
+Enum payee_type {
+  business
+  individual_seller
+  promoter
+  native_admin
+}
+
+Enum payout_method {
+  manual
+  razorpayx
+}
+
+Enum payout_status {
+  draft
+  processing
+  paid
+  failed
+  cancelled
 }
 
 Enum page_status {
@@ -407,6 +495,10 @@ Table businesses {
   escalated_at timestamp
   escalated_by uuid
   escalation_note text
+  address_line varchar(255)
+  landmark varchar(150)
+  pincode varchar(6)
+  village_id uuid
 
   indexes {
     category_id [name: "ix_businesses_category_id"]
@@ -585,6 +677,66 @@ Table email_verification_otps {
 
   indexes {
     user_id [name: "ix_email_verification_otps_user_id"]
+  }
+}
+
+Table earnings {
+  beneficiary_type earning_beneficiary [not null]
+  user_id uuid
+  business_id uuid
+  source_type earning_source [not null]
+  order_id uuid
+  booking_id uuid
+  reference_number varchar(40) [not null]
+  gross_amount numeric(14,2) [not null]
+  platform_fee_amount numeric(14,2) [not null]
+  net_amount numeric(14,2) [not null]
+  currency varchar(3) [not null]
+  payment_mode earning_payment_mode [not null]
+  status earning_status [not null]
+  available_at timestamp
+  reversed_at timestamp
+  commission_amount numeric(14,2) [not null, default: 0]
+  gateway_charge_amount numeric(14,2) [not null, default: 0]
+  dues_amount numeric(14,2) [not null, default: 0]
+  dues_status earning_dues_status
+  payout_id uuid
+  dues_payment_id uuid
+  settled_at timestamp
+  id uuid [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  Note: 'CHECK ck_earnings_exactly_one_source: num_nonnulls(order_id, booking_id) = 1'
+
+  indexes {
+    business_id [name: "ix_earnings_business_id"]
+    payout_id [name: "ix_earnings_payout_id"]
+    user_id [name: "ix_earnings_user_id"]
+    (booking_id, beneficiary_type) [name: "uq_earnings_booking_beneficiary", unique]
+    (order_id, beneficiary_type) [name: "uq_earnings_order_beneficiary", unique]
+  }
+}
+
+Table dues_payments {
+  user_id uuid
+  business_id uuid
+  provider varchar(20) [not null]
+  provider_link_id varchar(64) [not null, unique]
+  payment_url varchar(500) [not null]
+  total_amount numeric(14,2) [not null]
+  currency varchar(3) [not null]
+  status payment_status [not null]
+  provider_payment_id varchar(64)
+  expires_at timestamp [not null]
+  paid_at timestamp
+  id uuid [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    business_id [name: "ix_dues_payments_business_id"]
+    user_id [name: "ix_dues_payments_user_id"]
   }
 }
 
@@ -768,6 +920,85 @@ Table deal_items {
   Note: 'CHECK quantity IS NULL OR quantity > 0; CHECK prices >= 0; CHECK deal_price <= original_price when both set; product_id references a commerce plugin product (no FK)'
 }
 
+Table bookings {
+  booking_number varchar(20) [not null, unique]
+  business_id uuid [not null]
+  customer_id uuid [not null]
+  plugin_key varchar(64) [not null]
+  item_id uuid [not null]
+  item_name varchar(200) [not null]
+  status booking_status [not null]
+  start_date date [not null]
+  end_date date
+  party_size integer [not null]
+  customer_name varchar(150) [not null]
+  customer_phone varchar(30) [not null]
+  note text
+  original_price numeric(12,2)
+  unit_price numeric(12,2) [not null]
+  tax_percent numeric(5,2) [not null, default: 0]
+  currency varchar(3) [not null]
+  platform_fee_percent numeric(5,2) [not null, default: 0]
+  platform_fee_amount numeric(12,2) [not null, default: 0]
+  commission_percent numeric(5,2) [not null, default: 0]
+  commission_amount numeric(12,2) [not null, default: 0]
+  gateway_charge_percent numeric(5,2) [not null, default: 0]
+  response_note varchar(500)
+  responded_by uuid
+  responded_at timestamp
+  id uuid [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (business_id, status) [name: "ix_bookings_business_id_status"]
+    customer_id [name: "ix_bookings_customer_id"]
+  }
+
+  Note: 'CHECK party_size >= 1: a booking is for at least one person. CHECK end_date IS NULL OR end_date >= start_date. item_id points at the plugin record (plugin_key) that was booked, with no foreign key. tax_percent is a snapshot of the item tax rate at booking time.'
+}
+
+Table booking_payments {
+  booking_id uuid [not null, unique]
+  provider varchar(20) [not null]
+  provider_link_id varchar(64) [not null, unique]
+  payment_url varchar(500) [not null]
+  unit_price numeric(12,2) [not null]
+  party_size integer [not null]
+  subtotal numeric(12,2) [not null]
+  tax_percent numeric(5,2) [not null]
+  tax_amount numeric(12,2) [not null]
+  total_amount numeric(12,2) [not null]
+  currency varchar(3) [not null]
+  status payment_status [not null]
+  provider_payment_id varchar(64)
+  expires_at timestamp [not null]
+  paid_at timestamp
+  id uuid [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  Note: 'One payment link per booking, created when the owner confirms. UNIQUE booking_id: one link per booking. UNIQUE provider_link_id: callbacks and webhooks look the payment up by the gateway link id. Amounts are a snapshot: subtotal = unit_price x party_size, tax_amount = subtotal x tax_percent / 100.'
+}
+
+Table order_payments {
+  order_id uuid [not null, unique]
+  provider varchar(20) [not null]
+  provider_link_id varchar(64) [not null, unique]
+  payment_url varchar(500) [not null]
+  total_amount numeric(14,2) [not null]
+  currency varchar(3) [not null]
+  status payment_status [not null]
+  provider_payment_id varchar(64)
+  expires_at timestamp [not null]
+  paid_at timestamp
+  id uuid [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  Note: 'Razorpay payment link for an online order, created at checkout. The order stays awaiting_payment (hidden from lists, stock held, delivery request held) until this is paid; an expired or cancelled link discards the order. UNIQUE order_id: one link per order. UNIQUE provider_link_id: callbacks and webhooks look the payment up by the gateway link id. An online order cannot be shipped until this is paid.'
+}
+
 Table orders {
   order_number varchar(40) [not null, unique]
   deal_id uuid
@@ -783,6 +1014,11 @@ Table orders {
   notes text
   currency varchar(3) [not null]
   total_amount numeric(14,2) [not null]
+  platform_fee_percent numeric(5,2) [not null, default: 0]
+  platform_fee_amount numeric(14,2) [not null, default: 0]
+  commission_percent numeric(5,2) [not null, default: 0]
+  commission_amount numeric(14,2) [not null, default: 0]
+  gateway_charge_percent numeric(5,2) [not null, default: 0]
   cancellation_reason varchar(500)
   cancelled_at timestamp
   id uuid [pk, not null]
@@ -917,8 +1153,12 @@ Table delivery_routes {
   id uuid [pk, not null]
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [not null, default: `now()`]
+  courier_id uuid
+  start_label varchar(150)
+  end_label varchar(150)
 
   indexes {
+    courier_id [name: "ix_delivery_routes_courier_id"]
     user_id [name: "ix_delivery_routes_user_id"]
   }
 }
@@ -937,6 +1177,14 @@ Table delivery_requests {
   id uuid [pk, not null]
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [not null, default: `now()`]
+  started_at timestamp
+  delivered_at timestamp
+  held_at timestamp
+  held_notify_promoter_ids jsonb
+  handover_otp_version smallint [not null, default: `0`]
+  handover_otp_attempts smallint [not null, default: `0`]
+  proof_image_path varchar(512)
+  delivered_by_id uuid
 
   indexes {
     order_id [name: "uq_delivery_requests_one_active_per_order", unique]
@@ -1133,6 +1381,55 @@ Table notifications {
     created_at [name: "ix_notifications_created_at"]
     recipient_id [name: "ix_notifications_recipient_id"]
     recipient_id [name: "ix_notifications_recipient_id_unread"]
+  }
+}
+
+Table payouts {
+  payout_number varchar(20) [not null, unique, note: 'PO + payout_number_seq (starts 1001)']
+  payee_type payee_type [not null]
+  user_id uuid
+  business_id uuid
+  period_end date [not null]
+  earnings_amount numeric(14,2) [not null]
+  dues_offset_amount numeric(14,2) [not null]
+  payout_amount numeric(14,2) [not null]
+  currency varchar(3) [not null]
+  status payout_status [not null]
+  method payout_method
+  payment_reference varchar(100)
+  provider_payout_id varchar(100) [unique]
+  failure_reason text
+  note varchar(500)
+  created_by uuid
+  paid_by uuid
+  paid_at timestamp
+  id uuid [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    business_id [name: "ix_payouts_business_id"]
+    user_id [name: "ix_payouts_user_id"]
+  }
+}
+
+Table payout_accounts {
+  user_id uuid [not null]
+  business_id uuid
+  account_holder_name varchar(150) [not null]
+  account_number_encrypted text [note: 'Fernet, key PAYOUT_ACCOUNT_ENCRYPTION_KEY']
+  account_number_last4 varchar(4)
+  ifsc varchar(11)
+  upi_id varchar(100)
+  razorpayx_contact_id varchar(100)
+  razorpayx_fund_account_id varchar(100)
+  id uuid [pk, not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    business_id [name: "uq_payout_accounts_business_id", unique, note: 'WHERE business_id IS NOT NULL']
+    user_id [name: "uq_payout_accounts_personal_user_id", unique, note: 'WHERE business_id IS NULL']
   }
 }
 
@@ -1613,6 +1910,7 @@ Table users {
   gender user_gender
   date_of_birth date
   last_seen_at timestamp
+  promoter_id uuid
 
   indexes {
     created_by [name: "ix_users_created_by"]
@@ -1632,6 +1930,7 @@ Ref: businesses.category_id >? categories.id [delete: restrict]
 Ref: businesses.escalated_by >? users.id [delete: set null]
 Ref: businesses.owner_id > users.id [delete: cascade]
 Ref: businesses.reviewed_by >? users.id [delete: set null]
+Ref: businesses.village_id >? gis_villages.id [delete: restrict]
 Ref: cart_items.deal_item_id > deal_items.id [delete: cascade]
 Ref: cart_items.user_id > users.id [delete: cascade]
 Ref: categories.created_by >? users.id [delete: set null]
@@ -1672,8 +1971,13 @@ Ref: deals.category_id > categories.id [delete: restrict]
 Ref: deals.created_by > users.id [delete: cascade]
 Ref: event_images.event_id > events.id [delete: cascade]
 Ref: order_items.deal_item_id >? deal_items.id [delete: restrict]
+Ref: bookings.business_id > businesses.id [delete: cascade]
+Ref: bookings.customer_id > users.id [delete: cascade]
+Ref: bookings.responded_by >? users.id [delete: set null]
+Ref: booking_payments.booking_id - bookings.id [delete: cascade]
 Ref: order_items.order_id > orders.id [delete: cascade]
 Ref: orders.business_id > businesses.id [delete: restrict]
+Ref: order_payments.order_id - orders.id [delete: cascade]
 Ref: orders.customer_id > users.id [delete: cascade]
 Ref: orders.deal_id >? deals.id [delete: restrict]
 Ref: orders.promoter_id >? users.id [delete: set null]
@@ -1721,10 +2025,12 @@ Ref: delivery_vehicles.user_id > users.id [delete: cascade]
 Ref: delivery_routes.user_id > users.id [delete: cascade]
 Ref: delivery_routes.village_id > gis_villages.id [delete: restrict]
 Ref: delivery_routes.vehicle_id >? delivery_vehicles.id [delete: set null]
+Ref: delivery_routes.courier_id >? users.id [delete: set null]
 Ref: delivery_requests.passed_over_promoter_id > users.id [delete: set null]
 Ref: delivery_requests.order_id > orders.id [delete: cascade]
 Ref: delivery_requests.promoter_id >? users.id [delete: set null]
 Ref: delivery_requests.route_id >? delivery_routes.id [delete: set null]
+Ref: delivery_requests.delivered_by_id >? users.id [delete: set null]
 Ref: product_cart_items.business_id > businesses.id [delete: cascade]
 Ref: product_cart_items.user_id > users.id [delete: cascade]
 Ref: refresh_tokens.user_id > users.id [delete: cascade]
@@ -1763,3 +2069,18 @@ Ref: user_notification_settings.user_id - users.id [delete: cascade]
 Ref: user_privacy_settings.user_id - users.id [delete: cascade]
 Ref: user_settings.user_id - users.id [delete: cascade]
 Ref: users.created_by >? users.id [delete: set null]
+Ref: users.promoter_id >? users.id [delete: set null]
+Ref: earnings.booking_id >? bookings.id [delete: cascade]
+Ref: earnings.business_id >? businesses.id [delete: set null]
+Ref: earnings.order_id >? orders.id [delete: cascade]
+Ref: earnings.user_id >? users.id [delete: set null]
+Ref: earnings.payout_id >? payouts.id [delete: set null]
+Ref: earnings.dues_payment_id >? dues_payments.id [delete: set null]
+Ref: payouts.user_id >? users.id [delete: set null]
+Ref: payouts.business_id >? businesses.id [delete: set null]
+Ref: payouts.created_by >? users.id [delete: set null]
+Ref: payouts.paid_by >? users.id [delete: set null]
+Ref: dues_payments.user_id >? users.id [delete: set null]
+Ref: dues_payments.business_id >? businesses.id [delete: set null]
+Ref: payout_accounts.user_id > users.id [delete: cascade]
+Ref: payout_accounts.business_id >? businesses.id [delete: cascade]

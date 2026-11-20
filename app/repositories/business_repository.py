@@ -3,7 +3,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import ColumnElement, exists, func, or_, select
-from sqlalchemy.orm import Session, aliased, joinedload
+from sqlalchemy.orm import Session, aliased, defer, joinedload
 from sqlalchemy.sql.base import ExecutableOption
 
 from app.core.timezone import app_now
@@ -11,6 +11,9 @@ from app.models.business import Business, BusinessStatus, BusinessVerificationSt
 from app.models.business_document import BusinessDocument
 from app.models.business_image import BusinessImage
 from app.models.category import Category
+from app.models.gis_district import GisDistrict
+from app.models.gis_state import GisState
+from app.models.gis_taluk import GisTaluk
 from app.models.gis_village import GisVillage
 from app.models.user import User
 from app.repositories.category_repository import category_subtree_ids, unavailable_category_tree_ids
@@ -46,6 +49,19 @@ def _with_category() -> ExecutableOption:
     return joinedload(Business.category).joinedload(Category.parent)
 
 
+def _with_place() -> ExecutableOption:
+    return joinedload(Business.village).options(
+        defer(GisVillage.geom),
+        joinedload(GisVillage.taluk).options(
+            defer(GisTaluk.geom),
+            joinedload(GisTaluk.district).options(
+                defer(GisDistrict.geom),
+                joinedload(GisDistrict.state).options(defer(GisState.geom)),
+            ),
+        ),
+    )
+
+
 class BusinessRepository:
     def __init__(self, db: Session) -> None:
         self._db = db
@@ -53,7 +69,7 @@ class BusinessRepository:
     def get_by_id(self, business_id: UUID) -> Business | None:
         return self._db.scalar(
             select(Business)
-            .options(_with_category())
+            .options(_with_category(), _with_place())
             .where(Business.id == business_id, Business.deleted_at.is_(None))
         )
 
@@ -63,7 +79,7 @@ class BusinessRepository:
         offset = (params.page - 1) * params.page_size
         items = self._db.scalars(
             select(Business)
-            .options(_with_category())
+            .options(_with_category(), _with_place())
             .where(*conditions)
             .order_by(Business.name.asc(), Business.id.asc())
             .offset(offset)
@@ -161,7 +177,7 @@ class BusinessRepository:
         offset = (params.page - 1) * params.page_size
         items = self._db.scalars(
             select(Business)
-            .options(_with_category(), joinedload(Business.owner))
+            .options(_with_category(), _with_place(), joinedload(Business.owner))
             .where(*conditions)
             .order_by(Business.created_at.desc(), Business.id.asc())
             .offset(offset)
@@ -175,7 +191,7 @@ class BusinessRepository:
         return list(
             self._db.scalars(
                 select(Business)
-                .options(_with_category(), joinedload(Business.owner))
+                .options(_with_category(), _with_place(), joinedload(Business.owner))
                 .where(*_review_conditions(query, village_id))
                 .order_by(Business.created_at.desc(), Business.id.asc())
             ).all()
@@ -235,7 +251,9 @@ class BusinessRepository:
 
     def _reload(self, business_id: UUID) -> Business:
         return self._db.execute(
-            select(Business).options(_with_category()).where(Business.id == business_id)
+            select(Business)
+            .options(_with_category(), _with_place())
+            .where(Business.id == business_id)
         ).scalar_one()
 
     def _count(self, conditions: list[ColumnElement[bool]]) -> int:

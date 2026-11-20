@@ -1,3 +1,4 @@
+import enum
 from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
@@ -6,6 +7,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from app.ai.voice.avatars import DEFAULT_AVATAR_ID, AvatarGender
 from app.core.messages import PostMessages
+from app.models.ai_draft import AIDraftKind
 from app.models.post_media import PostMediaType
 from app.models.user_settings_enums import AIResponseStyle
 from app.schemas.ai_draft import AICreatedEntityRead
@@ -138,7 +140,28 @@ class AISpeakRequest(BaseModel):
     avatar_id: str = DEFAULT_AVATAR_ID
 
 
+class AIInputKind(enum.StrEnum):
+    TEXT = "text"
+    DATETIME = "datetime"
+    CHOICE = "choice"
+    CONFIRM = "confirm"
+
+
+class AIOptionRead(BaseModel):
+    id: str
+    label: str
+    prompt: str
+
+
+class AINextStepRead(BaseModel):
+    flow: AIDraftKind
+    field: str | None
+    input: AIInputKind
+    options: list[AIOptionRead] = []
+
+
 class AIAskResponse(BaseModel):
     answer: str
     posts: list[PostReferenceRead] = []
     created: AICreatedEntityRead | None = None
+    next_step: AINextStepRead | None = None

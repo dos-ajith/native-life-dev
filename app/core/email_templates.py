@@ -297,6 +297,77 @@ def render_role_upgrade_rejected_email(
     )
 
 
+def render_plugin_approval_requested_email(
+    app_name: str,
+    requester_name: str,
+    item_name: str,
+    support_url: str | None,
+    privacy_policy_url: str | None,
+    terms_of_service_url: str | None,
+) -> EmailContent:
+    body_html = f"""
+<tr>
+<td class="content-padding" style="padding:8px 40px 40px 40px; text-align:center;">
+<p
+  style="margin:0; font-family: Arial, Helvetica, sans-serif; font-size:15px;
+    line-height:22px; color:#6B7280;"
+><strong style="color:#111827;">{escape(requester_name)}</strong> submitted
+<strong style="color:#111827;">{escape(item_name)}</strong> for your approval.
+Open {escape(app_name)} to review it.</p>
+</td>
+</tr>"""
+    body_text = (
+        f"{requester_name} submitted {item_name} for your approval.\nOpen {app_name} to review it."
+    )
+    return render_transactional_email(
+        subject=f"{item_name} is waiting for your approval",
+        heading="Approval requested",
+        body_html=body_html,
+        body_text=body_text,
+        app_name=app_name,
+        support_url=support_url,
+        privacy_policy_url=privacy_policy_url,
+        terms_of_service_url=terms_of_service_url,
+    )
+
+
+def render_booking_requested_email(
+    app_name: str,
+    customer_name: str,
+    booking_number: str,
+    item_name: str,
+    support_url: str | None,
+    privacy_policy_url: str | None,
+    terms_of_service_url: str | None,
+) -> EmailContent:
+    body_html = f"""
+<tr>
+<td class="content-padding" style="padding:8px 40px 40px 40px; text-align:center;">
+<p
+  style="margin:0; font-family: Arial, Helvetica, sans-serif; font-size:15px;
+    line-height:22px; color:#6B7280;"
+><strong style="color:#111827;">{escape(customer_name)}</strong> requested booking
+<strong style="color:#111827;">{escape(booking_number)}</strong> for
+<strong style="color:#111827;">{escape(item_name)}</strong>.
+Open {escape(app_name)} to confirm or decline it.</p>
+</td>
+</tr>"""
+    body_text = (
+        f"{customer_name} requested booking {booking_number} for {item_name}.\n"
+        f"Open {app_name} to confirm or decline it."
+    )
+    return render_transactional_email(
+        subject=f"New booking request {booking_number}",
+        heading="New booking request",
+        body_html=body_html,
+        body_text=body_text,
+        app_name=app_name,
+        support_url=support_url,
+        privacy_policy_url=privacy_policy_url,
+        terms_of_service_url=terms_of_service_url,
+    )
+
+
 def _build_support_line(support_url: str | None) -> str:
     if not support_url:
         return "Need help? Contact our support team."

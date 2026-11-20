@@ -1,4 +1,5 @@
 from collections.abc import Collection
+from uuid import UUID
 
 from sqlalchemy.orm import Session
 
@@ -13,6 +14,7 @@ from app.plugins.registry import PluginRegistry
 from app.services.activity_log_service import ActivityLogService
 from app.services.deal_commerce_resolver import DealCommerceResolver
 from app.services.delivery_request_service import DeliveryRequestService
+from app.services.earning_ledger import EarningLedger
 
 ENTITY_TYPE = "order"
 
@@ -23,6 +25,7 @@ class OrderCancellation:
         self._resolver = DealCommerceResolver(db, registry)
         self._delivery_requests = DeliveryRequestService(db)
         self._activity_logs = ActivityLogService(db)
+        self._earnings = EarningLedger(db)
 
     def cancel(
         self,
@@ -35,7 +38,7 @@ class OrderCancellation:
             raise BusinessRuleError(
                 OrderMessages.NOT_CANCELLABLE.format(current=order.status.value)
             )
-        self._release_stock(order, actor)
+        self._release_stock(order, actor.id)
         previous_status = order.status
         order.status = OrderStatus.CANCELLED
         order.cancelled_at = to_naive_app_time(app_now())
@@ -49,9 +52,29 @@ class OrderCancellation:
             entity_id=order.id,
             metadata={"order_number": order.order_number, "from": previous_status.value},
         )
+        self._earnings.sync_order(order.id, actor)
         return order
 
-    def _release_stock(self, order: Order, actor: User) -> None:
+    def discard_unpaid(self, order: Order, customer_id: UUID, reason: str) -> Order:
+        self._release_stock(order, customer_id)
+        order.status = OrderStatus.CANCELLED
+        order.cancelled_at = to_naive_app_time(app_now())
+        order.cancellation_reason = reason
+        self._delivery_requests.cancel_for_order(order.id)
+        self._db.commit()
+        self._activity_logs.log(
+            actor=None,
+            action=ActivityAction.ORDER_CANCELLED,
+            entity_type=ENTITY_TYPE,
+            entity_id=order.id,
+            metadata={
+                "order_number": order.order_number,
+                "from": OrderStatus.AWAITING_PAYMENT.value,
+            },
+        )
+        return order
+
+    def _release_stock(self, order: Order, actor_id: UUID) -> None:
         if order.business_id is None:
             return
         self._resolver.provider_for(order.business_id).release_stock(
@@ -63,5 +86,5 @@ class OrderCancellation:
                 for item in order.items
                 if item.product_id is not None
             ],
-            actor.id,
+            actor_id,
         )

@@ -71,4 +71,4 @@ def _parse_bound(clause: str, original: str) -> VersionBound:
     return VersionBound(comparator=comparator, version=Version(*numbers))
 
 
-CORE_API_VERSION = Version(1, 6, 0)
+CORE_API_VERSION = Version(1, 11, 0)

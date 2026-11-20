@@ -1,15 +1,31 @@
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, and_, exists, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import ColumnElement, and_, exists, func, or_, select
+from sqlalchemy.orm import Session, noload
 
 from app.models.deal import Deal
 from app.models.deal_item import DealItem
-from app.models.order import Order, OrderItem, OrderStatus
+from app.models.order import Order, OrderItem, OrderStatus, PaymentMethod
+from app.models.order_payment import OrderPayment
+from app.models.payment_status import PaymentStatus
 from app.schemas.pagination import PaginationParams
 
-OPEN_ORDER_STATUSES = (OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.SHIPPED)
+OPEN_ORDER_STATUSES = (
+    OrderStatus.AWAITING_PAYMENT,
+    OrderStatus.PENDING,
+    OrderStatus.CONFIRMED,
+    OrderStatus.SHIPPED,
+)
+
+
+def _released() -> ColumnElement[bool]:
+    return or_(
+        Order.payment_method != PaymentMethod.ONLINE,
+        exists().where(
+            OrderPayment.order_id == Order.id, OrderPayment.status == PaymentStatus.PAID
+        ),
+    )
 
 
 def _sold_by_individual(seller_id: UUID) -> ColumnElement[bool]:
@@ -27,6 +43,15 @@ class OrderRepository:
         self._db.add(order)
         self._db.flush()
         return order
+
+    def get_many_for_business(self, business_id: UUID, order_ids: Collection[UUID]) -> list[Order]:
+        return list(
+            self._db.scalars(
+                select(Order)
+                .options(noload(Order.items))
+                .where(Order.business_id == business_id, Order.id.in_(order_ids))
+            )
+        )
 
     def has_open_for_address(self, address_id: UUID) -> bool:
         return bool(
@@ -64,7 +89,9 @@ class OrderRepository:
     def get_sold_by_individual(
         self, order_id: UUID, seller_id: UUID, for_update: bool = False
     ) -> Order | None:
-        query = select(Order).where(Order.id == order_id, _sold_by_individual(seller_id))
+        query = select(Order).where(
+            Order.id == order_id, _sold_by_individual(seller_id), _released()
+        )
         if for_update:
             query = query.with_for_update()
         return self._db.scalar(query.execution_options(populate_existing=True))
@@ -109,7 +136,7 @@ class OrderRepository:
         status: OrderStatus | None,
         params: PaginationParams,
     ) -> tuple[list[Order], int]:
-        filters = [owner_filter]
+        filters = [owner_filter, _released()]
         if status is not None:
             filters.append(Order.status == status)
         total = self._db.scalar(select(func.count()).select_from(Order).where(*filters)) or 0
