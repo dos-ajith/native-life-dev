@@ -14,6 +14,10 @@ class AuthMessages:
     OTP_MAX_ATTEMPTS_EXCEEDED = "Too many incorrect attempts. Request a new verification code."
     OTP_RESEND_COOLDOWN = "Please wait {seconds} seconds before requesting another code"
     VERIFICATION_CODE_SENT = "Verification code sent. Please check your email."
+    PASSWORD_RESET_CODE_REQUESTED = (
+        "If an account exists for this email, a password reset code has been sent."
+    )
+    PASSWORD_RESET_COMPLETED = "Password updated. Please log in with your new password."
     TOKEN_REFRESHED = "Token refreshed"
     INVALID_REFRESH_TOKEN = "Invalid or expired refresh token"
     REGISTRATION_REQUIRED = "Verification successful. Please complete your registration."

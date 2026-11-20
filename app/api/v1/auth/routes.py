@@ -13,16 +13,19 @@ from app.core.openapi_tags import ApiTag
 from app.schemas.auth import (
     AuthenticatedUserRead,
     EmailVerificationResult,
+    ForgotPasswordRequest,
     LinkEmailRequest,
     LoginRequest,
     RefreshTokenRequest,
     ResendEmailVerificationRequest,
+    ResetPasswordRequest,
     TokenResponse,
     VerifyEmailRequest,
 )
 from app.schemas.response import SuccessResponse
 from app.services.auth_service import AuthService
 from app.services.email_verification_service import EmailVerificationService
+from app.services.password_reset_service import PasswordResetService
 
 router = APIRouter(prefix="/auth", tags=[ApiTag.AUTH_EMAIL])
 
@@ -90,6 +93,25 @@ def resend_email_verification(
 ) -> SuccessResponse[None]:
     EmailVerificationService(db, settings).resend(payload.email, background_tasks)
     return SuccessResponse(message=AuthMessages.VERIFICATION_CODE_SENT, data=None)
+
+
+@router.post("/forgot-password", response_model=SuccessResponse[None])
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: DbSessionDep,
+    settings: SettingsDep,
+    background_tasks: BackgroundTasks,
+) -> SuccessResponse[None]:
+    PasswordResetService(db, settings).request(payload.email, background_tasks)
+    return SuccessResponse(message=AuthMessages.PASSWORD_RESET_CODE_REQUESTED, data=None)
+
+
+@router.post("/reset-password", response_model=SuccessResponse[None])
+def reset_password(
+    payload: ResetPasswordRequest, db: DbSessionDep, settings: SettingsDep
+) -> SuccessResponse[None]:
+    PasswordResetService(db, settings).reset(payload.email, payload.otp, payload.new_password)
+    return SuccessResponse(message=AuthMessages.PASSWORD_RESET_COMPLETED, data=None)
 
 
 @router.post("/email/link/request-otp", response_model=SuccessResponse[None])

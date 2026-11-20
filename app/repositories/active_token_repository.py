@@ -19,6 +19,9 @@ class ActiveTokenRepository:
     def deactivate(self, jti: UUID) -> None:
         self._db.execute(delete(ActiveToken).where(ActiveToken.jti == jti))
 
+    def deactivate_many(self, jtis: list[UUID]) -> None:
+        self._db.execute(delete(ActiveToken).where(ActiveToken.jti.in_(jtis)))
+
     def is_active(self, jti: UUID) -> bool:
         return (
             self._db.scalar(

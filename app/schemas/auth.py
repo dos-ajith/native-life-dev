@@ -9,7 +9,7 @@ from app.schemas.account_role import AccountRoleRead
 from app.schemas.base import BaseReadSchema
 from app.schemas.native_place import UserNativePlaceRead
 from app.schemas.role import RoleWithPermissions
-from app.schemas.user import Email, Name
+from app.schemas.user import Email, Name, Password
 from app.schemas.validators import AcceptedBool, PastDate
 
 MAX_OPAQUE_TOKEN_LENGTH = 2048
@@ -103,3 +103,13 @@ class ResendEmailVerificationRequest(BaseModel):
 class EmailVerificationResult(BaseReadSchema):
     email: EmailStr
     email_verified_at: datetime | None
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(pattern=r"^\d{4,8}$")
+    new_password: Password

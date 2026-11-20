@@ -106,7 +106,7 @@ _VERIFICATION_OTP_BODY_HTML_TEMPLATE = Template("""
 <p
   style="margin:0; font-family: Arial, Helvetica, sans-serif; font-size:15px;
     line-height:22px; color:#6B7280;"
->Use the verification code below to verify your $app_name account.</p>
+>$intro</p>
 </td>
 </tr>
 <tr>
@@ -193,25 +193,70 @@ def render_verification_otp_email(
     privacy_policy_url: str | None,
     terms_of_service_url: str | None,
 ) -> EmailContent:
-    escaped_app_name = escape(app_name)
-    escaped_otp = escape(otp)
+    return _render_otp_email(
+        subject=f"Your {app_name} verification code",
+        heading="Verify your email",
+        intro=f"Use the verification code below to verify your {app_name} account.",
+        code_label="verification code",
+        app_name=app_name,
+        otp=otp,
+        expire_minutes=expire_minutes,
+        support_url=support_url,
+        privacy_policy_url=privacy_policy_url,
+        terms_of_service_url=terms_of_service_url,
+    )
 
+
+def render_password_reset_otp_email(
+    app_name: str,
+    otp: str,
+    expire_minutes: int,
+    support_url: str | None,
+    privacy_policy_url: str | None,
+    terms_of_service_url: str | None,
+) -> EmailContent:
+    return _render_otp_email(
+        subject=f"Your {app_name} password reset code",
+        heading="Reset your password",
+        intro=f"Use the code below to reset the password of your {app_name} account.",
+        code_label="password reset code",
+        app_name=app_name,
+        otp=otp,
+        expire_minutes=expire_minutes,
+        support_url=support_url,
+        privacy_policy_url=privacy_policy_url,
+        terms_of_service_url=terms_of_service_url,
+    )
+
+
+def _render_otp_email(
+    subject: str,
+    heading: str,
+    intro: str,
+    code_label: str,
+    app_name: str,
+    otp: str,
+    expire_minutes: int,
+    support_url: str | None,
+    privacy_policy_url: str | None,
+    terms_of_service_url: str | None,
+) -> EmailContent:
     body_html = _VERIFICATION_OTP_BODY_HTML_TEMPLATE.substitute(
-        app_name=escaped_app_name,
-        otp=escaped_otp,
+        intro=escape(intro),
+        otp=escape(otp),
         expire_minutes=expire_minutes,
     )
 
     body_text = (
-        f"Use the verification code below to verify your {app_name} account.\n\n"
-        f"Your verification code is: {otp}\n"
+        f"{intro}\n\n"
+        f"Your {code_label} is: {otp}\n"
         f"This code will expire in {expire_minutes} minutes.\n\n"
         f"If you didn't request this code, you can safely ignore this email."
     )
 
     return render_transactional_email(
-        subject=f"Your {app_name} verification code",
-        heading="Verify your email",
+        subject=subject,
+        heading=heading,
         body_html=body_html,
         body_text=body_text,
         app_name=app_name,

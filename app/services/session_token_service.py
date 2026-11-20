@@ -68,6 +68,10 @@ class SessionTokenService:
     def revoke_for_access_token(self, access_token_jti: UUID) -> None:
         self._refresh_tokens.revoke_for_access_token(access_token_jti)
 
+    def revoke_all_for_user(self, user_id: UUID) -> None:
+        jtis = self._refresh_tokens.revoke_all_for_user(user_id)
+        self._active_tokens.deactivate_many(jtis)
+
     def _revoke(self, record: RefreshToken) -> None:
         record.revoked_at = app_now()
         self._active_tokens.deactivate(record.access_token_jti)

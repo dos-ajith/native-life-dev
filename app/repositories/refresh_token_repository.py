@@ -28,3 +28,13 @@ class RefreshTokenRepository:
             )
             .values(revoked_at=app_now())
         )
+
+    def revoke_all_for_user(self, user_id: UUID) -> list[UUID]:
+        return list(
+            self._db.scalars(
+                update(RefreshToken)
+                .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
+                .values(revoked_at=app_now())
+                .returning(RefreshToken.access_token_jti)
+            )
+        )

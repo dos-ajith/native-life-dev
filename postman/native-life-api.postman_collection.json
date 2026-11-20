@@ -383,6 +383,60 @@
                   }
                 },
                 {
+                  "name": "Forgot Password",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"email\": \"dev@nativelife.com\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/auth/forgot-password",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "auth",
+                        "forgot-password"
+                      ]
+                    },
+                    "description": "Emails a password reset OTP. Always returns the same success message, even when the account doesn't exist, isn't eligible, or a code was requested within the cooldown.\n\n**Body**\n- `email` (string, required)"
+                  }
+                },
+                {
+                  "name": "Reset Password",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"email\": \"dev@nativelife.com\",\n  \"otp\": \"123456\",\n  \"new_password\": \"NewSecret-pass-123\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/auth/reset-password",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "auth",
+                        "reset-password"
+                      ]
+                    },
+                    "description": "Sets a new password using the emailed OTP and signs the user out of every session. Works for accounts with no password yet (phone/Google sign-in).\n\n**Body**\n- `email` (string, required)\n- `otp` (string, required) — 4-8 digit code\n- `new_password` (string, required) — 8-128 characters"
+                  }
+                },
+                {
                   "name": "Request Link Email OTP",
                   "request": {
                     "method": "POST",

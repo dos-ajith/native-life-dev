@@ -47,6 +47,7 @@ from app.models.notification import Notification
 from app.models.order import Order, OrderItem
 from app.models.order_payment import OrderPayment
 from app.models.page import Page
+from app.models.password_reset_otp import PasswordResetOtp
 from app.models.payout import Payout
 from app.models.payout_account import PayoutAccount
 from app.models.permission import Permission
@@ -124,6 +125,7 @@ __all__ = [
     "CollectionPost",
     "Email",
     "EmailVerificationOtp",
+    "PasswordResetOtp",
     "GisDistrict",
     "GisState",
     "GisTaluk",
