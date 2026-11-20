@@ -24,6 +24,7 @@ dependencies = [
     "phonenumbers>=8.13",
     "google-auth[requests]>=2.30",
     "twilio>=9.0",
+    "cryptography>=43",
 ]
 
 [project.optional-dependencies]
