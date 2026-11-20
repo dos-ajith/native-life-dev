@@ -11,16 +11,19 @@ from app.core.messages import DocsMessages
 DOCS_DIRECTORY = Path(__file__).resolve().parents[2] / "docs"
 WEBSOCKET_DOCS_MARKDOWN_PATH = DOCS_DIRECTORY / "websocket-api.md"
 PAYMENT_DOCS_MARKDOWN_PATH = DOCS_DIRECTORY / "payments.md"
+AI_DOCS_MARKDOWN_PATH = DOCS_DIRECTORY / "ai-voice-assistant-integration.md"
 DOCS_PAGE_PATH = Path(__file__).with_name("markdown_docs.html")
 MARKDOWN_PLACEHOLDER = "__MARKDOWN_JSON__"
 TITLE_PLACEHOLDER = "__PAGE_TITLE__"
 NAV_PLACEHOLDER = "__NAV_LINKS__"
 WEBSOCKET_DOCS_TITLE = "Native Life — WebSocket API Documentation"
 PAYMENT_DOCS_TITLE = "Native Life — Payment Integration Guide"
+AI_DOCS_TITLE = "Native Life — AI Assistant Integration Guide"
 NAV_PAGES = (
     ("/docs", "REST API (Swagger)"),
     ("/websocket-docs", "WebSocket API"),
     ("/payment-docs", "Payments (Razorpay)"),
+    ("/ai-docs", "AI Assistant (chat & voice)"),
 )
 
 router = APIRouter(tags=["docs"])
@@ -66,3 +69,8 @@ def payment_docs() -> HTMLResponse:
         "/payment-docs",
         DocsMessages.PAYMENT_DOCS_NOT_FOUND,
     )
+
+
+@router.get("/ai-docs", response_class=HTMLResponse, include_in_schema=False)
+def ai_docs() -> HTMLResponse:
+    return _render(AI_DOCS_MARKDOWN_PATH, AI_DOCS_TITLE, "/ai-docs", DocsMessages.AI_DOCS_NOT_FOUND)

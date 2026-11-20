@@ -1,14 +1,14 @@
 # Native Assistant — Mobile Integration Guide
 
-How to integrate the Native Assistant (text chat, voice mode and talking avatar) into the mobile app. REST details are also in Swagger (`/docs`, group **2.6 Backend Tools · AI**) and in the Postman collection (folder **AI**).
+How to integrate the Native Assistant (text chat, voice mode and talking avatar) into the React Native mobile app. The API is plain HTTPS + JSON plus a streamed audio URL, so it works from any client; the [React Native notes](#react-native-notes) cover the app-side audio parts. This guide is served at `/ai-docs`. REST details are also in Swagger (`/docs`, group **2.6 Backend Tools · AI**) and in the Postman collection (folder **AI**).
 
 ## Prompt for your AI coding assistant
 
-Copy everything in the block into your AI coding assistant, and attach this file. Replace the two `<…>` placeholders first.
+Copy everything in the block into your AI coding assistant, and attach this file. Replace the `<…>` placeholders first.
 
 ```text
-You are implementing the "Native Assistant" screen in our mobile app (<Flutter / React
-Native / Kotlin / Swift>). The backend API is fully described in the attached file
+You are implementing the "Native Assistant" screen in our React Native app
+(<Expo or bare React Native>, <TypeScript or JavaScript>). The backend API is fully described in the attached file
 docs/ai-voice-assistant-integration.md. Treat that file as the source of truth for every
 endpoint, field, limit and error. Do not invent fields or endpoints that are not in it.
 
@@ -46,12 +46,13 @@ Build these parts, in this order:
 
 4. Live (voice) mode, with a "Speak replies" toggle that is on by default:
    - Mic button: tap to start recording (ask for microphone permission first), tap again
-     to stop. Auto-stop after 30 seconds. Record AAC/m4a (supported on iOS and Android).
-   - Base64-encode the clip and POST /ai/ask with {"mode": "live",
+     to stop. Auto-stop after 30 seconds. Record AAC/m4a, mono, 16 kHz, about 64 kbps so
+     the upload stays small (see "React Native notes" in the file for libraries).
+   - Read the recorded file as base64 and POST /ai/ask with {"mode": "live",
      "audio_base64": <base64>, "avatar_id": <selected avatar id>}.
    - Show `transcript` as the user's message, then `answer` and `posts` exactly like chat.
-   - Start playback of `audio_url` immediately with the platform streaming player
-     (ExoPlayer / AVPlayer / just_audio / react-native-track-player). Do not download it
+   - Start playback of `audio_url` immediately with a streaming React Native player
+     (expo-audio, react-native-track-player or react-native-video). Do not download it
      first and do not add an Authorization header: the signed token in the URL is the
      credential. Do not cache or replay the URL; it expires after about 5 minutes.
    - Do not assume the audio format; it is audio/wav in development and audio/mpeg in
@@ -65,8 +66,11 @@ Build these parts, in this order:
      default "arjun". Artwork is bundled in the app, keyed by `id`, with a fallback image
      for unknown ids.
    - States: idle (blink every few seconds, slight sway), listening, thinking, speaking.
-   - While the reply plays, sample the output audio level 30-60 times per second, map it
-     to mouth openness 0..1, apply a curve (level^0.6), open fast and close slower.
+   - While the reply plays, drive the mouth from the audio level if the chosen player
+     exposes it (see "Lip sync in React Native" in the file): sample 30-60 times per
+     second, map to mouth openness 0..1, apply a curve (level^0.6), open fast and close
+     slower. If it does not, use the looping talk animation fallback described there.
+     Use react-native-reanimated for the animation.
 
 6. Concurrency and UX:
    - Only one turn at a time: disable mic and Send while a request runs.
@@ -283,6 +287,48 @@ The avatar is drawn by the app. The server sends no animation data.
 
 A working reference implementation (audio level, smoothing, lip sync, blinking) is in `tools/api-tester/app.html`. See `playWithLipSync` and `buildAvatar`. It runs in the browser, so use it as a guide and not as code to copy.
 
+## React Native notes
+
+The API needs nothing platform-specific. These are the app-side pieces, with libraries that are known to work; equivalents are fine.
+
+| Need | Expo | Bare React Native |
+|------|------|-------------------|
+| Record m4a | `expo-audio` (`useAudioRecorder` with an AAC/m4a preset) | a recorder that outputs AAC/m4a, e.g. `react-native-nitro-sound` |
+| File → base64 | `expo-file-system` | `react-native-fs` (`readFile(path, 'base64')`) |
+| Stream `audio_url` | `expo-audio` player | `react-native-track-player` or `react-native-video` (audio only) |
+| Mic permission | `expo-audio` permission request | `react-native-permissions` |
+| Avatar animation | `react-native-reanimated` (+ `react-native-svg` for SVG artwork) | same |
+
+Recording settings: mono, 16 kHz sample rate, about 64 kbps AAC. Speech recognition does not need more, and a 30-second clip stays around 250 KB, which keeps the upload fast on mobile data.
+
+Base64 without an extra library also works: `fetch(fileUri)` → `blob()` → `FileReader.readAsDataURL`, then take the part after the comma.
+
+```ts
+const response = await api.post('/ai/ask', {
+  mode: 'live',
+  audio_base64: base64Clip,
+  avatar_id: selectedAvatarId,
+});
+const { answer, transcript, posts, audio_url } = response.data.data;
+showTurn({ transcript, answer, posts });
+if (speakReplies && audio_url) {
+  await player.replace({ uri: audio_url });
+  player.play();
+}
+```
+
+Pass `audio_url` to the player exactly as returned. Do not add headers and do not save it.
+
+### Lip sync in React Native
+
+Most React Native players do not expose the live output level, which the browser reference (`playWithLipSync`) reads from the Web Audio API. Options, best first:
+
+1. **Player with sample access.** If your `expo-audio` version offers an audio sample listener for the player, compute the peak of each sample buffer and feed it into the same smoothing as the reference. Playback stays streamed.
+2. **`react-native-audio-api`** (a Web Audio API implementation for React Native with `AnalyserNode`). It mirrors `playWithLipSync` almost line for line, but it decodes the whole clip before playing, so speech starts after the full download (about 1 to 2 seconds later) instead of streaming.
+3. **Fallback.** While the player reports playing, loop a simple talk animation (mouth open/close at a natural, slightly random pace) and close the mouth when playback ends. Less accurate, no audio processing, always works.
+
+Start with option 3 to ship, then upgrade to 1 or 2.
+
 ## Errors
 
 | HTTP | When | What to do |
@@ -315,6 +361,7 @@ Rules:
 - [ ] Text question with and without location.
 - [ ] Voice question: record → live `/ai/ask` → text shown at once → `audio_url` streams → avatar lip sync.
 - [ ] Each of the 2 avatars plays its own voice.
+- [ ] Live mode on a real iOS device and a real Android device (simulators often lack a working microphone).
 - [ ] Microphone permission denied.
 - [ ] Empty recording, very long recording and background noise only.
 - [ ] Network drop during a live-mode call.

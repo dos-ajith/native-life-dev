@@ -846,6 +846,7 @@ class UserSettingsMessages:
 class DocsMessages:
     WEBSOCKET_DOCS_NOT_FOUND = "WebSocket API documentation not found"
     PAYMENT_DOCS_NOT_FOUND = "Payment integration guide not found"
+    AI_DOCS_NOT_FOUND = "AI assistant integration guide not found"
 
 
 class RelativeTimeMessages:
