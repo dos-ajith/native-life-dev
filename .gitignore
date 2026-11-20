@@ -54,6 +54,7 @@ firebase-service-account*.json
 
 # Installed product plugins (installed on the server from plugin_packages/)
 /plugins/product/
+/plugins/service/
 
 # Local schema scratch file
 # docs/schema.dbml
