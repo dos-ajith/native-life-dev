@@ -797,6 +797,7 @@ class AIMessages:
     AUDIO_REQUIRES_LIVE_MODE = "audio_base64 is only accepted in live mode"
     AUDIO_FORMAT_UNSUPPORTED = "The audio format is not supported"
     SPEECH_LINK_INVALID = "The speech link is invalid or has expired"
+    MP3_ENCODER_MISSING = "MP3 speech is not available on this server"
     AUDIO_EMPTY = "The audio file is empty"
     AUDIO_TOO_LARGE = "The audio file is too large"
     TRANSCRIPT_EMPTY = "No speech was detected in the audio"

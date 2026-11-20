@@ -55,8 +55,8 @@ Build these parts, in this order:
      (expo-audio, react-native-track-player or react-native-video). Do not download it
      first and do not add an Authorization header: the signed token in the URL is the
      credential. Do not cache or replay the URL; it expires after about 5 minutes.
-   - Do not assume the audio format; it is audio/wav in development and audio/mpeg in
-     production. Let the player detect it from the response.
+   - Do not assume the audio format; it is audio/mpeg (mp3) in production and may be
+     audio/wav or audio/mpeg in development. Let the player detect it from the response.
    - Typed questions while "Speak replies" is on also use {"mode": "live", "prompt": ...}.
      When it is off, always use "mode": "chat".
    - If the audio fails to load or play, keep the text answer and continue silently.
@@ -211,7 +211,7 @@ Live mode request and the extra response fields:
 
 - `answer` is plain text. Show it in the chat bubble.
 - `transcript` is set only when live mode received audio. Show it as the user's message.
-- `audio_url` is set only in live mode. Give it straight to the platform audio player (ExoPlayer / AVPlayer / `just_audio`); no `Authorization` header is needed because the signed token in the URL is the credential. It streams `audio/wav` in development (Groq) and `audio/mpeg` in production (OpenAI), so let the player detect the format and never assume one. The link expires after 5 minutes by default (server setting), so play it right away and do not cache it.
+- `audio_url` is set only in live mode. Give it straight to the platform audio player (ExoPlayer / AVPlayer / `just_audio`); no `Authorization` header is needed because the signed token in the URL is the credential. It streams `audio/mpeg` (mp3) in production; development servers may send `audio/wav` or `audio/mpeg` depending on their configuration, so let the player detect the format and never assume one. The link expires after 5 minutes by default (server setting), so play it right away and do not cache it.
 - Speech is limited to 1000 characters by default (server setting). A longer `answer` is spoken up to the last full sentence within the limit; the text `answer` is always complete.
 - `posts` may be empty. Render each item as a card that opens the post by `post_id`/`slug`. `image_url`, `summary`, `location_name` and `distance_km` can be `null`.
 - Requests can take several seconds. Show a "Thinking…" state and keep the send button disabled until the call finishes.

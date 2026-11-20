@@ -102,10 +102,17 @@ the speech, so the speech model names must exist on the selected provider.
 | `AI_INTENT_MODEL` | `gpt-4.1-nano` | `openai/gpt-oss-20b` + `AI_INTENT_REASONING_EFFORT=low` |
 | `AI_STT_MODEL` | `gpt-4o-mini-transcribe` | `whisper-large-v3-turbo` |
 | `AI_TTS_MODEL` | `gpt-4o-mini-tts` | `canopylabs/orpheus-v1-english` |
-| `AI_TTS_RESPONSE_FORMAT` | `mp3` | `wav` (the only format Groq supports) |
+| `AI_TTS_RESPONSE_FORMAT` | `mp3` | `wav`, or `mp3` via the temporary converter below |
 
 Only set the `*_REASONING_EFFORT` values for reasoning models (`gpt-oss-*`);
 non-reasoning models reject the parameter.
+
+Groq's speech model only produces wav. As a temporary development aid, setting
+`AI_TTS_RESPONSE_FORMAT=mp3` with `AI_PROVIDER=groq` makes the server convert
+Groq's wav to mp3 while streaming. It needs the optional encoder:
+`pip install -e ".[groq-mp3]"`. Without it, the speech link returns
+503 `MP3 speech is not available on this server`. OpenAI produces mp3 natively,
+so production never uses the converter.
 
 ### Authentication
 
