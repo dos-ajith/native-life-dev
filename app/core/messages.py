@@ -1487,3 +1487,12 @@ class DuesMessages:
     LIST_RETRIEVED = "COD dues retrieved"
     PAYMENTS_RETRIEVED = "COD dues payments retrieved"
     LINK_DESCRIPTION = "COD dues: platform fee and commission ({amount})"
+
+
+class DashboardMessages:
+    SUMMARY_RETRIEVED = "Dashboard summary retrieved"
+
+
+class ActivityLogMessages:
+    LIST_RETRIEVED = "Activity logs retrieved"
+    DATE_RANGE_INVALID = "date_from must be on or before date_to"

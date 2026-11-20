@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.models.activity_log import ActivityLog
 from app.models.user import User
 from app.repositories.activity_log_repository import ActivityLogRepository
+from app.schemas.activity_log import ActivityActorRead, ActivityLogQuery, ActivityLogRead
+from app.schemas.pagination import PaginationParams
 
 SENSITIVE_METADATA_KEYS = {
     "password",
@@ -52,3 +54,32 @@ class ActivityLogService:
             user_agent=user_agent,
         )
         return self._activity_logs.add(activity_log)
+
+    def list(
+        self, query: ActivityLogQuery, params: PaginationParams
+    ) -> tuple[list[ActivityLogRead], int]:
+        rows, total = self._activity_logs.page(query, params)
+        return [_to_read(log, actor) for log, actor in rows], total
+
+
+def _to_read(log: ActivityLog, actor: User | None) -> ActivityLogRead:
+    return ActivityLogRead(
+        id=log.id,
+        actor=_actor_read(actor),
+        action=log.action,
+        entity_type=log.entity_type,
+        entity_id=log.entity_id,
+        description=log.description,
+        metadata=log.metadata_,
+        ip_address=log.ip_address,
+        user_agent=log.user_agent,
+        created_at=log.created_at,
+    )
+
+
+def _actor_read(actor: User | None) -> ActivityActorRead | None:
+    if actor is None:
+        return None
+    return ActivityActorRead(
+        id=actor.id, name=f"{actor.first_name} {actor.last_name}".strip(), email=actor.email
+    )

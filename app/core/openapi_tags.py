@@ -81,6 +81,8 @@ class ApiTag:
     ADMIN_EARNINGS = "2.7 Earnings & Payouts · Earnings"
     ADMIN_PAYOUTS = "2.7 Earnings & Payouts · Payouts"
     ADMIN_COD_DUES = "2.7 Earnings & Payouts · COD Dues"
+    ADMIN_DASHBOARD = "2.8 Dashboard · Summary"
+    ADMIN_ACTIVITY_LOGS = "2.8 Dashboard · Activity Logs"
 
 
 OPENAPI_TAGS = [{"name": value} for key, value in vars(ApiTag).items() if not key.startswith("_")]

@@ -3,6 +3,8 @@ from fastapi import APIRouter
 from app.api.v1 import health
 from app.api.v1.aadhaar_documents import routes as aadhaar_document_routes
 from app.api.v1.account_roles import routes as account_role_routes
+from app.api.v1.admin import activity_logs as admin_activity_log_routes
+from app.api.v1.admin import dashboard as admin_dashboard_routes
 from app.api.v1.admin import geography as admin_geography_routes
 from app.api.v1.admin import routes as admin_routes
 from app.api.v1.ai import routes as ai_routes
@@ -180,3 +182,5 @@ api_router.include_router(order_seller_routes.router)
 api_router.include_router(plugin_admin_routes.router)
 api_router.include_router(earning_routes.router)
 api_router.include_router(payout_routes.router)
+api_router.include_router(admin_dashboard_routes.router)
+api_router.include_router(admin_activity_log_routes.router)

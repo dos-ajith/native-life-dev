@@ -142,5 +142,22 @@ class PermissionName:
     EARNING_VIEW_ANY = "earning.view_any"
     PAYOUT_MANAGE = "payout.manage"
 
+    DASHBOARD_VIEW_USERS = "dashboard.view_users"
+    DASHBOARD_VIEW_BUSINESSES = "dashboard.view_businesses"
+    DASHBOARD_VIEW_NATIVE_PLACES = "dashboard.view_native_places"
+    DASHBOARD_VIEW_APPROVALS = "dashboard.view_approvals"
+    DASHBOARD_VIEW_ORDERS = "dashboard.view_orders"
+
+    ACTIVITY_LOG_VIEW = "activity_log.view"
+
+
+DASHBOARD_PERMISSIONS = (
+    PermissionName.DASHBOARD_VIEW_USERS,
+    PermissionName.DASHBOARD_VIEW_BUSINESSES,
+    PermissionName.DASHBOARD_VIEW_NATIVE_PLACES,
+    PermissionName.DASHBOARD_VIEW_APPROVALS,
+    PermissionName.DASHBOARD_VIEW_ORDERS,
+)
+
 
 GUEST_PERMISSIONS = frozenset({PermissionName.POST_VIEW, PermissionName.PAGE_READ})

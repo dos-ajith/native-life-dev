@@ -19057,6 +19057,117 @@
               ]
             }
           ]
+        },
+        {
+          "name": "2.8 Dashboard",
+          "item": [
+            {
+              "name": "Summary",
+              "item": [
+                {
+                  "name": "Dashboard summary",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/dashboard/summary?months=12",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "dashboard",
+                        "summary"
+                      ],
+                      "query": [
+                        {
+                          "key": "months",
+                          "value": "12",
+                          "disabled": false
+                        }
+                      ]
+                    },
+                    "description": "Stat cards (users, active businesses, native places with this/last month and % change; pending approvals), orders overview and monthly trends for the last `months` (1-24) calendar months. Needs at least one `dashboard.view_*` permission; sections the caller lacks permission for are `null` (users, businesses, native_places, approvals, orders)."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Activity Logs",
+              "item": [
+                {
+                  "name": "List activity logs",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/activity-logs?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "activity-logs"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1",
+                          "disabled": false
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20",
+                          "disabled": false
+                        },
+                        {
+                          "key": "action",
+                          "value": "ORDER_PLACED",
+                          "disabled": true
+                        },
+                        {
+                          "key": "user_id",
+                          "value": "{{user_id}}",
+                          "disabled": true
+                        },
+                        {
+                          "key": "entity_type",
+                          "value": "order",
+                          "disabled": true
+                        },
+                        {
+                          "key": "entity_id",
+                          "value": "{{order_id}}",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_from",
+                          "value": "2026-11-01",
+                          "disabled": true
+                        },
+                        {
+                          "key": "date_to",
+                          "value": "2026-11-30",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Newest first. Needs `activity_log.view`."
+                  }
+                }
+              ]
+            }
+          ]
         }
       ]
     }
