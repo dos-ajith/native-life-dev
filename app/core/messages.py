@@ -263,6 +263,12 @@ class PostCommentMessages:
     PARENT_NOT_FOUND = "Parent comment not found"
 
 
+class PostCommentLikeMessages:
+    LIKED = "Comment liked"
+    UNLIKED = "Comment unliked"
+    NOT_FOUND = "Comment like not found"
+
+
 class PostReactionMessages:
     REACTED = "Reaction saved"
     REACTION_REMOVED = "Reaction removed"

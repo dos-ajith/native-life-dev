@@ -8,6 +8,7 @@ from app.core.messages import PostCommentMessages
 from app.core.permissions import PermissionName
 from app.models.post_comment import PostComment
 from app.models.user import User
+from app.repositories.post_comment_like_repository import PostCommentLikeRepository
 from app.repositories.post_comment_repository import PostCommentRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.pagination import PaginationParams
@@ -21,6 +22,7 @@ from app.services.post_service import PostService
 class PostCommentService:
     def __init__(self, db: Session) -> None:
         self._comments = PostCommentRepository(db)
+        self._likes = PostCommentLikeRepository(db)
         self._users = UserRepository(db)
         self._posts = PostService(db)
         self._activity_logs = ActivityLogService(db)
@@ -59,10 +61,11 @@ class PostCommentService:
             return [], total
         all_comments = self._comments.list_all_by_post(post_id)
         authors = self._authors_of([*roots, *all_comments])
-        return PostCommentRead.build_forest(roots, all_comments, authors), total
+        liked_ids = self._liked_ids(viewer, all_comments)
+        return PostCommentRead.build_forest(roots, all_comments, authors, liked_ids), total
 
     def to_read(self, comment: PostComment) -> PostCommentRead:
-        return PostCommentRead.from_comment(comment, {}, self._authors_of([comment]))
+        return PostCommentRead.from_comment(comment, {}, self._authors_of([comment]), set())
 
     def delete(self, comment_id: UUID, actor: User) -> None:
         comment = self._get(comment_id)
@@ -79,6 +82,11 @@ class PostCommentService:
             entity_id=comment.id,
             metadata={"post_id": str(comment.post_id)},
         )
+
+    def _liked_ids(self, viewer: User | None, comments: list[PostComment]) -> set[UUID]:
+        if viewer is None:
+            return set()
+        return self._likes.list_liked_comment_ids(viewer.id, [c.id for c in comments])
 
     def _authors_of(self, comments: list[PostComment]) -> dict[UUID, User]:
         user_ids = list({comment.user_id for comment in comments})

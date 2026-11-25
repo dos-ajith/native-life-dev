@@ -3,12 +3,13 @@ from uuid import UUID
 from fastapi import APIRouter, status
 
 from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaginationDep
-from app.api.v1.posts.permissions import PostCommentDep, PostViewDep
-from app.core.messages import PostCommentMessages
+from app.api.v1.posts.permissions import PostCommentDep, PostLikeDep, PostViewDep
+from app.core.messages import PostCommentLikeMessages, PostCommentMessages
 from app.core.openapi_tags import ApiTag
 from app.schemas.pagination import Page
 from app.schemas.post_comment import PostCommentCreate, PostCommentRead
 from app.schemas.response import SuccessResponse
+from app.services.post_comment_like_service import PostCommentLikeService
 from app.services.post_comment_service import PostCommentService
 
 router = APIRouter(prefix="/posts", tags=[ApiTag.POSTS])
@@ -45,3 +46,19 @@ def delete_comment(
 ) -> SuccessResponse[None]:
     PostCommentService(db).delete(comment_id, current_user)
     return SuccessResponse(message=PostCommentMessages.DELETED, data=None)
+
+
+@router.put("/comments/{comment_id}/like", response_model=SuccessResponse[None])
+def like_comment(
+    comment_id: UUID, db: DbSessionDep, current_user: PostLikeDep
+) -> SuccessResponse[None]:
+    PostCommentLikeService(db).like(comment_id, current_user)
+    return SuccessResponse(message=PostCommentLikeMessages.LIKED, data=None)
+
+
+@router.delete("/comments/{comment_id}/like", response_model=SuccessResponse[None])
+def unlike_comment(
+    comment_id: UUID, db: DbSessionDep, current_user: PostLikeDep
+) -> SuccessResponse[None]:
+    PostCommentLikeService(db).unlike(comment_id, current_user)
+    return SuccessResponse(message=PostCommentLikeMessages.UNLIKED, data=None)

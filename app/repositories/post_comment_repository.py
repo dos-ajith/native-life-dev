@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.timezone import app_now
@@ -55,4 +55,18 @@ class PostCommentRepository:
 
     def soft_delete(self, comment: PostComment) -> None:
         comment.deleted_at = app_now()
+        self._db.commit()
+
+    def increment_likes(self, comment_id: UUID) -> None:
+        self._adjust_likes(comment_id, 1)
+
+    def decrement_likes(self, comment_id: UUID) -> None:
+        self._adjust_likes(comment_id, -1)
+
+    def _adjust_likes(self, comment_id: UUID, delta: int) -> None:
+        self._db.execute(
+            update(PostComment)
+            .where(PostComment.id == comment_id)
+            .values(likes_count=func.greatest(PostComment.likes_count + delta, 0))
+        )
         self._db.commit()

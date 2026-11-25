@@ -58,6 +58,7 @@ from app.models.plugin_installation import PluginInstallation
 from app.models.popular_place import PopularPlace
 from app.models.post import Post
 from app.models.post_comment import PostComment
+from app.models.post_comment_like import PostCommentLike
 from app.models.post_like import PostLike
 from app.models.post_media import PostMedia
 from app.models.post_share import PostShare
@@ -152,6 +153,7 @@ __all__ = [
     "DirectMessage",
     "Post",
     "PostComment",
+    "PostCommentLike",
     "PostLike",
     "PostMedia",
     "PostShare",

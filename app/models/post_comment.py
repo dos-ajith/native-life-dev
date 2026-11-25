@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, Index, Text
+from sqlalchemy import ForeignKey, Index, Integer, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -21,4 +21,5 @@ class PostComment(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         ForeignKey("post_comments.id", ondelete="CASCADE")
     )
     content: Mapped[str] = mapped_column(Text())
+    likes_count: Mapped[int] = mapped_column(Integer(), server_default=text("0"), default=0)
     deleted_at: Mapped[datetime | None] = mapped_column(default=None)

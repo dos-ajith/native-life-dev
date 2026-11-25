@@ -4313,6 +4313,70 @@
                   }
                 },
                 {
+                  "name": "Like comment",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/posts/comments/:comment_id/like",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "posts",
+                        "comments",
+                        ":comment_id",
+                        "like"
+                      ],
+                      "variable": [
+                        {
+                          "key": "comment_id",
+                          "value": "",
+                          "description": "UUID of the comment"
+                        }
+                      ]
+                    },
+                    "description": "Likes a comment as the authenticated user. Idempotent."
+                  }
+                },
+                {
+                  "name": "Unlike comment",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/posts/comments/:comment_id/like",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "posts",
+                        "comments",
+                        ":comment_id",
+                        "like"
+                      ],
+                      "variable": [
+                        {
+                          "key": "comment_id",
+                          "value": "",
+                          "description": "UUID of the comment"
+                        }
+                      ]
+                    },
+                    "description": "Removes the authenticated user's like from a comment."
+                  }
+                },
+                {
                   "name": "React to post",
                   "request": {
                     "method": "PUT",

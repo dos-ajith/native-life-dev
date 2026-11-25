@@ -34,7 +34,9 @@ Build these parts, in this order:
      image_url, summary, location_name, distance_km may be null.
    - Show a "Thinking…" bubble and disable Send while a request is running.
 
-3. Deal flow inside chat: when the response has `next_step`, render it under the answer.
+3. Deal flow inside chat (only for users allowed to create deals; the server decides, the
+   app just reacts to the response): when the response has `next_step`, render it under
+   the answer.
    - If `next_step.options` is not empty: one button per option showing `label`; on tap,
      send that option's `prompt` as the next question and remove the buttons.
    - If `next_step.input` is "datetime" and there are no options: show a date-time
@@ -55,8 +57,8 @@ Build these parts, in this order:
      (expo-audio, react-native-track-player or react-native-video). Do not download it
      first and do not add an Authorization header: the signed token in the URL is the
      credential. Do not cache or replay the URL; it expires after about 5 minutes.
-   - Do not assume the audio format; it is audio/mpeg (mp3) in production and may be
-     audio/wav or audio/mpeg in development. Let the player detect it from the response.
+   - Do not assume the audio format; it is audio/mpeg (mp3) or audio/wav depending on the
+     server configuration. Let the player detect it from the response.
    - Typed questions while "Speak replies" is on also use {"mode": "live", "prompt": ...}.
      When it is off, always use "mode": "chat".
    - If the audio fails to load or play, keep the text answer and continue silently.
@@ -81,7 +83,8 @@ Build these parts, in this order:
    - 401 on /ai/ask: refresh the token once and retry, otherwise go to login.
    - 401 on audio_url: skip the audio, keep the text.
    - 404 avatar: reload /ai/avatars and reset the selection.
-   - 422: show `message`. For "AI features are disabled in your settings", add a link
+   - 422: show `message`. When `message` is "Validation failed", show `errors[].message`
+     instead (it holds the actual reason). For "AI features are disabled in your settings", add a link
      to the AI settings screen. For "No speech was detected in the audio", ask the user
      to try again closer to the microphone.
    - 429 / 502 / 503 / 504: show `message` with a Retry button; in live mode offer to
@@ -211,7 +214,7 @@ Live mode request and the extra response fields:
 
 - `answer` is plain text. Show it in the chat bubble.
 - `transcript` is set only when live mode received audio. Show it as the user's message.
-- `audio_url` is set only in live mode. Give it straight to the platform audio player (ExoPlayer / AVPlayer / `just_audio`); no `Authorization` header is needed because the signed token in the URL is the credential. It streams `audio/mpeg` (mp3) in production; development servers may send `audio/wav` or `audio/mpeg` depending on their configuration, so let the player detect the format and never assume one. The link expires after 5 minutes by default (server setting), so play it right away and do not cache it.
+- `audio_url` is set only in live mode. Give it straight to the platform audio player (ExoPlayer / AVPlayer / `just_audio`); no `Authorization` header is needed because the signed token in the URL is the credential. It streams `audio/mpeg` (mp3) or `audio/wav`, depending on the server configuration (mp3 is the recommended setting), so let the player detect the format and never assume one. The link expires after 5 minutes by default (server setting), so play it right away and do not cache it.
 - Speech is limited to 1000 characters by default (server setting). A longer `answer` is spoken up to the last full sentence within the limit; the text `answer` is always complete.
 - `posts` may be empty. Render each item as a card that opens the post by `post_id`/`slug`. `image_url`, `summary`, `location_name` and `distance_km` can be `null`.
 - Requests can take several seconds. Show a "Thinking…" state and keep the send button disabled until the call finishes.
@@ -219,7 +222,32 @@ Live mode request and the extra response fields:
 
 #### Deal creation inside the chat (`created`, `next_step`)
 
-Users allowed to create deals can say things like "I want to sell my bicycle". The assistant then asks for the details one at a time and creates a **draft** deal.
+Users allowed to create deals can say things like "I want to sell my bicycle". The assistant then asks for the details one at a time and creates a **draft** deal. Works the same in `chat` and `live` mode.
+
+- Only users with the deal-create permission get this flow. For everyone else the assistant just answers normally and `next_step`/`created` stay `null`. The app does not need to check permissions itself.
+- Only personal (individual seller) deals can be created from chat. Business deals, which need items from the business catalogue, are not supported; the assistant tells the user to create them in the deals screens.
+- The assistant has no chat history. The saved answers live on the server for 24 hours, so the user can leave and continue later; the next `/ai/ask` picks up where they stopped.
+
+Steps, in the order they are asked (a step is skipped when the user already gave that detail):
+
+| `field` | `input` | `options` |
+|---------|---------|-----------|
+| `name` | `text` | none |
+| `category_id` | `choice` | one per deal category: `id` is the category id, `label` its name, `prompt` "Category: <name>" |
+| `items` | `text` | none. The user describes item, quantity, unit, original price and deal price |
+| `starts_at` | `datetime` | none |
+| `valid_until` | `datetime` | none |
+| `delivery_options` | `choice` | `self_pickup` "Self pickup", `instant` "Instant delivery", `route` "Route delivery" |
+| `pickup_location` | `text` | none. Pickup place or delivery details |
+| `null` | `confirm` | `confirm` "Yes, create it", `cancel` "Cancel this deal", `change` "I want to change something" |
+
+A deal can have several delivery options, but each button sends only one. To choose more than one, the user types them (for example "Self pickup and instant delivery").
+
+Outcomes:
+
+- **Confirm:** the response has `created` and `next_step` is `null`.
+- **Cancel:** the saved details are discarded; both `created` and `next_step` are `null`, and `answer` says nothing was created.
+- **Creation problem** (for example an end date before the start date): `created` stays `null`, `answer` explains the problem, and `next_step` asks again.
 
 - `next_step` (object or `null`) is present while a deal draft is in progress:
 
@@ -335,8 +363,10 @@ Start with option 3 to ship, then upgrade to 1 or 2.
 |------|------|------------|
 | 401 | Missing, invalid or expired token | Refresh the token, retry once, otherwise send the user to login. For `audio_url` (`The speech link is invalid or has expired`), just skip the audio; the text is already shown. |
 | 404 | `avatar_id` unknown (`Assistant avatar not found`) | Reload `/ai/avatars` and reset the selection. |
-| 422 | Validation failed: missing or both `prompt` and `audio_base64`, `audio_base64` in chat mode, invalid base64, empty, oversized or unsupported audio, no speech in the clip, or AI turned off in settings | Show the `message` from the response. For "AI features are disabled in your settings", offer a link to the AI settings. |
+| 422 | Request format: missing or both `prompt` and `audio_base64`, `audio_base64` in chat mode, invalid base64, out-of-range location or radius. `message` is `Validation failed` and each `errors[]` item has `{field, message}` with the reason. | Show `errors[].message`. These are app bugs; they should not happen with a correct client. |
+| 422 | Business rule: empty (`The audio file is empty`), oversized (`The audio file is too large`) or unsupported audio (`The audio format is not supported`), no speech in the clip (`No speech was detected in the audio`), or AI turned off in settings (`AI features are disabled in your settings`). `message` holds the reason. | Show the `message`. For the AI-disabled message, offer a link to the AI settings. |
 | 429 | Provider is busy (`AI is busy right now, please try again in a moment`) | Show the message and let the user retry. |
+| 500 | Internal assistant error (`AI tool execution failed`) | Show a generic error and offer retry. |
 | 502 | Provider returned something unusable | Show a generic error and offer retry. |
 | 503 | AI provider unavailable or not configured (`AI provider is currently unavailable`) | Show a generic error, and fall back to text-only if speech failed. |
 | 504 | Provider timed out | Offer retry. |
@@ -346,7 +376,7 @@ Rules:
 - If a live-mode call fails with a provider error (502/503/504), retry once, or fall back to typing with `mode: "chat"`.
 - If `audio_url` fails to play, keep the text answer. Voice is an extra, not a requirement.
 - If `/ai/ask` returns "No speech was detected in the audio", tell the user to try again, closer to the microphone.
-- Always show the server's `message`. Do not rely on the status code alone.
+- Always show the server's `message` (or `errors[].message` when `message` is `Validation failed`). Do not rely on the status code alone.
 
 ## Limits and cost
 
@@ -371,6 +401,8 @@ Rules:
 - [ ] Turning "speak replies" off leaves text chat working.
 - [ ] "What is my name?" answers with the signed-in user's name.
 - [ ] Deal flow: "I want to sell my bicycle" shows option buttons and a date picker, and ends with the created card.
+- [ ] Deal flow: "Cancel this deal" ends the flow with no card; leaving the screen and coming back continues the saved deal.
+- [ ] Deal flow as a user without deal permission: normal answer, no buttons.
 
 ## Open items
 

@@ -11,6 +11,7 @@ from app.core.messages import NotificationMessages
 from app.core.permissions import PROMOTER_REVIEW_ROLE_SLUGS, PermissionName, RoleSlug
 from app.models.notification import Notification, NotificationType
 from app.models.post import Post
+from app.models.post_comment import PostComment
 from app.models.user import User
 from app.models.user_notification_settings import UserNotificationSettings
 from app.realtime.events import RealtimeEvent, RealtimeEventType
@@ -686,6 +687,17 @@ class NotificationService:
             entity_id=post.id,
             is_enabled=lambda settings: settings.comments,
             metadata={"comment_id": str(comment_id)},
+        )
+
+    def notify_comment_liked(self, comment: PostComment, actor: User) -> None:
+        self._create_if_enabled(
+            recipient_id=comment.user_id,
+            actor_id=actor.id,
+            type_=NotificationType.COMMENT_LIKED,
+            entity_type="post",
+            entity_id=comment.post_id,
+            is_enabled=lambda settings: settings.likes,
+            metadata={"comment_id": str(comment.id)},
         )
 
     def list_notifications(
