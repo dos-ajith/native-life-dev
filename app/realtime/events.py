@@ -32,6 +32,8 @@ class RealtimeEventType(enum.StrEnum):
     DIRECT_MESSAGE_TYPING = "direct_message.typing"
     DIRECT_MESSAGE_CREATED = "direct_message.created"
     DIRECT_MESSAGES_READ = "direct_message.read"
+    DIRECT_MESSAGE_DELETED = "direct_message.deleted"
+    DIRECT_MESSAGE_HIDDEN = "direct_message.hidden"
     COMMUNITY_MESSAGE_CREATED = "community.message.created"
     COMMUNITY_MESSAGE_DELETED = "community.message.deleted"
     COMMUNITY_POST_CREATED = "community.post.created"

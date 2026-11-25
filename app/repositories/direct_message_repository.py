@@ -1,12 +1,20 @@
 from collections.abc import Collection
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy import ColumnElement, and_, exists, func, or_, select, update
 from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.orm import Session
 
 from app.models.chat_conversation import ChatConversation
 from app.models.direct_message import DirectMessage
+from app.models.hidden_direct_message import HiddenDirectMessage
+
+
+def _not_hidden_from(viewer_id: UUID) -> ColumnElement[bool]:
+    return ~exists().where(
+        HiddenDirectMessage.message_id == DirectMessage.id,
+        HiddenDirectMessage.user_id == viewer_id,
+    )
 
 
 class DirectMessageRepository:
@@ -32,10 +40,23 @@ class DirectMessageRepository:
             )
         )
 
+    def get_visible_in_conversation(
+        self, conversation_id: UUID, message_id: UUID, viewer_id: UUID
+    ) -> DirectMessage | None:
+        return self._db.scalar(
+            select(DirectMessage).where(
+                DirectMessage.id == message_id,
+                DirectMessage.conversation_id == conversation_id,
+                _not_hidden_from(viewer_id),
+            )
+        )
+
     def list_older(
-        self, conversation_id: UUID, before: DirectMessage | None, limit: int
+        self, conversation_id: UUID, viewer_id: UUID, before: DirectMessage | None, limit: int
     ) -> list[DirectMessage]:
-        query = select(DirectMessage).where(DirectMessage.conversation_id == conversation_id)
+        query = select(DirectMessage).where(
+            DirectMessage.conversation_id == conversation_id, _not_hidden_from(viewer_id)
+        )
         if before is not None:
             query = query.where(
                 or_(
@@ -50,14 +71,14 @@ class DirectMessageRepository:
         return list(self._db.scalars(query.order_by(*newest_first).limit(limit)))
 
     def latest_by_conversation(
-        self, conversation_ids: Collection[UUID]
+        self, conversation_ids: Collection[UUID], viewer_id: UUID
     ) -> dict[UUID, DirectMessage]:
         if not conversation_ids:
             return {}
         rows = self._db.scalars(
             select(DirectMessage)
             .ext(distinct_on(DirectMessage.conversation_id))
-            .where(DirectMessage.conversation_id.in_(conversation_ids))
+            .where(DirectMessage.conversation_id.in_(conversation_ids), _not_hidden_from(viewer_id))
             .order_by(
                 DirectMessage.conversation_id,
                 DirectMessage.created_at.desc(),
@@ -75,6 +96,8 @@ class DirectMessageRepository:
                 DirectMessage.conversation_id.in_(conversation_ids),
                 DirectMessage.sender_id != reader_id,
                 DirectMessage.read_at.is_(None),
+                DirectMessage.deleted_at.is_(None),
+                _not_hidden_from(reader_id),
             )
             .group_by(DirectMessage.conversation_id)
         ).all()
@@ -93,3 +116,13 @@ class DirectMessageRepository:
         ).all()
         self._db.commit()
         return len(marked_ids)
+
+    def delete_for_everyone(self, message: DirectMessage) -> DirectMessage:
+        self._db.execute(
+            update(DirectMessage)
+            .where(DirectMessage.id == message.id)
+            .values(content="", deleted_at=func.now())
+        )
+        self._db.commit()
+        self._db.refresh(message)
+        return message

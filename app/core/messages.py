@@ -898,6 +898,11 @@ class DirectChatMessages:
     MESSAGES_DISABLED = "This user is not accepting messages"
     CONNECTIONS_ONLY = "This user only accepts messages from people they follow or who follow them"
     BLOCKED = "You cannot exchange messages with this user"
+    MESSAGE_NOT_FOUND = "Message not found"
+    DELETED_FOR_ME = "Message deleted for you"
+    DELETED_FOR_EVERYONE = "Message deleted for everyone"
+    CANNOT_DELETE_FOR_EVERYONE = "You can only delete your own messages for everyone"
+    ALREADY_DELETED = "This message has already been deleted for everyone"
 
 
 class PresenceMessages:

@@ -9,6 +9,7 @@ from app.core.openapi_tags import ApiTag
 from app.schemas.community_message import DEFAULT_HISTORY_LIMIT, MAX_HISTORY_LIMIT
 from app.schemas.direct_message import (
     ConversationRead,
+    DeleteScope,
     DirectMessageCreate,
     DirectMessageHistory,
     DirectMessageRead,
@@ -65,6 +66,24 @@ def list_messages(
             next_before_id=messages[-1].id if has_more and messages else None,
         ),
     )
+
+
+DELETE_SCOPE_MESSAGES = {
+    DeleteScope.ME: DirectChatMessages.DELETED_FOR_ME,
+    DeleteScope.EVERYONE: DirectChatMessages.DELETED_FOR_EVERYONE,
+}
+
+
+@router.delete("/{user_id}/messages/{message_id}", response_model=SuccessResponse[None])
+def delete_message(
+    user_id: UUID,
+    message_id: UUID,
+    scope: DeleteScope,
+    db: DbSessionDep,
+    current_user: CurrentActiveUserDep,
+) -> SuccessResponse[None]:
+    DirectChatService(db).delete_message(user_id, message_id, current_user, scope)
+    return SuccessResponse(message=DELETE_SCOPE_MESSAGES[scope], data=None)
 
 
 @router.post("/{user_id}/read", response_model=SuccessResponse[None])

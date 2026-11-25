@@ -4,7 +4,12 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.core.activity_actions import ActivityAction
-from app.core.exceptions import AuthorizationError, BusinessRuleError, NotFoundError
+from app.core.exceptions import (
+    AuthorizationError,
+    BusinessRuleError,
+    ConflictError,
+    NotFoundError,
+)
 from app.core.messages import DirectChatMessages, NotificationMessages, UserMessages
 from app.models.chat_conversation import ChatConversation
 from app.models.direct_message import DirectMessage
@@ -15,6 +20,7 @@ from app.realtime.events import RealtimeEvent, RealtimeEventType
 from app.realtime.publisher import RealtimePublisher, get_realtime_publisher
 from app.repositories.chat_conversation_repository import ChatConversationRepository
 from app.repositories.direct_message_repository import DirectMessageRepository
+from app.repositories.hidden_direct_message_repository import HiddenDirectMessageRepository
 from app.repositories.user_block_repository import UserBlockRepository
 from app.repositories.user_follow_repository import UserFollowRepository
 from app.repositories.user_notification_settings_repository import (
@@ -22,7 +28,7 @@ from app.repositories.user_notification_settings_repository import (
 )
 from app.repositories.user_privacy_settings_repository import UserPrivacySettingsRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.direct_message import ConversationRead, DirectMessageRead
+from app.schemas.direct_message import ConversationRead, DeleteScope, DirectMessageRead
 from app.schemas.pagination import PaginationParams
 from app.schemas.user import UserSummaryRead
 from app.services.activity_log_service import ActivityLogService
@@ -56,6 +62,7 @@ class DirectChatService:
         self._users = UserRepository(db)
         self._conversations = ChatConversationRepository(db)
         self._messages = DirectMessageRepository(db)
+        self._hidden_messages = HiddenDirectMessageRepository(db)
         self._blocks = UserBlockRepository(db)
         self._follows = UserFollowRepository(db)
         self._privacy = UserPrivacySettingsRepository(db)
@@ -112,7 +119,7 @@ class DirectChatService:
                 [_partner_id(conversation, actor.id) for conversation in conversations]
             )
         }
-        latest = self._messages.latest_by_conversation(ids)
+        latest = self._messages.latest_by_conversation(ids, actor.id)
         unread = self._messages.unread_counts(ids, actor.id)
         blocked = self._blocks.blocked_among(actor.id, list(partners))
         items = []
@@ -142,7 +149,7 @@ class DirectChatService:
             before = self._messages.get_in_conversation(conversation.id, before_id)
             if before is None:
                 raise NotFoundError(DirectChatMessages.HISTORY_CURSOR_NOT_FOUND)
-        rows = self._messages.list_older(conversation.id, before, limit + 1)
+        rows = self._messages.list_older(conversation.id, actor.id, before, limit + 1)
         return rows[:limit], len(rows) > limit
 
     def mark_read(self, partner_id: UUID, actor: User) -> None:
@@ -155,6 +162,60 @@ class DirectChatService:
                 RealtimeEventType.DIRECT_MESSAGES_READ,
                 {"conversation_id": str(conversation.id), "reader_id": str(actor.id)},
             )
+
+    def delete_message(
+        self, partner_id: UUID, message_id: UUID, actor: User, scope: DeleteScope
+    ) -> None:
+        message = self._visible_message(partner_id, message_id, actor)
+        if scope == DeleteScope.EVERYONE:
+            self._delete_for_everyone(message, partner_id, actor)
+        else:
+            self._delete_for_me(message, partner_id, actor)
+
+    def _visible_message(self, partner_id: UUID, message_id: UUID, actor: User) -> DirectMessage:
+        conversation = self._conversations.get_between(actor.id, partner_id)
+        message = (
+            self._messages.get_visible_in_conversation(conversation.id, message_id, actor.id)
+            if conversation is not None
+            else None
+        )
+        if message is None:
+            raise NotFoundError(DirectChatMessages.MESSAGE_NOT_FOUND)
+        return message
+
+    def _delete_for_everyone(self, message: DirectMessage, partner_id: UUID, actor: User) -> None:
+        if message.sender_id != actor.id:
+            raise AuthorizationError(DirectChatMessages.CANNOT_DELETE_FOR_EVERYONE)
+        if message.deleted_at is not None:
+            raise ConflictError(DirectChatMessages.ALREADY_DELETED)
+        deleted = self._messages.delete_for_everyone(message)
+        self._activity_logs.log(
+            actor=actor,
+            action=ActivityAction.DIRECT_MESSAGE_DELETED_FOR_EVERYONE,
+            entity_type="direct_message",
+            entity_id=deleted.id,
+            metadata={"recipient_id": str(partner_id)},
+        )
+        self._publish(
+            (actor.id, partner_id),
+            RealtimeEventType.DIRECT_MESSAGE_DELETED,
+            {"message": DirectMessageRead.from_message(deleted).model_dump(mode="json")},
+        )
+
+    def _delete_for_me(self, message: DirectMessage, partner_id: UUID, actor: User) -> None:
+        self._hidden_messages.add(message.id, actor.id)
+        self._activity_logs.log(
+            actor=actor,
+            action=ActivityAction.DIRECT_MESSAGE_DELETED_FOR_ME,
+            entity_type="direct_message",
+            entity_id=message.id,
+            metadata={"partner_id": str(partner_id)},
+        )
+        self._publish(
+            (actor.id,),
+            RealtimeEventType.DIRECT_MESSAGE_HIDDEN,
+            {"conversation_id": str(message.conversation_id), "message_id": str(message.id)},
+        )
 
     def _recipient(self, recipient_id: UUID, actor: User) -> User:
         if recipient_id == actor.id:

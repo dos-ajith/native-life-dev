@@ -40,6 +40,7 @@ from app.models.gis_district import GisDistrict
 from app.models.gis_state import GisState
 from app.models.gis_taluk import GisTaluk
 from app.models.gis_village import GisVillage
+from app.models.hidden_direct_message import HiddenDirectMessage
 from app.models.lost_found_image import LostFoundImage
 from app.models.lost_found_item import LostFoundItem
 from app.models.native_place_suggestion import NativePlaceSuggestion
@@ -151,6 +152,7 @@ __all__ = [
     "DeliverySettings",
     "DeliveryVehicle",
     "DirectMessage",
+    "HiddenDirectMessage",
     "Post",
     "PostComment",
     "PostCommentLike",

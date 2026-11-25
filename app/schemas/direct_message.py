@@ -1,3 +1,4 @@
+import enum
 from datetime import datetime
 from uuid import UUID
 
@@ -14,12 +15,18 @@ class DirectMessageCreate(BaseModel):
     content: MessageContent
 
 
+class DeleteScope(enum.StrEnum):
+    ME = "me"
+    EVERYONE = "everyone"
+
+
 class DirectMessageRead(BaseReadSchema):
     id: UUID
     conversation_id: UUID
     sender_id: UUID
     content: str
     read_at: datetime | None
+    deleted_at: datetime | None
     created_at: datetime
 
     @classmethod
@@ -30,6 +37,7 @@ class DirectMessageRead(BaseReadSchema):
             sender_id=message.sender_id,
             content=message.content,
             read_at=message.read_at,
+            deleted_at=message.deleted_at,
             created_at=message.created_at,
         )
 

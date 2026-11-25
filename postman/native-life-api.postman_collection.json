@@ -14581,6 +14581,50 @@
                   }
                 },
                 {
+                  "name": "Delete a message",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/chats/:user_id/messages/:message_id?scope=everyone",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "chats",
+                        ":user_id",
+                        "messages",
+                        ":message_id"
+                      ],
+                      "query": [
+                        {
+                          "key": "scope",
+                          "value": "everyone",
+                          "description": "`everyone` (sender only) or `me`"
+                        }
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_id",
+                          "value": "",
+                          "description": "UUID of the other user"
+                        },
+                        {
+                          "key": "message_id",
+                          "value": "",
+                          "description": "UUID of the message"
+                        }
+                      ]
+                    },
+                    "description": "`scope=everyone`: only the sender can do this. The message stays in the chat for both people with empty `content` and `deleted_at` set (show \"This message was deleted\"). Both people get `direct_message.deleted`. Deleting it again returns 409.\n\n`scope=me`: either person can do this. The message is removed from your history and inbox preview only; the other person still sees it. Your other devices get `direct_message.hidden`."
+                  }
+                },
+                {
                   "name": "Mark messages as read",
                   "request": {
                     "method": "POST",

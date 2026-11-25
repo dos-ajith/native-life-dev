@@ -57,6 +57,8 @@ Wait for `auth.ok` before treating the connection as ready. No auth message with
 | `community.poll.created` | The owner created a poll in a community you belong to | Fetch the poll and add it to the timeline |
 | `community.read` | You opened a community on another device | Set that community's unread badge to 0 |
 | `direct_message.created` | A one-to-one message was sent to you (or by you on another device) | Append to that chat, or bump the unread badge |
+| `direct_message.deleted` | A message in one of your chats was deleted for everyone | Replace it with "This message was deleted" |
+| `direct_message.hidden` | You deleted a message for yourself on another device | Remove it from that chat |
 | `direct_message.read` | The other person read your messages | Show "read" ticks on your sent messages |
 | `direct_message.typing` | The other person is typing to you | Show "typing…" for about 5 seconds |
 | `presence.changed` | Someone you chat with went online or offline | Update "online" / "last seen" |
@@ -627,9 +629,57 @@ Who may message whom is decided by the server on every send and typing event: th
       "sender_id": "...",
       "content": "Hello!",
       "read_at": null,
+      "deleted_at": null,
       "created_at": "..."
     }
   }
+}
+```
+
+### Deleting a message
+
+`DELETE /api/v1/chats/{user_id}/messages/{message_id}?scope=everyone|me` (`scope` is required).
+
+- **`everyone`**: only the sender can do it (`403` otherwise). The message stays in both histories with `content: ""` and `deleted_at` set; render it as "This message was deleted". Deleting it again returns `409`. It no longer counts as unread.
+- **`me`**: either person can do it. The message disappears from your history, your inbox `last_message` and your unread count. The other person still sees it. Deleting it again returns `404`.
+
+### `direct_message.deleted`
+
+**Who receives it:** Both people in the chat (all their devices).
+
+**Frontend action:** Find the message by `message.id` and replace it with the tombstone. If it is the inbox preview, update that too.
+
+```json
+{
+  "type": "direct_message.deleted",
+  "id": "...",
+  "occurred_at": "...",
+  "data": {
+    "message": {
+      "id": "...",
+      "conversation_id": "...",
+      "sender_id": "...",
+      "content": "",
+      "read_at": null,
+      "deleted_at": "...",
+      "created_at": "..."
+    }
+  }
+}
+```
+
+### `direct_message.hidden`
+
+**Who receives it:** Only you, so your other devices stay in sync after a delete-for-me.
+
+**Frontend action:** Remove that message from the chat. Reload `GET /api/v1/chats` if it was the inbox preview.
+
+```json
+{
+  "type": "direct_message.hidden",
+  "id": "...",
+  "occurred_at": "...",
+  "data": { "conversation_id": "...", "message_id": "..." }
 }
 ```
 
