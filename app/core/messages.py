@@ -818,6 +818,10 @@ class AIMessages:
     DEAL_OPTION_SELF_PICKUP = "Self pickup"
     DEAL_OPTION_INSTANT = "Instant delivery"
     DEAL_OPTION_ROUTE = "Route delivery"
+    DEAL_OPTION_ALL_DELIVERY = "All of them"
+    DEAL_OPTION_ALL_DELIVERY_PROMPT = (
+        "All options: self pickup, instant delivery and route delivery"
+    )
     DEAL_CANCELLED = "Your deal was cancelled and nothing was created."
     DEAL_DRAFT_CREATED = (
         "Your draft deal “{title}” has been created. Add cover images and submit it "

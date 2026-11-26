@@ -39,6 +39,8 @@ STEP_QUESTIONS = {
     PICKUP_FIELD: AIMessages.DEAL_QUESTION_PICKUP,
 }
 
+ALL_DELIVERY_OPTIONS_ID = "all"
+
 CONFIRM_OPTIONS = (
     ("confirm", AIMessages.DEAL_OPTION_CONFIRM),
     ("cancel", AIMessages.DEAL_OPTION_CANCEL),
@@ -93,8 +95,15 @@ def next_deal_step(
             field,
             AIInputKind.CHOICE,
             [
-                AIOptionRead(id=option.value, label=label, prompt=label)
-                for option, label in DELIVERY_OPTION_LABELS.items()
+                *(
+                    AIOptionRead(id=option.value, label=label, prompt=label)
+                    for option, label in DELIVERY_OPTION_LABELS.items()
+                ),
+                AIOptionRead(
+                    id=ALL_DELIVERY_OPTIONS_ID,
+                    label=AIMessages.DEAL_OPTION_ALL_DELIVERY,
+                    prompt=AIMessages.DEAL_OPTION_ALL_DELIVERY_PROMPT,
+                ),
             ],
         )
     return _step(field, AIInputKind.DATETIME if field in DATETIME_FIELDS else AIInputKind.TEXT)
