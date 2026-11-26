@@ -1,6 +1,7 @@
 import logging
 from uuid import UUID
 
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.activity_actions import ActivityAction
@@ -11,8 +12,13 @@ from app.core.exceptions import (
     NotFoundError,
 )
 from app.core.messages import DirectChatMessages, NotificationMessages, UserMessages
+from app.core.storage import (
+    ALLOWED_POST_IMAGE_TYPES,
+    delete_private_document,
+    save_direct_message_media,
+)
 from app.models.chat_conversation import ChatConversation
-from app.models.direct_message import DirectMessage
+from app.models.direct_message import DirectMessage, DirectMessageMediaType
 from app.models.user import User
 from app.models.user_settings_defaults import UserSettingsDefaults
 from app.models.user_settings_enums import MessagePermission
@@ -41,12 +47,31 @@ logger = logging.getLogger("app.direct_chat")
 PUSH_BODY_MAX_LENGTH = 120
 PUSH_BODY_SUFFIX = "..."
 PUSH_TYPE = "direct_message"
+MEDIA_PUSH_BODIES = {
+    DirectMessageMediaType.IMAGE: NotificationMessages.DIRECT_MESSAGE_IMAGE_PUSH_BODY,
+    DirectMessageMediaType.VIDEO: NotificationMessages.DIRECT_MESSAGE_VIDEO_PUSH_BODY,
+}
 
 
 def _partner_id(conversation: ChatConversation, user_id: UUID) -> UUID:
     if conversation.lower_user_id == user_id:
         return conversation.higher_user_id
     return conversation.lower_user_id
+
+
+def _media_type_of(content_type: str) -> DirectMessageMediaType:
+    if content_type in ALLOWED_POST_IMAGE_TYPES:
+        return DirectMessageMediaType.IMAGE
+    return DirectMessageMediaType.VIDEO
+
+
+def _push_body(message: DirectMessage) -> str:
+    content = message.content
+    if not content and message.media_type is not None:
+        return MEDIA_PUSH_BODIES[message.media_type]
+    if len(content) > PUSH_BODY_MAX_LENGTH:
+        return content[:PUSH_BODY_MAX_LENGTH].rstrip() + PUSH_BODY_SUFFIX
+    return content
 
 
 class DirectChatService:
@@ -72,16 +97,62 @@ class DirectChatService:
     def send(self, recipient_id: UUID, actor: User, content: str) -> DirectMessage:
         recipient = self._recipient(recipient_id, actor)
         self._ensure_can_message(actor, recipient)
-        conversation = self._conversations.get_or_create(actor.id, recipient.id)
-        message = self._messages.add(
-            DirectMessage(conversation_id=conversation.id, sender_id=actor.id, content=content)
+        message = self._store(actor, recipient, DirectMessage(content=content))
+        self._announce(actor, recipient, message)
+        return message
+
+    def send_media(
+        self,
+        recipient_id: UUID,
+        actor: User,
+        file: UploadFile,
+        caption: str | None,
+        private_upload_dir: str,
+    ) -> DirectMessage:
+        recipient = self._recipient(recipient_id, actor)
+        self._ensure_can_message(actor, recipient)
+        storage_path, content_type, size_bytes = save_direct_message_media(file, private_upload_dir)
+        draft = DirectMessage(
+            content=(caption or "").strip(),
+            media_type=_media_type_of(content_type),
+            media_storage_path=storage_path,
+            media_content_type=content_type,
+            media_size_bytes=size_bytes,
         )
+        try:
+            message = self._store(actor, recipient, draft)
+        except Exception:
+            delete_private_document(storage_path)
+            raise
+        self._announce(actor, recipient, message)
+        return message
+
+    def media_file(self, message_id: UUID, actor: User) -> tuple[str, str]:
+        message = self._messages.get_visible_to_participant(message_id, actor.id)
+        if (
+            message is None
+            or message.media_storage_path is None
+            or message.media_content_type is None
+        ):
+            raise NotFoundError(DirectChatMessages.MEDIA_NOT_FOUND)
+        return message.media_storage_path, message.media_content_type
+
+    def _store(self, actor: User, recipient: User, message: DirectMessage) -> DirectMessage:
+        conversation = self._conversations.get_or_create(actor.id, recipient.id)
+        message.conversation_id = conversation.id
+        message.sender_id = actor.id
+        return self._messages.add(message)
+
+    def _announce(self, actor: User, recipient: User, message: DirectMessage) -> None:
+        metadata = {"recipient_id": str(recipient.id)}
+        if message.media_type is not None:
+            metadata["media_type"] = message.media_type.value
         self._activity_logs.log(
             actor=actor,
             action=ActivityAction.DIRECT_MESSAGE_SENT,
             entity_type="direct_message",
             entity_id=message.id,
-            metadata={"recipient_id": str(recipient.id)},
+            metadata=metadata,
         )
         self._publish(
             (actor.id, recipient.id),
@@ -89,7 +160,6 @@ class DirectChatService:
             {"message": DirectMessageRead.from_message(message).model_dump(mode="json")},
         )
         self._push_to_recipient(actor, recipient, message)
-        return message
 
     def typing(self, actor_id: UUID, recipient_id: UUID, is_typing: bool) -> None:
         if actor_id == recipient_id or not self._publisher.has_connections(recipient_id):
@@ -188,7 +258,10 @@ class DirectChatService:
             raise AuthorizationError(DirectChatMessages.CANNOT_DELETE_FOR_EVERYONE)
         if message.deleted_at is not None:
             raise ConflictError(DirectChatMessages.ALREADY_DELETED)
+        media_path = message.media_storage_path
         deleted = self._messages.delete_for_everyone(message)
+        if media_path is not None:
+            delete_private_document(media_path)
         self._activity_logs.log(
             actor=actor,
             action=ActivityAction.DIRECT_MESSAGE_DELETED_FOR_EVERYONE,
@@ -251,9 +324,7 @@ class DirectChatService:
         settings = self._notification_settings.get_by_user_id(recipient.id)
         if settings is not None and not (settings.push_enabled and settings.messages):
             return
-        content = message.content
-        if len(content) > PUSH_BODY_MAX_LENGTH:
-            content = content[:PUSH_BODY_MAX_LENGTH].rstrip() + PUSH_BODY_SUFFIX
+        content = _push_body(message)
         try:
             self._push.publish(
                 PushMessage(

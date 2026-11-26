@@ -308,6 +308,11 @@ Enum post_media_type {
   "video"
 }
 
+Enum direct_message_media_type {
+  "image"
+  "video"
+}
+
 Enum plugin_business_type {
   "product"
   "service"
@@ -1732,6 +1737,10 @@ Table direct_messages {
   conversation_id uuid [not null]
   sender_id uuid [not null]
   content text [not null]
+  media_type direct_message_media_type
+  media_storage_path varchar(1024)
+  media_content_type varchar(100)
+  media_size_bytes integer
   read_at timestamp
   deleted_at timestamp
   created_at timestamp [not null, default: `now()`]

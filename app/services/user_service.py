@@ -378,12 +378,23 @@ class UserService:
             metadata={"updated_fields": list(updated_fields)},
         )
 
-    def update_image(self, user: User, image: UploadFile, upload_dir: str) -> User:
+    def update_image(self, user: User, image: UploadFile, upload_dir: str, actor: User) -> User:
         previous_url = user.profile_image_url
         user.profile_image_url = save_profile_image(image, upload_dir)
         saved = self._users.save(user)
         if previous_url is not None:
             delete_media_file(previous_url, upload_dir)
+        self._log_updated(saved, actor, ["profile_image_url"])
+        return saved
+
+    def remove_image(self, user: User, upload_dir: str) -> User:
+        previous_url = user.profile_image_url
+        if previous_url is None:
+            return user
+        user.profile_image_url = None
+        saved = self._users.save(user)
+        delete_media_file(previous_url, upload_dir)
+        self._log_updated(saved, saved, ["profile_image_url"])
         return saved
 
     def update_image_for(
@@ -391,7 +402,7 @@ class UserService:
     ) -> User:
         user = self.get(user_id)
         self._ensure_can_modify(actor, user)
-        return self.update_image(user, image, upload_dir)
+        return self.update_image(user, image, upload_dir, actor)
 
     @staticmethod
     def _ensure_can_modify(actor: User, target: User) -> None:

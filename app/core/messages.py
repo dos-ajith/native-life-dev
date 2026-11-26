@@ -51,6 +51,7 @@ class UserMessages:
     PROFILE_UPDATED = "Profile updated"
     PROFILE_RETRIEVED = "Profile retrieved"
     PROFILE_IMAGE_UPDATED = "Profile image updated"
+    PROFILE_IMAGE_REMOVED = "Profile image removed"
     ROLES_UPDATED = "User roles updated"
     DELETED = "User deleted"
     NOT_FOUND = "User not found"
@@ -660,6 +661,8 @@ class DeviceMessages:
 class NotificationMessages:
     PUSH_TITLE = "Native Life"
     DIRECT_MESSAGE_PUSH_TITLE = "{sender}"
+    DIRECT_MESSAGE_IMAGE_PUSH_BODY = "📷 Photo"
+    DIRECT_MESSAGE_VIDEO_PUSH_BODY = "🎥 Video"
     LIST_RETRIEVED = "Notifications retrieved"
     UNREAD_COUNT_RETRIEVED = "Unread notification count retrieved"
     MARKED_READ = "Notification marked as read"
@@ -907,6 +910,7 @@ class DirectChatMessages:
     DELETED_FOR_EVERYONE = "Message deleted for everyone"
     CANNOT_DELETE_FOR_EVERYONE = "You can only delete your own messages for everyone"
     ALREADY_DELETED = "This message has already been deleted for everyone"
+    MEDIA_NOT_FOUND = "Media not found"
 
 
 class PresenceMessages:
@@ -988,6 +992,9 @@ class StorageMessages:
     PLUGIN_INVALID_VIDEO_TYPE = "Video must be an MP4 file"
     PLUGIN_VIDEO_TOO_LARGE = "Video must be {limit_mb}MB or smaller"
     INVALID_VIDEO_TYPE = "Video must be MP4, MOV, or WebM"
+    INVALID_CHAT_MEDIA_TYPE = (
+        "Attachment must be a JPEG, PNG, or WebP image or an MP4, MOV, or WebM video"
+    )
     VIDEO_TOO_LARGE = "Video must be 100MB or smaller"
     INVALID_DOCUMENT_TYPE = "Document must be a JPEG, PNG, WebP, or PDF file"
     DOCUMENT_TOO_LARGE = "Document must be 10MB or smaller"

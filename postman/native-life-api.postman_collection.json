@@ -1327,6 +1327,30 @@
                     },
                     "description": "Uploads/replaces the authenticated user's own profile image. Body: image file (JPEG/PNG/WebP, max 5MB)."
                   }
+                },
+                {
+                  "name": "Remove my profile image",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/users/me/image",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "users",
+                        "me",
+                        "image"
+                      ]
+                    },
+                    "description": "Removes the current user's profile image and deletes the file; `profile_image_url` becomes null. Safe to call when there is no image."
+                  }
                 }
               ]
             },
@@ -14536,6 +14560,87 @@
                       "mode": "raw",
                       "raw": "{\n  \"content\": \"Hello!\"\n}"
                     }
+                  }
+                },
+                {
+                  "name": "Send media message",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/chats/:user_id/messages/media",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "chats",
+                        ":user_id",
+                        "messages",
+                        "media"
+                      ],
+                      "variable": [
+                        {
+                          "key": "user_id",
+                          "value": "",
+                          "description": "UUID of the other user"
+                        }
+                      ]
+                    },
+                    "description": "Sends one image or video, with an optional caption. Same rules, realtime event and push as a text message; the push body is the caption, or \"📷 Photo\" / \"🎥 Video\" without one.\n\nThe returned message has `media` (`type`, `content_type`, `size_bytes`, `url`). The file is private: fetch `url` with the Bearer token.\n\n**Form data**\n- `file` (required): JPEG/PNG/WebP up to 5MB, or MP4/MOV/WebM up to 100MB\n- `content` (optional caption, max 2000)",
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "src": "",
+                          "description": "Image or video"
+                        },
+                        {
+                          "key": "content",
+                          "value": "",
+                          "type": "text",
+                          "description": "Optional caption"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get message media",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/chats/messages/:message_id/media",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "chats",
+                        "messages",
+                        ":message_id",
+                        "media"
+                      ],
+                      "variable": [
+                        {
+                          "key": "message_id",
+                          "value": "",
+                          "description": "UUID of the message"
+                        }
+                      ]
+                    },
+                    "description": "Streams a message's image or video. Only the two people in the conversation can fetch it; 404 if the message was deleted for everyone, hidden by you with \"delete for me\", or has no media."
                   }
                 },
                 {

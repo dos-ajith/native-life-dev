@@ -1,12 +1,18 @@
+from pathlib import Path
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, File, Form, Query, UploadFile, status
+from fastapi.responses import FileResponse
 
-from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaginationDep
+from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaginationDep, SettingsDep
 from app.core.messages import DirectChatMessages, PresenceMessages
 from app.core.openapi_tags import ApiTag
-from app.schemas.community_message import DEFAULT_HISTORY_LIMIT, MAX_HISTORY_LIMIT
+from app.schemas.community_message import (
+    DEFAULT_HISTORY_LIMIT,
+    MAX_HISTORY_LIMIT,
+    MAX_MESSAGE_LENGTH,
+)
 from app.schemas.direct_message import (
     ConversationRead,
     DeleteScope,
@@ -21,6 +27,8 @@ from app.services.direct_chat_service import DirectChatService
 from app.services.presence_service import PresenceService
 
 router = APIRouter(prefix="/chats", tags=[ApiTag.CHAT_MESSAGES])
+
+PRIVATE_MEDIA_CACHE_CONTROL = "private, no-cache"
 
 
 @router.get("", response_model=SuccessResponse[Page[ConversationRead]])
@@ -46,6 +54,41 @@ def send_message(
     message = DirectChatService(db).send(user_id, current_user, payload.content)
     return SuccessResponse(
         message=DirectChatMessages.SENT, data=DirectMessageRead.from_message(message)
+    )
+
+
+@router.post(
+    "/{user_id}/messages/media",
+    response_model=SuccessResponse[DirectMessageRead],
+    status_code=status.HTTP_201_CREATED,
+)
+def send_media_message(
+    user_id: UUID,
+    db: DbSessionDep,
+    settings: SettingsDep,
+    current_user: CurrentActiveUserDep,
+    file: Annotated[UploadFile, File()],
+    content: Annotated[str | None, Form(max_length=MAX_MESSAGE_LENGTH)] = None,
+) -> SuccessResponse[DirectMessageRead]:
+    message = DirectChatService(db).send_media(
+        user_id, current_user, file, content, settings.private_upload_dir
+    )
+    return SuccessResponse(
+        message=DirectChatMessages.SENT, data=DirectMessageRead.from_message(message)
+    )
+
+
+@router.get("/messages/{message_id}/media")
+def get_message_media(
+    message_id: UUID, db: DbSessionDep, current_user: CurrentActiveUserDep
+) -> FileResponse:
+    storage_path, content_type = DirectChatService(db).media_file(message_id, current_user)
+    return FileResponse(
+        path=storage_path,
+        media_type=content_type,
+        filename=Path(storage_path).name,
+        content_disposition_type="inline",
+        headers={"Cache-Control": PRIVATE_MEDIA_CACHE_CONTROL},
     )
 
 

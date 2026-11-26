@@ -51,6 +51,22 @@ class DirectMessageRepository:
             )
         )
 
+    def get_visible_to_participant(
+        self, message_id: UUID, participant_id: UUID
+    ) -> DirectMessage | None:
+        return self._db.scalar(
+            select(DirectMessage)
+            .join(ChatConversation, ChatConversation.id == DirectMessage.conversation_id)
+            .where(
+                DirectMessage.id == message_id,
+                or_(
+                    ChatConversation.lower_user_id == participant_id,
+                    ChatConversation.higher_user_id == participant_id,
+                ),
+                _not_hidden_from(participant_id),
+            )
+        )
+
     def list_older(
         self, conversation_id: UUID, viewer_id: UUID, before: DirectMessage | None, limit: int
     ) -> list[DirectMessage]:
@@ -121,7 +137,14 @@ class DirectMessageRepository:
         self._db.execute(
             update(DirectMessage)
             .where(DirectMessage.id == message.id)
-            .values(content="", deleted_at=func.now())
+            .values(
+                content="",
+                media_type=None,
+                media_storage_path=None,
+                media_content_type=None,
+                media_size_bytes=None,
+                deleted_at=func.now(),
+            )
         )
         self._db.commit()
         self._db.refresh(message)

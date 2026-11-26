@@ -126,6 +126,14 @@ function mediaUrl(path) {
   return /^https?:\/\//.test(path) ? path : new URL(path, store.base).origin + path;
 }
 
+function privateVideo(path) {
+  const video = h('video', { controls: true, preload: 'metadata', style: 'max-width:100%' });
+  fetchBlob(path.replace(/^\/api\/v1/, '')).then((blob) => {
+    if (blob) video.src = URL.createObjectURL(blob);
+  });
+  return video;
+}
+
 function privateImage(path) {
   const image = h('img', { alt: '' });
   const headers = store.access ? { Authorization: `Bearer ${store.access}` } : {};
@@ -561,6 +569,45 @@ function phoneScreen(step, context = {}) {
   ));
 }
 
+function profilePhotoSection() {
+  const section = h('div', { className: 'card' });
+  const picker = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', style: 'display:none' });
+  const error = h('div', { className: 'err' });
+  const busy = (on) => section.querySelectorAll('button').forEach((button) => { button.disabled = on; });
+  const run = async (request) => {
+    busy(true);
+    const res = await request();
+    busy(false);
+    error.textContent = res.ok ? '' : errorText(res);
+    if (res.ok) await refreshMe();
+    draw();
+  };
+  picker.onchange = () => {
+    const file = picker.files[0];
+    picker.value = '';
+    if (!file) return;
+    const body = new FormData();
+    body.append('image', file);
+    run(() => api('POST', '/users/me/image', { form: body }));
+  };
+  const draw = () => {
+    const url = session.me.profile_image_url;
+    section.replaceChildren(
+      h('div', { className: 'meta', textContent: 'Profile photo' }),
+      url
+        ? h('img', { src: mediaUrl(url), alt: '', style: 'width:96px;height:96px;object-fit:cover;border-radius:50%;display:block;margin:8px 0' })
+        : h('div', { className: 'meta', style: 'margin:8px 0', textContent: 'No photo yet' }),
+      h('div', { className: 'row' },
+        h('button', { className: 'fit', type: 'button', textContent: url ? 'Change photo' : 'Add photo', onclick: () => picker.click() }),
+        url ? h('button', { className: 'fit', type: 'button', textContent: 'Remove photo', onclick: () => run(() => api('DELETE', '/users/me/image')) }) : ''),
+      h('div', { className: 'meta', textContent: 'JPEG, PNG or WebP, up to 5MB' }),
+      error,
+      picker);
+  };
+  draw();
+  return section;
+}
+
 function profileScreen() {
   const me = session.me;
   const first = field('First name', 'text', me.first_name);
@@ -568,7 +615,7 @@ function profileScreen() {
   const gender = field('Gender', 'select');
   gender.input.value = me.gender || '';
   const dob = field('Date of birth', 'date', me.date_of_birth || '');
-  screenOf(h('h2', { textContent: 'Set up your profile' }), form(
+  screenOf(h('h2', { textContent: 'Set up your profile' }), profilePhotoSection(), form(
     [first, last, gender, dob],
     'Continue',
     async () => {
@@ -974,9 +1021,20 @@ function commentsBox(post) {
   const list = h('div', {});
   const input = h('input', { type: 'text', placeholder: 'Write a comment' });
   const error = h('div', { className: 'err' });
+  const toggleLike = async (c) => {
+    const res = await api(c.is_liked ? 'DELETE' : 'PUT', `/posts/comments/${c.id}/like`);
+    error.textContent = res.ok ? '' : errorText(res);
+    if (res.ok) load();
+  };
   const draw = (items, depth = 0) => items.forEach((c) => {
-    const line = userLink(c.author.id, c.author.name, ` · ${c.created_at_relative}: ${c.content}`);
-    line.style.margin = `4px 0 0 ${depth * 14}px`;
+    const line = h('div', { className: 'row', style: `margin:4px 0 0 ${depth * 14}px;align-items:center` },
+      userLink(c.author.id, c.author.name, ` · ${c.created_at_relative}: ${c.content}`),
+      h('button', {
+        type: 'button',
+        className: c.is_liked ? 'fit primary' : 'fit',
+        textContent: `${c.is_liked ? '♥ Liked' : '♡ Like'} (${c.likes_count})`,
+        onclick: () => toggleLike(c),
+      }));
     list.append(line);
     draw(c.replies || [], depth + 1);
   });
@@ -1792,7 +1850,7 @@ function searchScreen(query) {
 
 const CHAT_PAGE_LIMIT = 30;
 
-const DIRECT_CHAT_EVENTS = ['direct_message.created', 'direct_message.read'];
+const DIRECT_CHAT_EVENTS = ['direct_message.created', 'direct_message.read', 'direct_message.deleted', 'direct_message.hidden'];
 const TYPING_REFRESH_MS = 3000;
 const TYPING_EXPIRE_MS = 5000;
 
@@ -1807,7 +1865,22 @@ async function directChatScreen(partner, onBack) {
   const error = h('div', { className: 'err' });
   const input = h('input', { type: 'text', placeholder: `Message ${partner.name}`, maxLength: 2000 });
   const send = h('button', { className: 'fit', type: 'submit', textContent: 'Send' });
-  const form = h('form', { className: 'row' }, input, send);
+  const attachment = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm', style: 'display:none' });
+  const attachName = h('span', { className: 'meta' });
+  const attach = h('button', { className: 'fit', type: 'button', textContent: 'Attach', onclick: () => attachment.click() });
+  const clearAttach = linkButton('Remove', () => { attachment.value = ''; drawAttachment(); });
+  const drawAttachment = () => {
+    const file = attachment.files[0];
+    attachName.textContent = file ? `${file.name} (${Math.ceil(file.size / 1024)} KB)` : '';
+    clearAttach.style.display = file ? '' : 'none';
+  };
+  attachment.onchange = drawAttachment;
+  drawAttachment();
+  const form = h('div', {},
+    h('form', { className: 'row' }, input, attach, send),
+    h('div', { className: 'row' }, attachName, clearAttach),
+    attachment);
+  const formEl = form.querySelector('form');
   const status = h('div', { className: 'meta', style: 'margin:-4px 0 8px' });
   screenOf(backBar(partner.name, onBack), status, form, error, list);
   realtime.openChatPartnerId = partner.id;
@@ -1836,23 +1909,47 @@ async function directChatScreen(partner, onBack) {
     list.replaceChildren(...listOf(res.data).map((message) => {
       const mine = message.sender_id === session.me.id;
       const receipt = mine ? (message.read_at ? ' · read' : ' · sent') : '';
+      const actions = [linkButton('Delete for me', () => deleteMessage(message, 'me'))];
+      if (mine && !message.deleted_at) actions.push(linkButton('Delete for everyone', () => deleteMessage(message, 'everyone')));
       return h('div', { className: 'card', style: mine ? 'background:#eef5ee;margin-left:40px' : 'margin-right:40px' },
-        h('div', { textContent: message.content }),
-        h('div', { className: 'meta', textContent: `${mine ? 'You' : partner.name} · ${formatDate(message.created_at)}${receipt}` }));
+        message.deleted_at
+          ? h('div', { className: 'meta', style: 'font-style:italic', textContent: 'This message was deleted' })
+          : h('div', {},
+            message.media ? h('div', { style: 'max-width:280px' },
+              message.media.type === 'video' ? privateVideo(message.media.url) : Object.assign(privateImage(message.media.url), { style: 'max-width:100%;display:block' })) : '',
+            message.content ? h('div', { textContent: message.content }) : ''),
+        h('div', { className: 'meta', textContent: `${mine ? 'You' : partner.name} · ${formatDate(message.created_at)}${receipt}` }),
+        h('div', { className: 'row' }, actions));
     }));
     api('POST', `/chats/${partner.id}/read`);
   };
-  form.onsubmit = async (event) => {
+  const deleteMessage = async (message, scope) => {
+    const res = await api('DELETE', `/chats/${partner.id}/messages/${message.id}?scope=${scope}`);
+    error.textContent = res.ok ? '' : errorText(res);
+    if (res.ok) load();
+  };
+  formEl.onsubmit = async (event) => {
     event.preventDefault();
-    if (!input.value.trim()) return;
+    const file = attachment.files[0];
+    if (!file && !input.value.trim()) return;
     send.disabled = true;
-    const res = await api('POST', `/chats/${partner.id}/messages`, { json: { content: input.value } });
+    let res;
+    if (file) {
+      const body = new FormData();
+      body.append('file', file);
+      if (input.value.trim()) body.append('content', input.value);
+      res = await api('POST', `/chats/${partner.id}/messages/media`, { form: body });
+    } else {
+      res = await api('POST', `/chats/${partner.id}/messages`, { json: { content: input.value } });
+    }
     send.disabled = false;
     if (!res.ok) {
       error.textContent = errorText(res);
       return;
     }
     input.value = '';
+    attachment.value = '';
+    drawAttachment();
     error.textContent = '';
     state.lastTypingSent = 0;
     load();
@@ -1900,7 +1997,7 @@ function messagesScreen() {
           onclick: () => directChatScreen({ id: conversation.user.id, name }, messagesScreen),
         },
         h('strong', { textContent: `${name}${conversation.unread_count ? ` (${conversation.unread_count} new)` : ''}${conversation.blocked_by_me ? ' · blocked' : ''}` }),
-        h('div', { className: 'meta', textContent: [presenceText(conversation.presence), last ? last.content : ''].filter(Boolean).join(' · ') })));
+        h('div', { className: 'meta', textContent: [presenceText(conversation.presence), last ? (last.deleted_at ? 'This message was deleted' : last.content || (last.media ? (last.media.type === 'video' ? '🎥 Video' : '📷 Photo') : '')) : ''].filter(Boolean).join(' · ') })));
       });
     }
     content.replaceChildren(...rows);

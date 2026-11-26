@@ -107,7 +107,7 @@ def update_me(
     )
     user = UserService(db).update_self(current_user, payload)
     if image is not None:
-        user = UserService(db).update_image(user, image, settings.upload_dir)
+        user = UserService(db).update_image(user, image, settings.upload_dir, current_user)
     return SuccessResponse(
         message=UserMessages.PROFILE_UPDATED,
         data=UserRead.from_user(user, AccountRoleStatusService(db).describe(user)),
@@ -121,9 +121,20 @@ def update_me_image(
     settings: SettingsDep,
     image: ProfileImageDep,
 ) -> SuccessResponse[UserRead]:
-    user = UserService(db).update_image(current_user, image, settings.upload_dir)
+    user = UserService(db).update_image(current_user, image, settings.upload_dir, current_user)
     return SuccessResponse(
         message=UserMessages.PROFILE_IMAGE_UPDATED,
+        data=UserRead.from_user(user, AccountRoleStatusService(db).describe(user)),
+    )
+
+
+@router.delete("/me/image", tags=[ApiTag.PROFILE], response_model=SuccessResponse[UserRead])
+def remove_me_image(
+    db: DbSessionDep, current_user: CurrentActiveUserDep, settings: SettingsDep
+) -> SuccessResponse[UserRead]:
+    user = UserService(db).remove_image(current_user, settings.upload_dir)
+    return SuccessResponse(
+        message=UserMessages.PROFILE_IMAGE_REMOVED,
         data=UserRead.from_user(user, AccountRoleStatusService(db).describe(user)),
     )
 

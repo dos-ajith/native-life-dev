@@ -41,6 +41,7 @@ FILE_SIGNATURES = (
 )
 WEBP_RIFF_MARKER = b"RIFF"
 WEBP_FORMAT_MARKER = b"WEBP"
+DIRECT_MESSAGE_MEDIA_SUBDIR = "direct_message_media"
 MAX_PRIVATE_DOCUMENT_BYTES = 10 * 1024 * 1024
 ALLOWED_PRIVATE_DOCUMENT_TYPES = {
     "image/jpeg": ".jpg",
@@ -168,14 +169,18 @@ def _save_private_upload(
         raise BusinessRuleError(invalid_type_message)
     if len(contents) > max_bytes:
         raise BusinessRuleError(too_large_message)
+    storage_path = _write_private_file(contents, private_upload_dir, subdir, extension)
+    return storage_path, content_type, len(contents)
 
+
+def _write_private_file(
+    contents: bytes, private_upload_dir: str, subdir: str, extension: str
+) -> str:
     directory = Path(private_upload_dir, subdir)
     directory.mkdir(parents=True, exist_ok=True)
-    filename = f"{uuid.uuid4()}{extension}"
-    storage_path = directory / filename
+    storage_path = directory / f"{uuid.uuid4()}{extension}"
     storage_path.write_bytes(contents)
-
-    return str(storage_path), content_type, len(contents)
+    return str(storage_path)
 
 
 def _resolve_content_type(declared: str | None, contents: bytes) -> str:
@@ -242,3 +247,22 @@ def save_deal_image(file: UploadFile, private_upload_dir: str) -> tuple[str, str
         StorageMessages.INVALID_IMAGE_TYPE,
         StorageMessages.IMAGE_TOO_LARGE,
     )
+
+
+def save_direct_message_media(file: UploadFile, private_upload_dir: str) -> tuple[str, str, int]:
+    contents = file.file.read()
+    content_type = _resolve_content_type(file.content_type, contents)
+    if content_type in ALLOWED_POST_IMAGE_TYPES:
+        max_bytes, too_large_message = MAX_POST_IMAGE_BYTES, StorageMessages.IMAGE_TOO_LARGE
+        extension = ALLOWED_POST_IMAGE_TYPES[content_type]
+    elif content_type in ALLOWED_POST_VIDEO_TYPES:
+        max_bytes, too_large_message = MAX_POST_VIDEO_BYTES, StorageMessages.VIDEO_TOO_LARGE
+        extension = ALLOWED_POST_VIDEO_TYPES[content_type]
+    else:
+        raise BusinessRuleError(StorageMessages.INVALID_CHAT_MEDIA_TYPE)
+    if len(contents) > max_bytes:
+        raise BusinessRuleError(too_large_message)
+    storage_path = _write_private_file(
+        contents, private_upload_dir, DIRECT_MESSAGE_MEDIA_SUBDIR, extension
+    )
+    return storage_path, content_type, len(contents)
