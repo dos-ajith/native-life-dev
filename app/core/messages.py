@@ -1099,6 +1099,8 @@ class AccountRoleMessages:
     RETRIEVED = "Account role retrieved"
     SELECTED = "Account role selected"
     VERIFICATION_SUBMITTED = "Account role verification submitted"
+    VERIFICATION_RETRIEVED = "Verification status retrieved"
+    VERIFICATION_DOCUMENT_UPDATED = "Verification document uploaded. It is now under review"
     NOT_SELECTABLE = "This role cannot be selected as an account role"
     SELECTION_UNAVAILABLE = "Account role selection is not available for this account"
     NO_ACCOUNT_ROLE = "This account has no account role"

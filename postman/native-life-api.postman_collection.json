@@ -2209,6 +2209,68 @@
                     },
                     "description": "Submits or resubmits verification for the currently selected account role, e.g. after a rejection. Fails if the role does not require verification, is already verified, or already has a pending request."
                   }
+                },
+                {
+                  "name": "Get my verification status",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/users/me/account-role/verification",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "users",
+                        "me",
+                        "account-role",
+                        "verification"
+                      ]
+                    },
+                    "description": "status: not_required, document_required, under_review, verified or rejected. Includes the current document (file_url to download) and review_note when rejected. is_verified stays true while an approved user's new document is under review."
+                  }
+                },
+                {
+                  "name": "Upload or change verification document",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "document",
+                          "type": "file",
+                          "src": [],
+                          "description": "Required. PDF or image, up to 10 MB."
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/users/me/account-role/verification/document",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "users",
+                        "me",
+                        "account-role",
+                        "verification",
+                        "document"
+                      ]
+                    },
+                    "description": "Replaces the document while under review. After approval or rejection it starts a new review (verified users keep access meanwhile). 422 if the account role needs no verification."
+                  }
                 }
               ]
             },

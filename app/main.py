@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.api.docs_routes import router as docs_router
 from app.api.v1.router import api_router
 from app.api.websocket_docs import router as websocket_docs_router
 from app.core.config import get_settings
@@ -20,6 +21,7 @@ from app.core.database import SessionLocal, engine
 from app.core.exceptions import AppError
 from app.core.logging import RequestLoggingMiddleware, setup_logging
 from app.core.messages import HttpMessages, RealtimeMessages, ValidationMessages
+from app.core.openapi_audiences import docs_index_description
 from app.core.openapi_tags import OPENAPI_TAGS
 from app.plugins.bootstrap import load_plugin_registry
 from app.plugins.mounting import mount_plugins
@@ -54,6 +56,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title=settings.app_name,
+    description=docs_index_description(),
     lifespan=lifespan,
     openapi_tags=OPENAPI_TAGS,
     docs_url="/docs" if not settings.is_production else None,
@@ -69,6 +72,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(RequestLoggingMiddleware)
+if not settings.is_production:
+    app.include_router(docs_router)
 
 Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
 app.mount("/media", StaticFiles(directory=settings.upload_dir), name="media")

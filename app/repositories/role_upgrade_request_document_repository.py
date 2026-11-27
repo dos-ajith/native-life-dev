@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.models.role_upgrade_request_document import RoleUpgradeRequestDocument
@@ -32,3 +32,12 @@ class RoleUpgradeRequestDocumentRepository:
         self._db.commit()
         self._db.refresh(document)
         return document
+
+    def delete_for_request(self, request_id: UUID) -> list[str]:
+        result = self._db.execute(
+            delete(RoleUpgradeRequestDocument)
+            .where(RoleUpgradeRequestDocument.request_id == request_id)
+            .returning(RoleUpgradeRequestDocument.storage_path)
+            .execution_options(synchronize_session=False)
+        )
+        return list(result.scalars())

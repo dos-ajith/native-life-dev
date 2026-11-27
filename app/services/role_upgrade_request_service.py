@@ -63,7 +63,7 @@ class RoleUpgradeRequestService:
         if request is None:
             raise BusinessRuleError(RoleUpgradeRequestMessages.DUPLICATE_PENDING_REQUEST)
         if document is not None:
-            self._documents.stage(self._store_document(request, document))
+            self._documents.stage(self.store_document(request, document))
         return request
 
     def cancel_pending(self, user_id: UUID) -> list[RoleUpgradeRequest]:
@@ -101,7 +101,7 @@ class RoleUpgradeRequestService:
         if request.status != RoleUpgradeRequestStatus.PENDING:
             raise BusinessRuleError(RoleUpgradeRequestMessages.REQUEST_NOT_PENDING)
 
-        doc = self._documents.add(self._store_document(request, document))
+        doc = self._documents.add(self.store_document(request, document))
         self._activity_logs.log(
             actor=actor,
             action=ActivityAction.ROLE_UPGRADE_DOCUMENT_ADDED,
@@ -111,7 +111,7 @@ class RoleUpgradeRequestService:
         )
         return doc
 
-    def _store_document(
+    def store_document(
         self, request: RoleUpgradeRequest, document: UploadFile
     ) -> RoleUpgradeRequestDocument:
         storage_path, content_type, size_bytes = save_role_upgrade_document(
@@ -242,12 +242,15 @@ class RoleUpgradeRequestService:
         )
         user = self._users.get(request.user_id)
         role_name = role.name
+        assignment = self._assignments.get_for_update(request.user_id, role.id)
+        keeps_earlier_approval = assignment is not None and assignment.verified_at is not None
 
         request.status = RoleUpgradeRequestStatus.REJECTED
         request.reviewed_by = admin.id
         request.reviewed_at = app_now()
         request.review_note = review_note
-        user.roles = [held for held in user.roles if held.id != role.id]
+        if not keeps_earlier_approval:
+            user.roles = [held for held in user.roles if held.id != role.id]
         saved_request = self._requests.save(request)
 
         self._activity_logs.log(
@@ -257,13 +260,14 @@ class RoleUpgradeRequestService:
             entity_id=request.id,
             metadata={"user_id": str(user.id), "role_id": str(request.requested_role_id)},
         )
-        self._activity_logs.log(
-            actor=admin,
-            action=ActivityAction.ROLE_REMOVED,
-            entity_type="user",
-            entity_id=user.id,
-            metadata={"role_id": str(role.id), "role_name": role_name},
-        )
+        if not keeps_earlier_approval:
+            self._activity_logs.log(
+                actor=admin,
+                action=ActivityAction.ROLE_REMOVED,
+                entity_type="user",
+                entity_id=user.id,
+                metadata={"role_id": str(role.id), "role_name": role_name},
+            )
 
         if user.email is not None:
             content = render_role_upgrade_rejected_email(
@@ -283,7 +287,7 @@ class RoleUpgradeRequestService:
                 html_body=content.html_body,
                 user_id=user.id,
             )
-        if role.slug == RoleSlug.CLUB_COMMUNITY:
+        if role.slug == RoleSlug.CLUB_COMMUNITY and not keeps_earlier_approval:
             self._communities.reject_pending_of_owner(user.id, admin, review_note)
         self._notifications.notify_role_upgrade_rejected(
             recipient_id=user.id, actor=admin, request_id=request.id, role_name=role_name

@@ -8,11 +8,18 @@ from app.core.messages import AccountRoleMessages
 from app.core.openapi_tags import ApiTag
 from app.core.permissions import PermissionName
 from app.models.user import User
-from app.schemas.account_role import AccountRoleRead, SelectableAccountRoleRead
+from app.schemas.account_role import (
+    AccountRoleRead,
+    AccountRoleVerificationRead,
+    SelectableAccountRoleRead,
+)
 from app.schemas.response import SuccessResponse
 from app.schemas.role_upgrade_request import RoleUpgradeRequestRead
 from app.services.account_role_service import AccountRoleService
 from app.services.account_role_status_service import requires_verification
+from app.services.account_verification_document_service import (
+    AccountVerificationDocumentService,
+)
 
 router = APIRouter(prefix="/account-roles", tags=[ApiTag.ACCOUNT_ROLE])
 me_router = APIRouter(prefix="/users/me/account-role", tags=[ApiTag.ACCOUNT_ROLE])
@@ -77,3 +84,24 @@ def submit_my_account_role_verification(
         message=AccountRoleMessages.VERIFICATION_SUBMITTED,
         data=RoleUpgradeRequestRead.model_validate(request),
     )
+
+
+@me_router.get("/verification", response_model=SuccessResponse[AccountRoleVerificationRead])
+def get_my_account_role_verification(
+    db: DbSessionDep, settings: SettingsDep, current_user: CurrentActiveUserDep
+) -> SuccessResponse[AccountRoleVerificationRead]:
+    overview = AccountVerificationDocumentService(db, settings).overview(current_user)
+    return SuccessResponse(message=AccountRoleMessages.VERIFICATION_RETRIEVED, data=overview)
+
+
+@me_router.put(
+    "/verification/document", response_model=SuccessResponse[AccountRoleVerificationRead]
+)
+def replace_my_account_role_verification_document(
+    db: DbSessionDep,
+    settings: SettingsDep,
+    actor: VerificationSubmitDep,
+    document: Annotated[UploadFile, File()],
+) -> SuccessResponse[AccountRoleVerificationRead]:
+    overview = AccountVerificationDocumentService(db, settings).replace_document(actor, document)
+    return SuccessResponse(message=AccountRoleMessages.VERIFICATION_DOCUMENT_UPDATED, data=overview)

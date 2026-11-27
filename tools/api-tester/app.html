@@ -645,6 +645,68 @@ async function finishRoleChange(fromProfile) {
   homeScreen('profile');
 }
 
+const VERIFICATION_STATUS_TEXT = {
+  not_required: 'Your account role does not need document verification.',
+  document_required: 'Upload a document so we can verify your account.',
+  under_review: 'Document verification is under review.',
+  verified: 'Your account is verified.',
+  rejected: 'Your document was rejected. Upload a new one to apply again.',
+};
+
+async function verificationStatusScreen() {
+  const content = h('div', {}, 'Loading…');
+  screenOf(backBar('Verification document', () => homeScreen('profile')), content);
+  const res = await api('GET', '/users/me/account-role/verification');
+  if (!res.ok) {
+    content.replaceChildren(h('div', { className: 'err', textContent: errorText(res) }));
+    return;
+  }
+  const info = res.data;
+  const message = h('div', { className: 'err' });
+  const card = h('div', { className: 'card' },
+    h('strong', { textContent: info.role ? info.role.name : 'No account role' }),
+    h('div', { className: 'meta', style: 'font-weight:600', textContent: VERIFICATION_STATUS_TEXT[info.status] || info.status }),
+    info.is_verified && info.status === 'under_review' ? h('div', { className: 'meta', textContent: 'You keep your verified access while the new document is reviewed.' }) : '',
+    info.review_note ? h('div', { className: 'meta', textContent: `Reviewer note: ${info.review_note}` }) : '');
+  const documentCard = info.document
+    ? h('div', { className: 'card' },
+      h('strong', { textContent: info.document.file_name }),
+      h('div', { className: 'meta', textContent: `${info.document.content_type} · ${info.document.file_size_bytes} bytes · uploaded ${info.document.uploaded_at}` }),
+      h('button', {
+        type: 'button',
+        textContent: 'Open document',
+        onclick: async () => {
+          if (!(await downloadFile(info.document.file_url.replace(/^\/api\/v1/, '')))) message.textContent = 'Could not load the file';
+        },
+      }))
+    : h('div', { className: 'hint', textContent: 'No document uploaded yet.' });
+  const input = h('input', { type: 'file', accept: 'image/*,application/pdf' });
+  const upload = info.status === 'not_required'
+    ? ''
+    : h('div', { className: 'card stack' },
+      h('label', { textContent: info.document ? 'Change document (JPEG, PNG, WebP or PDF, max 10MB)' : 'Upload document (JPEG, PNG, WebP or PDF, max 10MB)' }),
+      input,
+      h('button', {
+        className: 'primary',
+        type: 'button',
+        textContent: info.document ? 'Change document' : 'Upload document',
+        onclick: async () => {
+          message.textContent = '';
+          if (!input.files[0]) {
+            message.textContent = 'Choose a file first.';
+            return;
+          }
+          const result = await api('PUT', '/users/me/account-role/verification/document', { form: formOf({ document: input.files[0] }) });
+          if (!result.ok) {
+            message.textContent = errorText(result);
+            return;
+          }
+          verificationStatusScreen();
+        },
+      }));
+  content.replaceChildren(card, documentCard, upload, message);
+}
+
 function verificationScreen(role, fromProfile, requestId) {
   const input = h('input', { type: 'file', accept: 'image/*,application/pdf' });
   const fileField = { el: h('div', {}, h('label', { textContent: 'Verification document (JPEG, PNG, WebP or PDF, max 10MB)' }), input) };
@@ -5905,6 +5967,7 @@ function profileTab(content) {
     action('Messages', messagesScreen),
     action('Blocked users', blockedUsersScreen),
     action('Change account role', () => roleScreen(true)),
+    action('Verification document', verificationStatusScreen),
     action('My communities', communitiesScreen),
     action('My posts', myPostsScreen),
     action('My orders', myOrdersScreen),
