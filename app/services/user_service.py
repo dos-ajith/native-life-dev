@@ -39,6 +39,7 @@ from app.services.activity_log_service import ActivityLogService
 from app.services.authorization_service import is_super_admin
 from app.services.email_domain_policy import ensure_email_domain_allowed
 from app.services.email_verification_service import EmailVerificationService
+from app.services.profile_access_service import ProfileAccessService
 
 
 @dataclass(frozen=True)
@@ -291,12 +292,17 @@ class UserService:
         return [self._to_discovery_read(row) for row in rows], total
 
     def get_profile(self, viewer: User, user_id: UUID) -> UserProfileRead:
+        access = ProfileAccessService(self._db)
+        access.ensure_not_blocked(viewer.id, user_id)
         row = self._users.get_profile(viewer.id, user_id)
         if row is None:
             raise NotFoundError(UserMessages.NOT_FOUND)
-        profile = self._to_profile_read(row)
+        is_private = access.is_private(user_id)
+        can_view_content = viewer.id == user_id or not is_private or row.is_following
         account_role = AccountRoleStatusService(self._db).describe_public(user_id)
-        return profile.model_copy(update={"account_role": account_role})
+        return self._to_profile_read(row, is_private, can_view_content).model_copy(
+            update={"account_role": account_role}
+        )
 
     @staticmethod
     def _follow_status(is_following: bool, is_requested: bool) -> FollowRelationship:
@@ -307,7 +313,9 @@ class UserService:
         return FollowRelationship.NONE
 
     @staticmethod
-    def _to_profile_read(row: UserProfileRow) -> UserProfileRead:
+    def _to_profile_read(
+        row: UserProfileRow, is_private: bool, can_view_content: bool
+    ) -> UserProfileRead:
         return UserProfileRead(
             id=row.id,
             name=f"{row.first_name} {row.last_name}",
@@ -318,6 +326,8 @@ class UserService:
             is_following=row.is_following,
             is_followed_by=row.is_followed_by,
             follow_status=UserService._follow_status(row.is_following, row.is_requested),
+            is_private=is_private,
+            can_view_content=can_view_content,
         )
 
     @staticmethod

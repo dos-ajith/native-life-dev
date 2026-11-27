@@ -9,17 +9,16 @@ from app.core.activity_actions import ActivityAction
 from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.core.messages import UserFollowMessages
 from app.models.user import User
-from app.models.user_settings_enums import ProfileVisibility
 from app.realtime.events import RealtimeEvent, RealtimeEventType
 from app.realtime.publisher import RealtimePublisher, get_realtime_publisher
 from app.repositories.user_follow_repository import UserFollowRepository
 from app.repositories.user_follow_request_repository import UserFollowRequestRepository
-from app.repositories.user_privacy_settings_repository import UserPrivacySettingsRepository
 from app.schemas.pagination import PaginationParams
 from app.schemas.user import UserSummaryRead
 from app.schemas.user_follow import FollowCountsRead, FollowStatusRead
 from app.services.activity_log_service import ActivityLogService
 from app.services.notification_service import NotificationService
+from app.services.profile_access_service import ProfileAccessService
 from app.services.user_service import UserService
 
 logger = logging.getLogger("app.follow")
@@ -30,7 +29,7 @@ class UserFollowService:
         self._publisher = publisher or get_realtime_publisher()
         self._follows = UserFollowRepository(db)
         self._requests = UserFollowRequestRepository(db)
-        self._privacy = UserPrivacySettingsRepository(db)
+        self._access = ProfileAccessService(db)
         self._users = UserService(db)
         self._activity_logs = ActivityLogService(db)
         self._notifications = NotificationService(db, self._publisher)
@@ -41,7 +40,7 @@ class UserFollowService:
         target = self._users.get(target_id)
         if self._follows.exists(actor.id, target.id):
             raise BusinessRuleError(UserFollowMessages.ALREADY_FOLLOWING)
-        if self._is_private(target.id):
+        if self._access.is_private(target.id):
             self._request(target, actor)
             return FollowStatusRead(is_following=False, is_requested=True)
         self._follow_immediately(target, actor)
@@ -129,15 +128,21 @@ class UserFollowService:
             following_count=self._follows.count_following(user.id),
         )
 
-    def list_followers(self, user_id: UUID, params: PaginationParams) -> tuple[list[User], int]:
+    def list_followers(
+        self, user_id: UUID, viewer: User, params: PaginationParams
+    ) -> tuple[list[User], int]:
         user = self._users.get(user_id)
+        self._access.ensure_can_view_content(viewer.id, user.id)
         return (
             self._follows.list_followers(user.id, params),
             self._follows.count_followers(user.id),
         )
 
-    def list_following(self, user_id: UUID, params: PaginationParams) -> tuple[list[User], int]:
+    def list_following(
+        self, user_id: UUID, viewer: User, params: PaginationParams
+    ) -> tuple[list[User], int]:
         user = self._users.get(user_id)
+        self._access.ensure_can_view_content(viewer.id, user.id)
         return (
             self._follows.list_following(user.id, params),
             self._follows.count_following(user.id),
@@ -150,12 +155,6 @@ class UserFollowService:
             self._requests.list_incoming(actor.id, params),
             self._requests.count_incoming(actor.id),
         )
-
-    def _is_private(self, target_id: UUID) -> bool:
-        settings = self._privacy.get_by_user_id(target_id)
-        if settings is None:
-            return False
-        return settings.profile_visibility == ProfileVisibility.PRIVATE
 
     def _follow_immediately(self, target: User, actor: User) -> None:
         if not self._follows.create(actor.id, target.id):

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.activity_actions import ActivityAction
 from app.core.exceptions import AuthorizationError, BusinessRuleError, NotFoundError
-from app.core.messages import CommunityMessages, PostMessages
+from app.core.messages import CommunityMessages, PostMessages, UserMessages
 from app.core.permissions import PermissionName
 from app.core.timezone import app_now
 from app.models.post import Post, PostAudience, PostStatus, PostVisibility
@@ -31,6 +31,7 @@ from app.schemas.post import PostCommunityRead, PostCreate, PostDetailRead, Post
 from app.services.activity_log_service import ActivityLogService
 from app.services.authorization_service import has_permission
 from app.services.geography_service import GeographyService
+from app.services.profile_access_service import ProfileAccessService
 from app.services.user_native_place_service import NearbyArea, UserNativePlaceService
 from app.utils.slug import build_unique_slug, slugify
 
@@ -58,6 +59,7 @@ class PostService:
         self._saved_posts = SavedPostRepository(db)
         self._reactions = PostLikeRepository(db)
         self._geography = GeographyService(db)
+        self._profile_access = ProfileAccessService(db)
         self._native_places = UserNativePlaceService(db)
         self._activity_logs = ActivityLogService(db)
 
@@ -188,6 +190,17 @@ class PostService:
             member_id=viewer.id if include_member_communities else None,
         )
 
+    def _ensure_author_posts_viewable(self, user_id: UUID | None, viewer: User | None) -> None:
+        if user_id is None:
+            return
+        if viewer is None:
+            if self._profile_access.is_private(user_id):
+                raise AuthorizationError(UserMessages.PRIVATE_ACCOUNT)
+            return
+        if has_permission(viewer, PermissionName.POST_UPDATE_ANY):
+            return
+        self._profile_access.ensure_can_view_content(viewer.id, user_id)
+
     def get_visible(self, post_id: UUID, viewer: User | None) -> Post:
         post = self._posts.get_visible_by_id(post_id, self._visibility_scope(viewer, True))
         if post is None:
@@ -314,6 +327,7 @@ class PostService:
     def list_with_details(
         self, params: PaginationParams, viewer: User | None, user_id: UUID | None = None
     ) -> tuple[list[PostDetailRead], int]:
+        self._ensure_author_posts_viewable(user_id, viewer)
         posts, total = self._posts.list(params, self._visibility_scope(viewer), user_id)
         return self._to_details(posts, total, viewer)
 
@@ -328,6 +342,7 @@ class PostService:
         user_id: UUID | None = None,
         priority_radius_km: float | None = None,
     ) -> tuple[list[tuple[PostDetailRead, float]], int]:
+        self._ensure_author_posts_viewable(user_id, viewer)
         radius_meters = radius_km * METERS_PER_KM if radius_km is not None else None
         priority_radius_meters = (
             priority_radius_km * METERS_PER_KM if priority_radius_km is not None else None

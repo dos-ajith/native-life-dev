@@ -55,6 +55,7 @@ class UserMessages:
     ROLES_UPDATED = "User roles updated"
     DELETED = "User deleted"
     NOT_FOUND = "User not found"
+    PRIVATE_ACCOUNT = "This account is private"
     EMAIL_TAKEN = "Email is already registered"
     EMAIL_DOMAIN_NOT_ALLOWED = "Registration is not allowed for this email provider"
     PHONE_TAKEN = "Phone number is already registered"

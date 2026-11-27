@@ -3950,7 +3950,7 @@
                 {
                   "name": "List posts",
                   "request": {
-                    "description": "Returns a paginated list of non-deleted posts. Optional `user_id` (UUID) limits the list to that author's posts and combines with the location filters; the visibility rules below still apply. Each item includes the resolved author and its media list (same shape as 'Get post'), batched in a couple of extra queries rather than one per post. Each item also includes likes_count, comments_count, and shares_count, batched per page. Auth optional: guests and other users only see published posts; the owner also sees their own draft/scheduled posts, and users with post.update_any see all. Hidden posts return 404.\n\n**Near me (optional)**\n- `latitude` (-90 to 90) and `longitude` (-180 to 180) — send together to rank by distance, nearest first (ties: newest first, then id). Distance is computed in PostGIS before pagination. Posts without coordinates are excluded. Each item gains `distance_km`, and the page gains `location_based: true` and `radius_km`. The coordinates are only used for this request and are never stored. Example values are test coordinates.\n- `radius_km` (> 0, max 50, optional) — only posts within this radius; requires latitude and longitude.\nWithout latitude/longitude the listing is unchanged.\n\nEach post also includes `published_at_relative` (display text such as \"Just now\", \"3 hours ago\", \"Yesterday\", \"2 weeks ago\"; null when unpublished). `published_at` is unchanged.",
+                    "description": "Returns a paginated list of non-deleted posts. Optional `user_id` (UUID) limits the list to that author's posts and combines with the location filters; the visibility rules below still apply. Each item includes the resolved author and its media list (same shape as 'Get post'), batched in a couple of extra queries rather than one per post. Each item also includes likes_count, comments_count, and shares_count, batched per page. Auth optional: guests and other users only see published posts; the owner also sees their own draft/scheduled posts, and users with post.update_any see all. Hidden posts return 404. Non-community posts by a private account are shown only to its followers and the owner (community posts follow community rules). With `user_id` of a private account the caller doesn't follow, 403; 404 if the user has blocked the caller.\n\n**Near me (optional)**\n- `latitude` (-90 to 90) and `longitude` (-180 to 180) — send together to rank by distance, nearest first (ties: newest first, then id). Distance is computed in PostGIS before pagination. Posts without coordinates are excluded. Each item gains `distance_km`, and the page gains `location_based: true` and `radius_km`. The coordinates are only used for this request and are never stored. Example values are test coordinates.\n- `radius_km` (> 0, max 50, optional) — only posts within this radius; requires latitude and longitude.\nWithout latitude/longitude the listing is unchanged.\n\nEach post also includes `published_at_relative` (display text such as \"Just now\", \"3 hours ago\", \"Yesterday\", \"2 weeks ago\"; null when unpublished). `published_at` is unchanged.",
                     "method": "GET",
                     "header": [
                       {
@@ -6405,7 +6405,7 @@
                         }
                       ]
                     },
-                    "description": "Paginated users who follow the target user, newest first."
+                    "description": "Paginated users who follow the target user, newest first. 403 if the account is private and the caller is not a follower; 404 if the user has blocked the caller."
                   }
                 },
                 {
@@ -6448,7 +6448,7 @@
                         }
                       ]
                     },
-                    "description": "Paginated users the target user follows, newest first."
+                    "description": "Paginated users the target user follows, newest first. 403 if the account is private and the caller is not a follower; 404 if the user has blocked the caller."
                   }
                 },
                 {
@@ -6510,7 +6510,7 @@
                         }
                       ]
                     },
-                    "description": "Public profile: name, image, followers/following/posts counts, is_following, is_followed_by, follow_status, and `account_role` (name, slug, requires_verification, is_verified badge; null for accounts without an account role). 404 if the user does not exist or is not active."
+                    "description": "Public profile: name, image, followers/following/posts counts, is_following, is_followed_by, follow_status, `is_private`, `can_view_content` (false for a private account the caller does not follow: show the private-account screen and don't load posts or follower lists), and `account_role` (name, slug, requires_verification, is_verified badge; null for accounts without an account role). 404 if the user does not exist, is not active, or the user has blocked the caller."
                   }
                 }
               ]
@@ -14555,7 +14555,7 @@
                         }
                       ]
                     },
-                    "description": "Sends a message to another user; the conversation is created on the first message. Delivered live to both users as `direct_message.created`. If the recipient has no open WebSocket they get a push (sender name + message text) unless they turned off `push_enabled` or `messages` notifications. Typing indicators are sent over the WebSocket, see /websocket-docs.\n\n**Rules**\n- Cannot message yourself (422).\n- 403 if either user has blocked the other.\n- 403 if the recipient has `allow_messages=false`.\n- 403 if the recipient's `who_can_message` is `connections` and neither user follows the other.\n\n**Body**\n- `content` (string, required, max 2000)",
+                    "description": "Sends a message to another user; the conversation is created on the first message. Delivered live to both users as `direct_message.created`. If the recipient has no open WebSocket they get a push (sender name + message text) unless they turned off `push_enabled` or `messages` notifications. Typing indicators are sent over the WebSocket, see /websocket-docs.\n\n**Rules**\n- Cannot message yourself (422).\n- 403 if the user has blocked the caller.\n- 403 if the recipient has `allow_messages=false`.\n- 403 if the recipient's `who_can_message` is `connections` and neither user follows the other.\n\n**Body**\n- `content` (string, required, max 2000)",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"content\": \"Hello!\"\n}"

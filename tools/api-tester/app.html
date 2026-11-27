@@ -1169,12 +1169,16 @@ async function userProfileScreen(userId, onBack = () => homeScreen(shell.tab)) {
       profile.profile_image_url ? h('img', { src: mediaUrl(profile.profile_image_url), alt: '', style: 'max-width:96px;border-radius:50%' }) : '',
       h('strong', { textContent: profile.name }),
       profile.account_role ? h('div', { className: 'meta', textContent: profile.account_role.name }) : '',
-      h('div', { className: 'meta', textContent: `${profile.posts_count} posts · ${profile.followers_count} followers · ${profile.following_count} following${profile.is_followed_by ? ' · follows you' : ''}` }),
+      h('div', { className: 'meta', textContent: `${profile.posts_count} posts · ${profile.followers_count} followers · ${profile.following_count} following${profile.is_followed_by ? ' · follows you' : ''}${profile.is_private ? ' · private account' : ''}` }),
       follow,
       h('div', { className: 'row wrap' }, messageButton, blockButton),
       h('div', { className: 'row' }, people('Followers', `/users/${profile.id}/followers`), people('Following', `/users/${profile.id}/following`)),
       message),
     h('strong', { textContent: 'Posts' }), posts);
+  if (!profile.can_view_content) {
+    posts.append(h('div', { className: 'card meta', textContent: 'This account is private. Follow to see their posts.' }));
+    return;
+  }
   pagedList(posts, `/posts?user_id=${profile.id}`, (post) => postCard(post, () => userProfileScreen(userId, onBack)), { empty: 'No posts yet.' });
 }
 

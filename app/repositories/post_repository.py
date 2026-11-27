@@ -29,6 +29,9 @@ from app.models.post import Post, PostAudience, PostStatus, PostVisibility
 from app.models.post_tag import post_tags
 from app.models.saved_post import SavedPost
 from app.models.tag import Tag
+from app.models.user_follow import UserFollow
+from app.models.user_privacy_settings import UserPrivacySettings
+from app.models.user_settings_enums import ProfileVisibility
 from app.repositories.spatial import as_geography, point_from_coordinates
 from app.schemas.community_timeline import TimelineItemType
 from app.schemas.pagination import PaginationParams
@@ -70,6 +73,20 @@ def _community_visible_in(scope: PostVisibilityScope) -> ColumnElement[bool]:
     )
 
 
+def _author_profile_open_to(viewer_id: UUID | None) -> ColumnElement[bool]:
+    author_is_private = exists().where(
+        UserPrivacySettings.user_id == Post.user_id,
+        UserPrivacySettings.profile_visibility == ProfileVisibility.PRIVATE,
+    )
+    open_to_everyone = or_(Post.community_id.is_not(None), ~author_is_private)
+    if viewer_id is None:
+        return open_to_everyone
+    viewer_follows_author = exists().where(
+        UserFollow.follower_id == viewer_id, UserFollow.following_id == Post.user_id
+    )
+    return or_(open_to_everyone, Post.user_id == viewer_id, viewer_follows_author)
+
+
 def _visible_in(scope: PostVisibilityScope) -> ColumnElement[bool]:
     not_deleted = Post.deleted_at.is_(None)
     if scope.include_unpublished:
@@ -79,10 +96,16 @@ def _visible_in(scope: PostVisibilityScope) -> ColumnElement[bool]:
     if scope.viewer_is_adult:
         suitable_audience = true()
     in_visible_community = _community_visible_in(scope)
+    author_open = _author_profile_open_to(scope.owner_id)
     if scope.owner_id is None:
-        return not_deleted & published & suitable_audience & in_visible_community
+        return not_deleted & published & suitable_audience & in_visible_community & author_open
     is_owner = Post.user_id == scope.owner_id
-    return not_deleted & in_visible_community & or_(published & suitable_audience, is_owner)
+    return (
+        not_deleted
+        & in_visible_community
+        & author_open
+        & or_(published & suitable_audience, is_owner)
+    )
 
 
 def _order_by_recency() -> tuple[ColumnElement[Any], ...]:

@@ -66,9 +66,9 @@ def decline_follow_request(
 
 @router.get("/{user_id}/followers", response_model=SuccessResponse[Page[UserSummaryRead]])
 def list_followers(
-    user_id: UUID, db: DbSessionDep, _: CurrentActiveUserDep, params: PaginationDep
+    user_id: UUID, db: DbSessionDep, current_user: CurrentActiveUserDep, params: PaginationDep
 ) -> SuccessResponse[Page[UserSummaryRead]]:
-    users, total = UserFollowService(db).list_followers(user_id, params)
+    users, total = UserFollowService(db).list_followers(user_id, current_user, params)
     items = [UserSummaryRead.model_validate(user) for user in users]
     page = Page[UserSummaryRead].create(items=items, total=total, params=params)
     return SuccessResponse(message=UserFollowMessages.FOLLOWERS_RETRIEVED, data=page)
@@ -76,9 +76,9 @@ def list_followers(
 
 @router.get("/{user_id}/following", response_model=SuccessResponse[Page[UserSummaryRead]])
 def list_following(
-    user_id: UUID, db: DbSessionDep, _: CurrentActiveUserDep, params: PaginationDep
+    user_id: UUID, db: DbSessionDep, current_user: CurrentActiveUserDep, params: PaginationDep
 ) -> SuccessResponse[Page[UserSummaryRead]]:
-    users, total = UserFollowService(db).list_following(user_id, params)
+    users, total = UserFollowService(db).list_following(user_id, current_user, params)
     items = [UserSummaryRead.model_validate(user) for user in users]
     page = Page[UserSummaryRead].create(items=items, total=total, params=params)
     return SuccessResponse(message=UserFollowMessages.FOLLOWING_RETRIEVED, data=page)

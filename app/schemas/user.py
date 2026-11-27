@@ -93,6 +93,8 @@ class UserProfileRead(BaseModel):
     is_following: bool
     is_followed_by: bool
     follow_status: FollowRelationship
+    is_private: bool
+    can_view_content: bool
     account_role: PublicAccountRoleRead | None = None
 
 

@@ -33,6 +33,17 @@ class UserBlockRepository:
         self._db.commit()
         return deleted_id is not None
 
+    def exists(self, blocker_id: UUID, blocked_id: UUID) -> bool:
+        return bool(
+            self._db.scalar(
+                select(
+                    select(UserBlock.id)
+                    .where(UserBlock.blocker_id == blocker_id, UserBlock.blocked_id == blocked_id)
+                    .exists()
+                )
+            )
+        )
+
     def exists_between(self, first_id: UUID, second_id: UUID) -> bool:
         return bool(
             self._db.scalar(
