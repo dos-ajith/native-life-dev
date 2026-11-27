@@ -50,7 +50,7 @@ class AreaPoint:
 class PostVisibilityScope:
     include_unpublished: bool = False
     owner_id: UUID | None = None
-    viewer_is_adult: bool = False
+    include_adult_content: bool = False
     member_id: UUID | None = None
 
 
@@ -93,7 +93,7 @@ def _visible_in(scope: PostVisibilityScope) -> ColumnElement[bool]:
         return not_deleted
     published = Post.status == PostStatus.PUBLISHED
     suitable_audience = Post.audience == PostAudience.EVERYONE
-    if scope.viewer_is_adult:
+    if scope.include_adult_content:
         suitable_audience = true()
     in_visible_community = _community_visible_in(scope)
     author_open = _author_profile_open_to(scope.owner_id)

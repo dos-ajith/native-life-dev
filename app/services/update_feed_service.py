@@ -27,7 +27,9 @@ class UpdateFeedService:
         areas = self._areas.required_areas(viewer, temporary_village_id)
         radius_meters = self._settings.nearby_radius_km(viewer) * METERS_PER_KM
         scope = PostVisibilityScope(
-            owner_id=viewer.id, viewer_is_adult=viewer.is_adult is True, member_id=viewer.id
+            owner_id=viewer.id,
+            include_adult_content=self._settings.shows_adult_content(viewer),
+            member_id=viewer.id,
         )
         rows, total = self._posts.list_for_areas(
             params, scope, [area.point for area in areas], radius_meters

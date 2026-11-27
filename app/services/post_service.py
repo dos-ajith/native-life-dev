@@ -33,6 +33,7 @@ from app.services.authorization_service import has_permission
 from app.services.geography_service import GeographyService
 from app.services.profile_access_service import ProfileAccessService
 from app.services.user_native_place_service import NearbyArea, UserNativePlaceService
+from app.services.user_settings_service import UserSettingsService
 from app.utils.slug import build_unique_slug, slugify
 
 logger = logging.getLogger("app.post")
@@ -60,6 +61,7 @@ class PostService:
         self._reactions = PostLikeRepository(db)
         self._geography = GeographyService(db)
         self._profile_access = ProfileAccessService(db)
+        self._user_settings = UserSettingsService(db)
         self._native_places = UserNativePlaceService(db)
         self._activity_logs = ActivityLogService(db)
 
@@ -186,7 +188,7 @@ class PostService:
             return PostVisibilityScope(include_unpublished=True)
         return PostVisibilityScope(
             owner_id=viewer.id,
-            viewer_is_adult=viewer.is_adult is True,
+            include_adult_content=self._user_settings.shows_adult_content(viewer),
             member_id=viewer.id if include_member_communities else None,
         )
 

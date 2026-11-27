@@ -2644,7 +2644,7 @@
                         "privacy"
                       ]
                     },
-                    "description": "**Body** (all optional)\n- `profile_visibility` (`public` | `private`) — controls whether new follows on this user require approval\n- `location_visibility`, `activity_visibility` (`public` | `followers` | `private`)\n- `allow_messages` (bool) — `false` means nobody can start or continue a chat with you\n- `who_can_message` (`everyone` | `connections`) — `connections` only lets people you follow or who follow you message you\n- `allow_mentions` (bool)"
+                    "description": "**Body** (all optional)\n- `profile_visibility` (`public` | `private`) — `private` makes new follows require approval and limits posts and follower/following lists to approved followers\n- `location_visibility` (`public` | `followers` | `private`, default `public`) — who sees the \"shares your native place\" match (and its ranking) in user search and connects\n- `activity_visibility` (`public` | `followers` | `private`) — who sees your online/last-seen status\n- `allow_messages` (bool) — `false` means nobody can start or continue a chat with you\n- `who_can_message` (`everyone` | `connections`) — `connections` only lets people you follow or who follow you message you\n- `allow_mentions` (bool)"
                   }
                 },
                 {
@@ -2700,7 +2700,7 @@
                         "content"
                       ]
                     },
-                    "description": "**Body** (all optional)\n- `preferred_category_ids` (UUID[]) — existing tag ids; replaces the full set\n- `preferred_location_ids` (UUID[]) — existing GIS district ids; replaces the full set\n- `language_filter` (string, nullable) — restrict feed content to one language\n- `hide_sensitive_content` (bool)\n- `personalized_feed` (bool)\n- `nearby_radius_km` (int, 1-50, default 30) — km range around the primary native place used to prioritise posts (and limit business suggestions) by default"
+                    "description": "**Body** (all optional)\n- `preferred_category_ids` (UUID[]) — existing tag ids; replaces the full set\n- `preferred_location_ids` (UUID[]) — existing GIS district ids; replaces the full set\n- `language_filter` (string, nullable) — restrict feed content to one language\n- `hide_sensitive_content` (bool, default true) — when true, `adults_only` posts are hidden from feeds, lists and post detail even for adult users; minors and users without a date of birth never see them; authors always see their own\n- `personalized_feed` (bool)\n- `nearby_radius_km` (int, 1-50, default 30) — km range around the primary native place used to prioritise posts (and limit business suggestions) by default"
                   }
                 }
               ]

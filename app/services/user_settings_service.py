@@ -11,6 +11,7 @@ from app.models.user_content_settings import UserContentSettings
 from app.models.user_notification_settings import UserNotificationSettings
 from app.models.user_privacy_settings import UserPrivacySettings
 from app.models.user_settings import UserSettings
+from app.models.user_settings_defaults import UserSettingsDefaults
 from app.models.user_settings_enums import ProfileVisibility
 from app.repositories.gis_district_repository import GisDistrictRepository
 from app.repositories.tag_repository import TagRepository
@@ -100,6 +101,17 @@ class UserSettingsService:
 
     def nearby_radius_km(self, user: User) -> int:
         return self._get_or_create_content(user).nearby_radius_km
+
+    def shows_adult_content(self, user: User) -> bool:
+        if user.is_adult is not True:
+            return False
+        settings = self._content_settings.get_by_user_id(user.id)
+        hide = (
+            settings.hide_sensitive_content
+            if settings is not None
+            else UserSettingsDefaults.HIDE_SENSITIVE_CONTENT
+        )
+        return not hide
 
     def get_aggregate(self, user: User) -> UserSettingsRead:
         return UserSettingsRead(

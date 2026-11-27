@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import Exists, ScalarSelect, func, or_, select, update
+from sqlalchemy import ColumnElement, Exists, ScalarSelect, and_, func, literal, or_, select, update
 from sqlalchemy.orm import InstrumentedAttribute, Session, aliased
 
 from app.core.permissions import RoleSlug
@@ -15,6 +15,9 @@ from app.models.user_follow import UserFollow
 from app.models.user_follow_request import UserFollowRequest
 from app.models.user_has_role import user_has_roles
 from app.models.user_native_place import UserNativePlace
+from app.models.user_privacy_settings import UserPrivacySettings
+from app.models.user_settings_defaults import UserSettingsDefaults
+from app.models.user_settings_enums import VisibilityLevel
 from app.schemas.pagination import PaginationParams
 
 
@@ -78,14 +81,31 @@ def _follows(
     )
 
 
-def _shares_native_place(viewer_id: UUID) -> Exists:
+def _location_visible_to(viewer_id: UUID) -> ColumnElement[bool]:
+    level = func.coalesce(
+        select(UserPrivacySettings.location_visibility)
+        .where(UserPrivacySettings.user_id == User.id)
+        .scalar_subquery(),
+        literal(
+            UserSettingsDefaults.LOCATION_VISIBILITY,
+            type_=UserPrivacySettings.location_visibility.type,
+        ),
+    )
+    return or_(
+        level == VisibilityLevel.PUBLIC,
+        and_(level == VisibilityLevel.FOLLOWERS, _follows(viewer_id, User.id)),
+    )
+
+
+def _shares_native_place(viewer_id: UUID) -> ColumnElement[bool]:
     viewer_place = aliased(UserNativePlace)
-    return (
+    same_village = (
         select(UserNativePlace.id)
         .join(viewer_place, viewer_place.village_id == UserNativePlace.village_id)
         .where(UserNativePlace.user_id == User.id, viewer_place.user_id == viewer_id)
         .exists()
     )
+    return and_(same_village, _location_visible_to(viewer_id))
 
 
 class UserRepository:

@@ -29,6 +29,7 @@ from app.schemas.community_timeline import (
 )
 from app.services.community_poll_service import CommunityPollService
 from app.services.post_service import PostService
+from app.services.user_settings_service import UserSettingsService
 
 CURSOR_SEPARATOR = "|"
 
@@ -61,6 +62,7 @@ class CommunityTimelineService:
         self._polls = CommunityPollRepository(db)
         self._poll_reads = CommunityPollService(db)
         self._post_details = PostService(db)
+        self._settings = UserSettingsService(db)
 
     def page(
         self, community_id: UUID, actor: User, before: str | None, limit: int
@@ -68,7 +70,9 @@ class CommunityTimelineService:
         self._ensure_member(community_id, actor)
         cursor = decode_cursor(before) if before is not None else None
         scope = PostVisibilityScope(
-            owner_id=actor.id, viewer_is_adult=actor.is_adult is True, member_id=actor.id
+            owner_id=actor.id,
+            include_adult_content=self._settings.shows_adult_content(actor),
+            member_id=actor.id,
         )
         entries = self._timeline.page(
             [

@@ -26,7 +26,7 @@ class UserSettingsDefaults:
     SYSTEM_UPDATES = True
 
     PROFILE_VISIBILITY = ProfileVisibility.PUBLIC
-    LOCATION_VISIBILITY = VisibilityLevel.FOLLOWERS
+    LOCATION_VISIBILITY = VisibilityLevel.PUBLIC
     ACTIVITY_VISIBILITY = VisibilityLevel.PUBLIC
     ALLOW_MESSAGES = True
     WHO_CAN_MESSAGE = MessagePermission.EVERYONE
