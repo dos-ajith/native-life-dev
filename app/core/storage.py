@@ -1,3 +1,4 @@
+import os
 import uuid
 from pathlib import Path
 
@@ -51,9 +52,8 @@ ALLOWED_PRIVATE_DOCUMENT_TYPES = {
 }
 
 
-def _save_upload(
+def _validate_upload(
     file: UploadFile,
-    upload_dir: str,
     allowed_types: dict[str, str],
     max_bytes: int,
     invalid_type_message: str,
@@ -62,10 +62,26 @@ def _save_upload(
     extension = allowed_types.get(file.content_type or "")
     if extension is None:
         raise BusinessRuleError(invalid_type_message)
-
-    contents = file.file.read()
-    if len(contents) > max_bytes:
+    file.file.seek(0, os.SEEK_END)
+    size = file.file.tell()
+    file.file.seek(0)
+    if size > max_bytes:
         raise BusinessRuleError(too_large_message)
+    return extension
+
+
+def _save_upload(
+    file: UploadFile,
+    upload_dir: str,
+    allowed_types: dict[str, str],
+    max_bytes: int,
+    invalid_type_message: str,
+    too_large_message: str,
+) -> str:
+    extension = _validate_upload(
+        file, allowed_types, max_bytes, invalid_type_message, too_large_message
+    )
+    contents = file.file.read()
 
     directory = Path(upload_dir)
     directory.mkdir(parents=True, exist_ok=True)
@@ -83,6 +99,26 @@ def save_profile_image(file: UploadFile, upload_dir: str) -> str:
         MAX_PROFILE_IMAGE_BYTES,
         StorageMessages.INVALID_IMAGE_TYPE,
         StorageMessages.IMAGE_TOO_LARGE,
+    )
+
+
+def validate_post_image(file: UploadFile) -> None:
+    _validate_upload(
+        file,
+        ALLOWED_POST_IMAGE_TYPES,
+        MAX_POST_IMAGE_BYTES,
+        StorageMessages.INVALID_IMAGE_TYPE,
+        StorageMessages.IMAGE_TOO_LARGE,
+    )
+
+
+def validate_post_video(file: UploadFile) -> None:
+    _validate_upload(
+        file,
+        ALLOWED_POST_VIDEO_TYPES,
+        MAX_POST_VIDEO_BYTES,
+        StorageMessages.INVALID_VIDEO_TYPE,
+        StorageMessages.VIDEO_TOO_LARGE,
     )
 
 

@@ -95,6 +95,7 @@ def create_post_as_admin(
         location_name=location_name,
         tags=tags,
     )
+    PostMediaService.validate_uploads(images or [], videos or [], video_thumbnails or [])
     post_service = PostService(db)
     post = post_service.create_as_admin(payload, admin, meta.ip_address, meta.user_agent)
     media = PostMediaService(db).attach(

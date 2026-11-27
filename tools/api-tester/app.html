@@ -2674,7 +2674,7 @@ function postComposer(onDone = () => homeScreen('home'), communityId = null) {
     h('label', { textContent: "What's on your mind?" }), content, counter,
     h('label', { textContent: `Add photos (up to ${POST_MAX_IMAGES}) or one video` }), images,
     h('label', { textContent: 'Video (optional, max 100MB)' }), video,
-    h('label', { textContent: 'Video cover image (required with a video)' }), thumbnail,
+    h('label', { textContent: 'Video cover image (optional)' }), thumbnail,
     place.el,
     h('label', { textContent: 'Audience' }), audience,
     button, error);
@@ -2687,10 +2687,6 @@ function postComposer(onDone = () => homeScreen('home'), communityId = null) {
     }
     if (video.files[0] && images.files.length) {
       error.textContent = 'Choose photos or one video, not both.';
-      return;
-    }
-    if (video.files[0] && !thumbnail.files[0]) {
-      error.textContent = 'A video needs a cover image.';
       return;
     }
     button.disabled = true;
@@ -2707,7 +2703,7 @@ function postComposer(onDone = () => homeScreen('home'), communityId = null) {
     [...images.files].forEach((file) => body.append('images', file));
     if (video.files[0]) {
       body.append('videos', video.files[0]);
-      body.append('video_thumbnails', thumbnail.files[0]);
+      if (thumbnail.files[0]) body.append('video_thumbnails', thumbnail.files[0]);
     }
     const res = await api('POST', '/posts', { form: body });
     button.disabled = false;

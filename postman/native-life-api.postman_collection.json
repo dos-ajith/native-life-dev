@@ -3866,7 +3866,7 @@
                         "posts"
                       ]
                     },
-                    "description": "Creates a post owned by the authenticated user, as multipart/form-data so images and/or videos can be attached in the same request — there is no separate 'add media' endpoint. `user_id` is always taken from the authenticated user, never from the body.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) — one of: draft, scheduled, published. `published_at`/`published_by` are set automatically the first time status becomes `published` (`published_by` is whoever made this call, which may be an admin publishing on the owner's behalf).\n- `audience` (enum, optional, default `everyone`) — one of: everyone, adults_only. `adults_only` posts are hidden from viewers who are under 18, have no date of birth, or are not logged in; the owner and admins can always see them.\n- `scheduled_at` (datetime, required when status is `scheduled`)\n- `latitude` / `longitude` (float, optional, provide both together) — WGS84 coordinates of where the post was created; stored as a PostGIS point.\n- `location_name` (string, optional) — human-readable place name. If omitted and latitude/longitude are given, it's auto-filled via reverse geocoding (taluk, district, state) against imported geography data; left null if nothing matches. Provide it explicitly to override or to set a place name without geocoding.\n- `tags` (string[], optional, repeat the `tags` key for each tag) — tag names, e.g. `Kerala`, `Travel`. Resolved against a normalized, case-insensitive slug (`Kerala` -> `kerala`), reusing an existing tag or creating a new one as needed. Client never sends tag IDs.\n- `images` (file[], optional) — JPEG/PNG/WebP, max 5MB each\n- `videos` (file[], optional) — MP4/MOV/WebM, max 100MB each\n- `video_thumbnails` (file[], required if `videos` is set) — one cover image per video, matched by position\n\n**Community post (optional)**\n- `community_id` (uuid) — posts inside that community instead of publicly; you must be an active member.",
+                    "description": "Creates a post owned by the authenticated user, as multipart/form-data so images and/or videos can be attached in the same request — there is no separate 'add media' endpoint. `user_id` is always taken from the authenticated user, never from the body.\n\n**Body (form-data)**\n- `title` (string, optional)\n- `content` (string, optional)\n- `status` (enum, optional, default `draft`) — one of: draft, scheduled, published. `published_at`/`published_by` are set automatically the first time status becomes `published` (`published_by` is whoever made this call, which may be an admin publishing on the owner's behalf).\n- `audience` (enum, optional, default `everyone`) — one of: everyone, adults_only. `adults_only` posts are hidden from viewers who are under 18, have no date of birth, or are not logged in; the owner and admins can always see them.\n- `scheduled_at` (datetime, required when status is `scheduled`)\n- `latitude` / `longitude` (float, optional, provide both together) — WGS84 coordinates of where the post was created; stored as a PostGIS point.\n- `location_name` (string, optional) — human-readable place name. If omitted and latitude/longitude are given, it's auto-filled via reverse geocoding (taluk, district, state) against imported geography data; left null if nothing matches. Provide it explicitly to override or to set a place name without geocoding.\n- `tags` (string[], optional, repeat the `tags` key for each tag) — tag names, e.g. `Kerala`, `Travel`. Resolved against a normalized, case-insensitive slug (`Kerala` -> `kerala`), reusing an existing tag or creating a new one as needed. Client never sends tag IDs.\n- `images` (file[], optional) — JPEG/PNG/WebP, max 5MB each\n- `videos` (file[], optional) — MP4/MOV/WebM, max 100MB each\n- `video_thumbnails` (file[], optional) — cover images matched to `videos` by position; a video without one gets `thumbnail_url: null`; more thumbnails than videos returns 422 before anything is saved\n\nAll files are checked for type and size before the post is created: one invalid file returns 422 and nothing is saved (no post, no files)\n\n**Community post (optional)**\n- `community_id` (uuid) — posts inside that community instead of publicly; you must be an active member.",
                     "body": {
                       "mode": "formdata",
                       "formdata": [
@@ -3941,7 +3941,7 @@
                           "key": "video_thumbnails",
                           "type": "file",
                           "src": [],
-                          "description": "Required if 'videos' is set. One cover-image file per video, in the same order (JPEG/PNG/WebP, max 5MB each)"
+                          "description": "Optional. Cover images for the videos, matched by position (first thumbnail → first video); videos without one get thumbnail_url null. More thumbnails than videos is rejected (422) before anything is saved. JPEG/PNG/WebP, max 5MB each"
                         }
                       ]
                     }
@@ -4120,7 +4120,7 @@
                           "key": "video_thumbnails",
                           "type": "file",
                           "src": [],
-                          "description": "Required if 'videos' is set. One cover-image file per video, in the same order"
+                          "description": "Optional. Cover images for the new videos, matched by position; videos without one get thumbnail_url null. More thumbnails than videos is rejected (422) before anything is saved"
                         }
                       ]
                     }
@@ -4184,7 +4184,7 @@
                         }
                       ]
                     },
-                    "description": "Returns all images/videos attached to a post, ordered by sort_order. Each item has media_type (image or video); videos also carry a thumbnail_url. Auth optional: guests and other users only see published posts; the owner also sees their own draft/scheduled posts, and users with post.update_any see all. Hidden posts return 404."
+                    "description": "Returns all images/videos attached to a post, ordered by sort_order. Each item has media_type (image or video); videos carry a thumbnail_url, which is null when no cover image was uploaded. Auth optional: guests and other users only see published posts; the owner also sees their own draft/scheduled posts, and users with post.update_any see all. Hidden posts return 404."
                   }
                 },
                 {
@@ -4609,7 +4609,7 @@
                           "key": "video_thumbnails",
                           "type": "file",
                           "src": [],
-                          "description": "Required if 'videos' is set. One cover-image file per video, in the same order (JPEG/PNG/WebP, max 5MB each)"
+                          "description": "Optional. Cover images for the videos, matched by position (first thumbnail → first video); videos without one get thumbnail_url null. More thumbnails than videos is rejected (422) before anything is saved. JPEG/PNG/WebP, max 5MB each"
                         }
                       ]
                     }
@@ -4711,7 +4711,7 @@
                           "key": "video_thumbnails",
                           "type": "file",
                           "src": [],
-                          "description": "Required if 'videos' is set. One cover-image file per video, in the same order"
+                          "description": "Optional. Cover images for the new videos, matched by position; videos without one get thumbnail_url null. More thumbnails than videos is rejected (422) before anything is saved"
                         }
                       ]
                     }
@@ -17169,7 +17169,7 @@
                           "key": "video_thumbnails",
                           "type": "file",
                           "src": [],
-                          "description": "Required if 'videos' is set. One cover-image file per video, in the same order (JPEG/PNG/WebP, max 5MB each)"
+                          "description": "Optional. Cover images for the videos, matched by position (first thumbnail → first video); videos without one get thumbnail_url null. More thumbnails than videos is rejected (422) before anything is saved. JPEG/PNG/WebP, max 5MB each"
                         }
                       ]
                     }
@@ -17259,7 +17259,7 @@
                           "key": "video_thumbnails",
                           "type": "file",
                           "src": [],
-                          "description": "Required if 'videos' is set. One cover-image file per video, in the same order"
+                          "description": "Optional. Cover images for the new videos, matched by position; videos without one get thumbnail_url null. More thumbnails than videos is rejected (422) before anything is saved"
                         }
                       ]
                     }

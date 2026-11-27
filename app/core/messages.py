@@ -151,7 +151,7 @@ class PostMessages:
     MEDIA_RETRIEVED = "Post media retrieved"
     MEDIA_REMOVED = "Post media removed"
     MEDIA_NOT_FOUND = "Post media not found"
-    VIDEO_THUMBNAIL_REQUIRED = "Each video must include a matching thumbnail image"
+    TOO_MANY_VIDEO_THUMBNAILS = "Each video can have at most one thumbnail image"
     DUPLICATE_CONTENT = "You already have a post with this exact content"
     PRIVATE_REQUIRES_COMMUNITY = "Only a community post can be private"
     ADMIN_CREATED = "Post created by admin"

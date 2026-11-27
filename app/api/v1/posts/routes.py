@@ -59,6 +59,7 @@ def update_post_with_media(
     videos: list[UploadFile],
     video_thumbnails: list[UploadFile],
 ) -> SuccessResponse[PostWithMediaRead]:
+    PostMediaService.validate_uploads(images, videos, video_thumbnails)
     post_service = PostService(db)
     was_published = post_service.get(post_id).status == PostStatus.PUBLISHED
     post = post_service.update(post_id, payload, actor)
@@ -109,6 +110,7 @@ def create_post(
         location_name=location_name,
         tags=tags,
     )
+    PostMediaService.validate_uploads(images or [], videos or [], video_thumbnails or [])
     post = PostService(db).create(payload, current_user, meta.ip_address, meta.user_agent)
     media = PostMediaService(db).attach(
         post.id,

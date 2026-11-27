@@ -6,7 +6,13 @@ from sqlalchemy.orm import Session
 from app.core.activity_actions import ActivityAction
 from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.core.messages import PostMessages
-from app.core.storage import delete_media_file, save_post_image, save_post_video
+from app.core.storage import (
+    delete_media_file,
+    save_post_image,
+    save_post_video,
+    validate_post_image,
+    validate_post_video,
+)
 from app.models.post_media import PostMedia, PostMediaType
 from app.models.user import User
 from app.repositories.post_media_repository import PostMediaRepository
@@ -19,6 +25,17 @@ class PostMediaService:
         self._media = PostMediaRepository(db)
         self._posts = PostService(db)
         self._activity_logs = ActivityLogService(db)
+
+    @staticmethod
+    def validate_uploads(
+        images: list[UploadFile], videos: list[UploadFile], video_thumbnails: list[UploadFile]
+    ) -> None:
+        if len(video_thumbnails) > len(videos):
+            raise BusinessRuleError(PostMessages.TOO_MANY_VIDEO_THUMBNAILS)
+        for image in [*images, *video_thumbnails]:
+            validate_post_image(image)
+        for video in videos:
+            validate_post_video(video)
 
     def list_for_post(self, post_id: UUID, viewer: User | None) -> list[PostMedia]:
         self._posts.get_visible(post_id, viewer)
@@ -33,12 +50,11 @@ class PostMediaService:
         upload_dir: str,
         actor: User,
     ) -> list[PostMedia]:
+        self.validate_uploads(images, videos, video_thumbnails)
         if not images and not videos:
             return []
         post = self._posts.get(post_id)
         self._posts.ensure_can_edit(post, actor)
-        if videos and len(video_thumbnails) != len(videos):
-            raise BusinessRuleError(PostMessages.VIDEO_THUMBNAIL_REQUIRED)
 
         next_sort_order = len(self._media.list_by_post(post_id))
         created: list[PostMedia] = []
@@ -56,13 +72,16 @@ class PostMediaService:
             created.append(media)
             self._log_added(media, actor)
 
-        for video, thumbnail in zip(videos, video_thumbnails, strict=True):
+        for index, video in enumerate(videos):
+            thumbnail = video_thumbnails[index] if index < len(video_thumbnails) else None
             media = self._media.add(
                 PostMedia(
                     post_id=post_id,
                     media_type=PostMediaType.VIDEO,
                     file_url=save_post_video(video, upload_dir),
-                    thumbnail_url=save_post_image(thumbnail, upload_dir),
+                    thumbnail_url=(
+                        save_post_image(thumbnail, upload_dir) if thumbnail is not None else None
+                    ),
                     sort_order=next_sort_order,
                 )
             )
