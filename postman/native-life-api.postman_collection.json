@@ -11091,7 +11091,7 @@
                         "cancel"
                       ]
                     },
-                    "description": "Owner only. Cancels a pending or published deal and closes open invitations (409 for drafts, cancelled or expired deals)."
+                    "description": "Owner only. Cancels a pending or published deal, closes open invitations, cancels its pending/confirmed orders (shipped orders complete normally) and notifies joined users; buyers who paid online are told a refund is due. 409 for drafts, cancelled or expired deals, or while a customer is mid-payment."
                   }
                 },
                 {
@@ -11115,7 +11115,7 @@
                         "unpublish"
                       ]
                     },
-                    "description": "Owner, or a role with deal.unpublish_any (native/super admin). Moves a published deal back to draft, removing joined participants and invitations so it can be edited and resubmitted. 409 if the deal is not published or has open orders."
+                    "description": "Owner, or a role with deal.unpublish_any (native/super admin). Moves a published deal back to draft so it can be edited and resubmitted. 409 if the deal is not published or anyone has joined it (cancel the deal instead)."
                   }
                 },
                 {
@@ -17354,6 +17354,80 @@
                 }
               ],
               "description": "Admin post management. Listing and viewing need `post.view_any`; creating and editing (own posts only) need `post.create_any`; block/unblock need `post.block`."
+            },
+            {
+              "name": "Deal Management",
+              "item": [
+                {
+                  "name": "List deals (admin)",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/admin/deals?page=1&page_size=20",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "deals"
+                      ],
+                      "query": [
+                        {
+                          "key": "page",
+                          "value": "1"
+                        },
+                        {
+                          "key": "page_size",
+                          "value": "20"
+                        },
+                        {
+                          "key": "status",
+                          "value": "",
+                          "description": "Optional. draft, pending_acceptance, published, blocked, pending_owner_approval, closed, cancelled or expired.",
+                          "disabled": true
+                        },
+                        {
+                          "key": "search",
+                          "value": "",
+                          "description": "Optional. Matches the deal name.",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "Needs deal.view_any or deal.unpublish_any (native/super admin). Every deal across all villages, newest first."
+                  }
+                },
+                {
+                  "name": "Unpublish deal (admin)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/deals/{{deal_id}}/unpublish",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "deals",
+                        "{{deal_id}}",
+                        "unpublish"
+                      ]
+                    },
+                    "description": "Needs deal.unpublish_any. Same endpoint the owner uses. 409 if the deal is not published or anyone has joined it."
+                  }
+                }
+              ]
             }
           ]
         },

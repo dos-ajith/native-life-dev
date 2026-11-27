@@ -16,6 +16,12 @@ from app.services.deal_eligibility_service import DealEligibilityService
 from app.services.delivery_access_service import DeliveryAccessService
 
 DealCreateDep = Annotated[User, Depends(require_permission(PermissionName.DEAL_CREATE))]
+DealAdminViewDep = Annotated[
+    User,
+    Depends(
+        require_any_permission(PermissionName.DEAL_VIEW_ANY, PermissionName.DEAL_UNPUBLISH_ANY)
+    ),
+]
 DealUnpublishDep = Annotated[
     User,
     Depends(require_any_permission(PermissionName.DEAL_CREATE, PermissionName.DEAL_UNPUBLISH_ANY)),

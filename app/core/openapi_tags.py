@@ -70,6 +70,7 @@ class ApiTag:
     ADMIN_NATIVE_PLACES = "2.2 Content & Settings · Native Places"
     ADMIN_POPULAR_PLACES = "2.2 Content & Settings · Popular Places"
     ADMIN_POSTS = "2.2 Content & Settings · Post Management"
+    ADMIN_DEALS = "2.2 Content & Settings · Deal Management"
     ADMIN_ROLE_UPGRADE_REVIEW = "2.3 Reviews & Approvals · Role Upgrade Requests"
     ADMIN_NATIVE_PLACE_REVIEW = "2.3 Reviews & Approvals · Native Place Review"
     ADMIN_COMMUNITY_REVIEW = "2.3 Reviews & Approvals · Community Review"

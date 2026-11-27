@@ -21,6 +21,7 @@ from app.schemas.deal import (
 )
 from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
+from app.services.deal_cancellation_service import DealCancellationService
 from app.services.deal_service import DealService
 from app.services.deal_submission_service import DealSubmissionService
 from app.services.deal_unpublish_service import DealUnpublishService
@@ -131,9 +132,9 @@ def refresh_deal_invitations(
 
 @router.post("/{deal_id}/cancel", response_model=SuccessResponse[DealRead])
 def cancel_deal(
-    deal_id: UUID, db: DbSessionDep, current_user: CurrentActiveUserDep
+    deal_id: UUID, db: DbSessionDep, registry: PluginRegistryDep, current_user: CurrentActiveUserDep
 ) -> SuccessResponse[DealRead]:
-    deal = DealService(db).cancel(deal_id, current_user)
+    deal = DealCancellationService(db, registry).cancel(deal_id, current_user)
     return SuccessResponse(message=DealMessages.CANCELLED, data=deal)
 
 

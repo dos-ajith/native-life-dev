@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, exists, func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.deal_participant import DealParticipant
@@ -76,11 +76,12 @@ class DealParticipantRepository:
             .execution_options(synchronize_session=False)
         )
 
-    def delete_for_deal(self, deal_id: UUID) -> int:
-        result = self._db.execute(
-            delete(DealParticipant)
-            .where(DealParticipant.deal_id == deal_id)
-            .returning(DealParticipant.id)
-            .execution_options(synchronize_session=False)
+    def user_ids_for_deal(self, deal_id: UUID) -> list[UUID]:
+        return list(
+            self._db.scalars(
+                select(DealParticipant.user_id).where(DealParticipant.deal_id == deal_id)
+            )
         )
-        return len(result.all())
+
+    def exists_for_deal(self, deal_id: UUID) -> bool:
+        return bool(self._db.scalar(select(exists().where(DealParticipant.deal_id == deal_id))))

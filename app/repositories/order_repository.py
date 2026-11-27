@@ -109,12 +109,12 @@ class OrderRepository:
             )
         )
 
-    def deal_has_open_orders(self, deal_id: UUID) -> bool:
-        return bool(
-            self._db.scalar(
-                select(
-                    exists().where(Order.deal_id == deal_id, Order.status.in_(OPEN_ORDER_STATUSES))
-                )
+    def list_ids_for_deal(self, deal_id: UUID, statuses: Collection[OrderStatus]) -> list[UUID]:
+        return list(
+            self._db.scalars(
+                select(Order.id)
+                .where(Order.deal_id == deal_id, Order.status.in_(statuses))
+                .order_by(Order.created_at, Order.id)
             )
         )
 

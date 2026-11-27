@@ -1,9 +1,7 @@
 import phonenumbers
 from phonenumbers import NumberParseException, PhoneNumberFormat, PhoneNumberType
 
-SMS_CAPABLE_NUMBER_TYPES = frozenset(
-    {PhoneNumberType.MOBILE, PhoneNumberType.FIXED_LINE_OR_MOBILE}
-)
+SMS_CAPABLE_NUMBER_TYPES = frozenset({PhoneNumberType.MOBILE, PhoneNumberType.FIXED_LINE_OR_MOBILE})
 
 
 def normalize_mobile_number(raw: str) -> str | None:

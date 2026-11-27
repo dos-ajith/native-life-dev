@@ -29,20 +29,26 @@ class PhoneOtpChallengeRepository:
         return int(remaining or 0)
 
     def count_for_phone_since(self, phone: str, window: timedelta) -> int:
-        return self._db.scalar(
-            select(func.count()).where(
-                PhoneOtpChallenge.phone == phone,
-                PhoneOtpChallenge.created_at > func.now() - window,
+        return (
+            self._db.scalar(
+                select(func.count()).where(
+                    PhoneOtpChallenge.phone == phone,
+                    PhoneOtpChallenge.created_at > func.now() - window,
+                )
             )
-        ) or 0
+            or 0
+        )
 
     def count_for_ip_since(self, ip_address: str, window: timedelta) -> int:
-        return self._db.scalar(
-            select(func.count()).where(
-                PhoneOtpChallenge.ip_address == ip_address,
-                PhoneOtpChallenge.created_at > func.now() - window,
+        return (
+            self._db.scalar(
+                select(func.count()).where(
+                    PhoneOtpChallenge.ip_address == ip_address,
+                    PhoneOtpChallenge.created_at > func.now() - window,
+                )
             )
-        ) or 0
+            or 0
+        )
 
     def invalidate_active(self, phone: str) -> None:
         self._db.execute(

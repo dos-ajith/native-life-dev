@@ -206,24 +206,6 @@ class DealService:
         self._db.commit()
         self._log(actor, ActivityAction.DEAL_DELETED, deal_id)
 
-    def cancel(self, deal_id: UUID, actor: User) -> DealRead:
-        self._expiry.expire_overdue()
-        deal = get_deal(self._deals, deal_id)
-        self._access.ensure_owner(deal, actor)
-        previous_status = deal.status
-        if not self._deals.cancel(deal.id):
-            self._db.rollback()
-            raise ConflictError(DealMessages.NOT_CANCELLABLE)
-        self._invitations.close_open([deal.id])
-        self._db.commit()
-        self._log(
-            actor,
-            ActivityAction.DEAL_CANCELLED,
-            deal_id,
-            {"previous_status": previous_status.value},
-        )
-        return DealRead.from_deal(get_deal(self._deals, deal_id), actor)
-
     def close(self, deal_id: UUID, actor: User) -> DealRead:
         self._expiry.expire_overdue()
         deal = get_deal(self._deals, deal_id)

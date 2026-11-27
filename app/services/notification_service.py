@@ -39,6 +39,7 @@ COMMUNITY_NAME_METADATA_KEY = "community_name"
 BUSINESS_ENTITY_TYPE = "business"
 BUSINESS_NAME_METADATA_KEY = "business_name"
 DEAL_ENTITY_TYPE = "deal"
+ORDER_ENTITY_TYPE = "order"
 BOOKING_ENTITY_TYPE = "booking"
 DEAL_NAME_METADATA_KEY = "deal_name"
 PLUGIN_ITEM_NAME_METADATA_KEY = "plugin_item_name"
@@ -107,6 +108,9 @@ NOTIFICATION_MESSAGE_TEMPLATES = {
     NotificationType.PAYOUT_PAID: NotificationMessages.PAYOUT_PAID,
     NotificationType.DEAL_REPUBLISH_APPROVED: NotificationMessages.DEAL_REPUBLISH_APPROVED,
     NotificationType.DEAL_REPUBLISH_REJECTED: NotificationMessages.DEAL_REPUBLISH_REJECTED,
+    NotificationType.DEAL_CANCELLED: NotificationMessages.DEAL_CANCELLED,
+    NotificationType.DEAL_ORDER_CANCELLED: NotificationMessages.DEAL_ORDER_CANCELLED,
+    NotificationType.DEAL_ORDER_REFUND_DUE: NotificationMessages.DEAL_ORDER_REFUND_DUE,
     NotificationType.DELIVERY_REQUESTED: NotificationMessages.DELIVERY_REQUESTED,
     NotificationType.DELIVERY_ACCEPTED: NotificationMessages.DELIVERY_ACCEPTED,
     NotificationType.DELIVERY_STARTED: NotificationMessages.DELIVERY_STARTED,
@@ -459,6 +463,33 @@ class NotificationService:
         deal_name: str,
     ) -> None:
         self._notify_deal(recipient_id, actor.id, type_, deal_id, deal_name)
+
+    def notify_deal_order_cancelled(
+        self,
+        recipient_id: UUID,
+        actor: User,
+        order_id: UUID,
+        order_number: str,
+        deal_name: str,
+        refund_amount: str | None,
+    ) -> None:
+        metadata: dict[str, Any] = {
+            DEAL_NAME_METADATA_KEY: deal_name,
+            ORDER_NUMBER_METADATA_KEY: order_number,
+        }
+        type_ = NotificationType.DEAL_ORDER_CANCELLED
+        if refund_amount is not None:
+            metadata[AMOUNT_METADATA_KEY] = refund_amount
+            type_ = NotificationType.DEAL_ORDER_REFUND_DUE
+        self._create_if_enabled(
+            recipient_id=recipient_id,
+            actor_id=actor.id,
+            type_=type_,
+            entity_type=ORDER_ENTITY_TYPE,
+            entity_id=order_id,
+            is_enabled=lambda settings: settings.system_updates,
+            metadata=metadata,
+        )
 
     def notify_deal_expired(self, creator_id: UUID, deal_id: UUID, deal_name: str) -> None:
         self._notify_deal(creator_id, None, NotificationType.DEAL_EXPIRED, deal_id, deal_name)

@@ -180,6 +180,13 @@ class DealListQuery(BaseModel):
     status: DealStatus | None = None
 
 
+class AdminDealListQuery(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    status: DealStatus | None = None
+    search: DealSearch | None = Field(default=None, description="Search deal names.")
+
+
 class DealExploreQuery(BaseModel):
     model_config = ConfigDict(frozen=True)
 

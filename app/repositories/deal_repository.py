@@ -109,6 +109,16 @@ class DealRepository:
             conditions.append(Deal.status == status)
         return self._page(conditions, [Deal.created_at.desc(), Deal.id], params)
 
+    def list_for_admin(
+        self, status: DealStatus | None, search: str | None, params: PaginationParams
+    ) -> tuple[list[Deal], int]:
+        conditions: list[ColumnElement[bool]] = [Deal.deleted_at.is_(None)]
+        if status is not None:
+            conditions.append(Deal.status == status)
+        if search is not None:
+            conditions.append(Deal.name.ilike(f"%{search}%"))
+        return self._page(conditions, [Deal.created_at.desc(), Deal.id], params)
+
     def list_published_in_village(
         self, deal_filter: DealExploreFilter, params: PaginationParams
     ) -> tuple[list[Deal], int]:
@@ -266,6 +276,7 @@ class DealRepository:
                 Deal.id == deal_id,
                 Deal.status == DealStatus.PUBLISHED,
                 Deal.deleted_at.is_(None),
+                ~exists().where(DealParticipant.deal_id == Deal.id),
             )
             .values(
                 status=DealStatus.DRAFT,
@@ -273,7 +284,6 @@ class DealRepository:
                 acceptance_deadline=None,
                 published_at=None,
                 accepted_count=0,
-                joined_count=0,
             )
             .returning(Deal.id)
             .execution_options(synchronize_session=False)

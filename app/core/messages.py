@@ -308,6 +308,7 @@ class DealMessages:
     CREATED = "Deal created"
     RETRIEVED = "Deal retrieved"
     LIST_RETRIEVED = "Deals retrieved"
+    ADMIN_LIST_RETRIEVED = "All deals retrieved"
     UPDATED = "Deal updated"
     DELETED = "Deal deleted"
     CANCELLED = "Deal cancelled"
@@ -333,8 +334,11 @@ class DealMessages:
     NOT_CANCELLABLE = "Only pending or published deals can be cancelled"
     NOT_CLOSABLE = "Only published deals can be closed"
     NOT_UNPUBLISHABLE = "Only published deals can be unpublished"
-    HAS_OPEN_ORDERS = (
-        "This deal has open orders. It can be unpublished once they are delivered or cancelled"
+    PAYMENT_IN_PROGRESS = (
+        "A customer is paying for an order on this deal right now. Try again in a few minutes"
+    )
+    HAS_PARTICIPANTS = (
+        "People have already joined this deal, so it can't be unpublished. Cancel it instead"
     )
     ITEM_HAS_ORDERS = "This item has orders and can't be removed"
     DEAL_CLOSED = "This deal has been closed"
@@ -451,6 +455,7 @@ class PaymentMessages:
 
 class OrderMessages:
     RETRIEVED = "Order retrieved"
+    DEAL_CANCELLED_REASON = "The deal was cancelled"
     LIST_RETRIEVED = "Orders retrieved"
     PLACED = "Order placed"
     PRODUCTS_DUPLICATED = "Each product can only appear once in an order"
@@ -731,6 +736,14 @@ class NotificationMessages:
     PAYOUT_PAID = "Payout {order_number} of {amount} has been sent to you"
     DEAL_REPUBLISH_APPROVED = "{actor} approved your deal '{deal_name}'. It is published again."
     DEAL_REPUBLISH_REJECTED = "{actor} rejected publishing your deal '{deal_name}' again"
+    DEAL_CANCELLED = "{actor} cancelled the deal '{deal_name}' you joined"
+    DEAL_ORDER_CANCELLED = (
+        "Your order {order_number} was cancelled because the deal '{deal_name}' was cancelled"
+    )
+    DEAL_ORDER_REFUND_DUE = (
+        "Your order {order_number} was cancelled because the deal '{deal_name}' was cancelled. "
+        "Your online payment of {amount} will be refunded"
+    )
     DELIVERY_REQUESTED = "New delivery request for order {order_number}"
     DELIVERY_ACCEPTED = "A promoter accepted the delivery of your order {order_number}"
     DELIVERY_STARTED = (

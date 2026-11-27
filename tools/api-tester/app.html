@@ -3123,21 +3123,31 @@ function myDealCard(deal, reload) {
         }
       },
     }));
-    buttons.push(h('button', {
-      type: 'button',
-      textContent: 'Unpublish (back to draft)',
-      onclick: () => {
-        if (window.confirm(`Unpublish "${deal.name}"? It goes back to draft, joined users are removed. Not allowed while orders are open.`)) {
-          run(() => api('POST', `/deals/${deal.id}/unpublish`));
-        }
-      },
-    }));
+    if (deal.joined_count === 0) {
+      buttons.push(h('button', {
+        type: 'button',
+        textContent: 'Unpublish (back to draft)',
+        onclick: () => {
+          if (window.confirm(`Unpublish "${deal.name}"? It goes back to draft so you can edit and resubmit it.`)) {
+            run(() => api('POST', `/deals/${deal.id}/unpublish`));
+          }
+        },
+      }));
+    }
   }
   if (deal.status === 'blocked') {
     buttons.push(h('button', { type: 'button', textContent: 'Request republish', onclick: () => run(() => api('POST', `/deals/${deal.id}/request-republish`)) }));
   }
   if (['pending_acceptance', 'published', 'blocked', 'pending_owner_approval'].includes(deal.status)) {
-    buttons.push(h('button', { type: 'button', textContent: 'Cancel deal', onclick: () => run(() => api('POST', `/deals/${deal.id}/cancel`)) }));
+    buttons.push(h('button', {
+      type: 'button',
+      textContent: 'Cancel deal',
+      onclick: () => {
+        if (window.confirm(`Cancel "${deal.name}"? Pending and confirmed orders are cancelled and everyone who joined is notified.`)) {
+          run(() => api('POST', `/deals/${deal.id}/cancel`));
+        }
+      },
+    }));
   }
   return h('div', { className: 'card' },
     deal.thumbnail_url ? privateImage(deal.thumbnail_url) : '',
@@ -6038,14 +6048,13 @@ function dealCard(deal) {
         textContent: current.has_joined ? 'Leave deal' : 'Join deal',
         onclick: () => refresh(() => api(current.has_joined ? 'DELETE' : 'POST', `/deals/${current.id}/join`)),
       });
-    const canUnpublish = current.status === 'published'
-      && (current.is_mine || permissionChecker(session.me)(['deal.unpublish_any']));
+    const canUnpublish = current.is_mine && current.status === 'published' && current.joined_count === 0;
     const unpublishButton = canUnpublish
       ? h('button', {
         type: 'button',
-        textContent: current.is_mine ? 'Unpublish (back to draft)' : 'Unpublish (admin)',
+        textContent: 'Unpublish (back to draft)',
         onclick: async () => {
-          if (!window.confirm(`Unpublish "${current.name}"? It goes back to draft and joined users are removed.`)) return;
+          if (!window.confirm(`Unpublish "${current.name}"? It goes back to draft and is hidden from explore.`)) return;
           const res = await api('POST', `/deals/${current.id}/unpublish`);
           message.className = res.ok ? 'ok' : 'err';
           message.textContent = res.ok ? 'Deal unpublished — it is now a draft and hidden from explore.' : errorText(res);
@@ -7456,6 +7465,25 @@ const ADMIN_SECTIONS = [
         ],
       },
       {
+        label: 'Deals',
+        view: ['deal.view_any', 'deal.unpublish_any'],
+        path: '/admin/deals',
+        statusChips: DEAL_STATUS_CHIPS,
+        title: (i) => i.name,
+        subtitle: (i) => `${dealStatusLabel(i.status)} · by ${i.creator.name}${i.business ? ` · ${i.business.name}` : ''} · ${i.joined_count} joined${i.natives.length ? ` · ${i.natives.map((n) => n.village_name).join(', ')}` : ''}`,
+        actions: [
+          {
+            label: 'Unpublish (back to draft)',
+            perm: ['deal.unpublish_any'],
+            method: 'POST',
+            path: (i) => `/deals/${i.id}/unpublish`,
+            body: 'none',
+            confirm: true,
+            when: (i) => i.status === 'published' && i.joined_count === 0,
+          },
+        ],
+      },
+      {
         label: 'Pages',
         view: ['page.view'],
         path: '/admin/pages',
@@ -7813,12 +7841,20 @@ function toolbarFor(entry, can) {
 
 function adminEntryScreen(entry, can) {
   const content = h('div', {});
-  screenOf(backBar(entry.label, adminScreen), ...toolbarFor(entry, can), content);
-  if (!entry.path) return;
+  const state = { status: '' };
   const reload = () => {
     content.replaceChildren();
-    pagedList(content, entry.path, (item) => adminCard(entry, item, can, reload), { empty: 'Nothing pending.' });
+    const path = entry.statusChips ? withQuery(entry.path, { status: state.status }) : entry.path;
+    pagedList(content, path, (item) => adminCard(entry, item, can, reload), { empty: 'Nothing pending.' });
   };
+  const chips = entry.statusChips
+    ? chipRow(entry.statusChips, (status) => {
+      state.status = status ?? '';
+      reload();
+    }).row
+    : '';
+  screenOf(backBar(entry.label, adminScreen), ...toolbarFor(entry, can), chips, content);
+  if (!entry.path) return;
   reload();
 }
 

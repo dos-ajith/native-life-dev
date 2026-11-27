@@ -28,6 +28,7 @@ from app.api.v1.communities import polls as community_poll_routes
 from app.api.v1.communities import routes as community_routes
 from app.api.v1.communities import timeline as community_timeline_routes
 from app.api.v1.deals import acceptance as deal_acceptance_routes
+from app.api.v1.deals import admin_routes as deal_admin_routes
 from app.api.v1.deals import delivery as deal_delivery_routes
 from app.api.v1.deals import explore as deal_explore_routes
 from app.api.v1.deals import images as deal_image_routes
@@ -144,6 +145,7 @@ api_router.include_router(native_place_admin_routes.router)
 api_router.include_router(native_place_profile_admin_routes.router)
 api_router.include_router(popular_place_admin_routes.router)
 api_router.include_router(post_admin_routes.router)
+api_router.include_router(deal_admin_routes.router)
 api_router.include_router(community_routes.router)
 api_router.include_router(community_admin_routes.router)
 api_router.include_router(community_chat_routes.router)
