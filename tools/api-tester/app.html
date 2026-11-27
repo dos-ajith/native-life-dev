@@ -3123,6 +3123,15 @@ function myDealCard(deal, reload) {
         }
       },
     }));
+    buttons.push(h('button', {
+      type: 'button',
+      textContent: 'Unpublish (back to draft)',
+      onclick: () => {
+        if (window.confirm(`Unpublish "${deal.name}"? It goes back to draft, joined users are removed. Not allowed while orders are open.`)) {
+          run(() => api('POST', `/deals/${deal.id}/unpublish`));
+        }
+      },
+    }));
   }
   if (deal.status === 'blocked') {
     buttons.push(h('button', { type: 'button', textContent: 'Request republish', onclick: () => run(() => api('POST', `/deals/${deal.id}/request-republish`)) }));
@@ -6029,6 +6038,20 @@ function dealCard(deal) {
         textContent: current.has_joined ? 'Leave deal' : 'Join deal',
         onclick: () => refresh(() => api(current.has_joined ? 'DELETE' : 'POST', `/deals/${current.id}/join`)),
       });
+    const canUnpublish = current.status === 'published'
+      && (current.is_mine || permissionChecker(session.me)(['deal.unpublish_any']));
+    const unpublishButton = canUnpublish
+      ? h('button', {
+        type: 'button',
+        textContent: current.is_mine ? 'Unpublish (back to draft)' : 'Unpublish (admin)',
+        onclick: async () => {
+          if (!window.confirm(`Unpublish "${current.name}"? It goes back to draft and joined users are removed.`)) return;
+          const res = await api('POST', `/deals/${current.id}/unpublish`);
+          message.className = res.ok ? 'ok' : 'err';
+          message.textContent = res.ok ? 'Deal unpublished — it is now a draft and hidden from explore.' : errorText(res);
+        },
+      })
+      : '';
     card.replaceChildren(h('div', { className: 'card' },
       current.thumbnail_url ? privateImage(current.thumbnail_url) : '',
       h('strong', { textContent: current.name }),
@@ -6037,7 +6060,7 @@ function dealCard(deal) {
       current.description ? h('div', { textContent: current.description }) : '',
       current.pickup_location ? h('div', { className: 'meta', textContent: `Pickup: ${current.pickup_location}` }) : '',
       items,
-      h('div', { className: 'row wrap', style: 'margin-top:8px' }, joinButton),
+      h('div', { className: 'row wrap', style: 'margin-top:8px' }, joinButton, unpublishButton),
       message));
   };
   draw(deal);
