@@ -124,6 +124,7 @@ class PermissionName:
 
     DEAL_CREATE = "deal.create"
     DEAL_VIEW_ANY = "deal.view_any"
+    DEAL_UNPUBLISH_ANY = "deal.unpublish_any"
 
     ROLE_UPGRADE_REQUEST_CREATE = "role_upgrade_request.create"
     ROLE_UPGRADE_REQUEST_VIEW_OWN = "role_upgrade_request.view_own"

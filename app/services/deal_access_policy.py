@@ -58,6 +58,13 @@ class DealAccessPolicy:
             raise AuthorizationError(DealMessages.NOT_OWNER)
         raise NotFoundError(DealMessages.NOT_FOUND)
 
+    def ensure_can_unpublish(self, deal: Deal, actor: User) -> None:
+        if deal.created_by == actor.id or has_permission(actor, PermissionName.DEAL_UNPUBLISH_ANY):
+            return
+        if self.can_view(deal, actor):
+            raise AuthorizationError(DealMessages.NOT_OWNER)
+        raise NotFoundError(DealMessages.NOT_FOUND)
+
     def ensure_not_publisher(self, deal: Deal, actor: User) -> None:
         if deal.created_by == actor.id:
             raise AuthorizationError(DealMessages.CANNOT_JOIN_OWN)

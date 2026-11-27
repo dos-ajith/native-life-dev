@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, File, Form, Query, UploadFile, status
 
 from app.api.deps import CurrentActiveUserDep, DbSessionDep, PaginationDep, SettingsDep
-from app.api.v1.deals.permissions import DealCreateDep
+from app.api.v1.deals.permissions import DealCreateDep, DealUnpublishDep
 from app.core.messages import DealMessages
 from app.core.openapi_tags import ApiTag
 from app.models.order import DeliveryOption
@@ -23,6 +23,7 @@ from app.schemas.pagination import Page
 from app.schemas.response import SuccessResponse
 from app.services.deal_service import DealService
 from app.services.deal_submission_service import DealSubmissionService
+from app.services.deal_unpublish_service import DealUnpublishService
 from app.services.promotable_business_service import PromotableBusinessService
 
 router = APIRouter(prefix="/deals", tags=[ApiTag.DEALS])
@@ -142,6 +143,14 @@ def close_deal(
 ) -> SuccessResponse[DealRead]:
     deal = DealService(db).close(deal_id, current_user)
     return SuccessResponse(message=DealMessages.CLOSED, data=deal)
+
+
+@router.post("/{deal_id}/unpublish", response_model=SuccessResponse[DealRead])
+def unpublish_deal(
+    deal_id: UUID, db: DbSessionDep, current_user: DealUnpublishDep
+) -> SuccessResponse[DealRead]:
+    deal = DealUnpublishService(db).unpublish(deal_id, current_user)
+    return SuccessResponse(message=DealMessages.UNPUBLISHED, data=deal)
 
 
 @me_router.get("", response_model=SuccessResponse[Page[DealRead]])

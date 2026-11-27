@@ -109,6 +109,18 @@ class OrderRepository:
             )
         )
 
+    def deal_has_open_orders(self, deal_id: UUID) -> bool:
+        return bool(
+            self._db.scalar(
+                select(
+                    exists().where(Order.deal_id == deal_id, Order.status.in_(OPEN_ORDER_STATUSES))
+                )
+            )
+        )
+
+    def deal_item_has_orders(self, deal_item_id: UUID) -> bool:
+        return bool(self._db.scalar(select(exists().where(OrderItem.deal_item_id == deal_item_id))))
+
     def lock_deal_items(self, item_ids: Sequence[UUID]) -> None:
         self._db.execute(
             select(DealItem.id)

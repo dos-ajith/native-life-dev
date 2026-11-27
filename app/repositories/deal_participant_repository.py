@@ -75,3 +75,12 @@ class DealParticipantRepository:
             .where(DealParticipant.deal_id == deal_id, DealParticipant.user_id == user_id)
             .execution_options(synchronize_session=False)
         )
+
+    def delete_for_deal(self, deal_id: UUID) -> int:
+        result = self._db.execute(
+            delete(DealParticipant)
+            .where(DealParticipant.deal_id == deal_id)
+            .returning(DealParticipant.id)
+            .execution_options(synchronize_session=False)
+        )
+        return len(result.all())

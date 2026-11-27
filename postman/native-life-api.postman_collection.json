@@ -11095,6 +11095,30 @@
                   }
                 },
                 {
+                  "name": "Unpublish deal",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/deals/{{deal_id}}/unpublish",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "deals",
+                        "{{deal_id}}",
+                        "unpublish"
+                      ]
+                    },
+                    "description": "Owner, or a role with deal.unpublish_any (native/super admin). Moves a published deal back to draft, removing joined participants and invitations so it can be edited and resubmitted. 409 if the deal is not published or has open orders."
+                  }
+                },
+                {
                   "name": "Close deal",
                   "request": {
                     "method": "POST",

@@ -312,6 +312,7 @@ class DealMessages:
     DELETED = "Deal deleted"
     CANCELLED = "Deal cancelled"
     CLOSED = "Deal closed"
+    UNPUBLISHED = "Deal unpublished and moved back to draft"
     SUBMITTED = "Deal submitted for acceptance"
     INVITATIONS_REFRESHED = "Deal invitations refreshed"
     INVITATIONS_RETRIEVED = "Deal invitations retrieved"
@@ -331,6 +332,11 @@ class DealMessages:
     NOT_PENDING = "This deal is no longer awaiting acceptance"
     NOT_CANCELLABLE = "Only pending or published deals can be cancelled"
     NOT_CLOSABLE = "Only published deals can be closed"
+    NOT_UNPUBLISHABLE = "Only published deals can be unpublished"
+    HAS_OPEN_ORDERS = (
+        "This deal has open orders. It can be unpublished once they are delivered or cancelled"
+    )
+    ITEM_HAS_ORDERS = "This item has orders and can't be removed"
     DEAL_CLOSED = "This deal has been closed"
     ITEMS_REQUIRED = "Add at least one item before submitting the deal"
     THUMBNAIL_REQUIRED = "Add a thumbnail image before submitting the deal"
@@ -1473,8 +1479,8 @@ class EarningMessages:
     )
     COMMISSION_SHARES_TOTAL_INVALID = (
         "commission_shares are shares of the commission and must add up to 100, but they add "
-        "up to {total}. Example: {{\"super_admin\": \"50\", \"native_admin\": \"30\", "
-        "\"promoter\": \"20\"}}"
+        'up to {total}. Example: {{"super_admin": "50", "native_admin": "30", '
+        '"promoter": "20"}}'
     )
     PAYOUT_FREQUENCY_INVALID = "payout_frequency must be weekly or monthly"
 

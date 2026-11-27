@@ -84,6 +84,7 @@ NATIVE_ADMIN_PERMISSIONS = (
     PermissionName.EVENTS_UPDATE_ANY,
     PermissionName.EVENTS_DELETE_ANY,
     PermissionName.EVENTS_FEATURE,
+    PermissionName.DEAL_UNPUBLISH_ANY,
     PermissionName.ROLE_UPGRADE_REQUEST_REVIEW_PROMOTER,
     PermissionName.COMMUNITY_VIEW_PENDING,
     PermissionName.COMMUNITY_APPROVE,

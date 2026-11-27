@@ -2,7 +2,12 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from app.api.deps import CurrentActiveUserDep, DbSessionDep, require_permission
+from app.api.deps import (
+    CurrentActiveUserDep,
+    DbSessionDep,
+    require_any_permission,
+    require_permission,
+)
 from app.core.exceptions import AuthorizationError
 from app.core.messages import DealMessages, DeliveryMessages
 from app.core.permissions import PermissionName
@@ -11,6 +16,10 @@ from app.services.deal_eligibility_service import DealEligibilityService
 from app.services.delivery_access_service import DeliveryAccessService
 
 DealCreateDep = Annotated[User, Depends(require_permission(PermissionName.DEAL_CREATE))]
+DealUnpublishDep = Annotated[
+    User,
+    Depends(require_any_permission(PermissionName.DEAL_CREATE, PermissionName.DEAL_UNPUBLISH_ANY)),
+]
 
 
 def require_deal_acceptor(user: CurrentActiveUserDep, db: DbSessionDep) -> User:

@@ -259,6 +259,27 @@ class DealRepository:
         )
         return result.first() is not None
 
+    def unpublish(self, deal_id: UUID) -> bool:
+        result = self._db.execute(
+            update(Deal)
+            .where(
+                Deal.id == deal_id,
+                Deal.status == DealStatus.PUBLISHED,
+                Deal.deleted_at.is_(None),
+            )
+            .values(
+                status=DealStatus.DRAFT,
+                submitted_at=None,
+                acceptance_deadline=None,
+                published_at=None,
+                accepted_count=0,
+                joined_count=0,
+            )
+            .returning(Deal.id)
+            .execution_options(synchronize_session=False)
+        )
+        return result.first() is not None
+
     def expire_overdue(self, now: datetime) -> list[ExpiredDeal]:
         rows = self._db.execute(
             update(Deal)

@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import cast
 from uuid import UUID
 
-from sqlalchemy import Select, Table, Uuid, and_, exists, func, literal, select, update
+from sqlalchemy import Select, Table, Uuid, and_, delete, exists, func, literal, select, update
 from sqlalchemy.dialects.postgresql import distinct_on, insert
 from sqlalchemy.orm import QueryableAttribute, Session
 
@@ -162,6 +162,13 @@ class DealInvitationRepository:
 
     def decline(self, deal_id: UUID, user_id: UUID, now: datetime) -> bool:
         return self._decide(deal_id, user_id, DealInvitationStatus.DECLINED, now)
+
+    def delete_for_deal(self, deal_id: UUID) -> None:
+        self._db.execute(
+            delete(DealInvitation)
+            .where(DealInvitation.deal_id == deal_id)
+            .execution_options(synchronize_session=False)
+        )
 
     def close_open(self, deal_ids: Sequence[UUID]) -> None:
         if not deal_ids:

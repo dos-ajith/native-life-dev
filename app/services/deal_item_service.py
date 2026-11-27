@@ -10,6 +10,7 @@ from app.models.deal_item import DealItem
 from app.models.user import User
 from app.plugins.registry import PluginRegistry
 from app.repositories.deal_repository import DealRepository
+from app.repositories.order_repository import OrderRepository
 from app.schemas.deal import (
     MAX_DEAL_ITEMS,
     DealItemCreate,
@@ -43,6 +44,7 @@ def _find_item(deal: Deal, item_id: UUID) -> DealItem:
 class DealItemService:
     def __init__(self, db: Session, registry: PluginRegistry | None = None) -> None:
         self._deals = DealRepository(db)
+        self._orders = OrderRepository(db)
         self._deal_service = DealService(db, registry)
         self._product_items = DealProductItemService(db, registry)
         self._activity_logs = ActivityLogService(db)
@@ -103,7 +105,10 @@ class DealItemService:
 
     def remove(self, deal_id: UUID, item_id: UUID, actor: User) -> DealRead:
         deal = self._deal_service.get_owned_draft(deal_id, actor)
-        deal.items.remove(_find_item(deal, item_id))
+        item = _find_item(deal, item_id)
+        if self._orders.deal_item_has_orders(item.id):
+            raise BusinessRuleError(DealMessages.ITEM_HAS_ORDERS)
+        deal.items.remove(item)
         saved = self._deals.save(deal)
         self._log(actor, ActivityAction.DEAL_ITEM_REMOVED, item_id, deal.id)
         return DealRead.from_deal(saved, actor)
