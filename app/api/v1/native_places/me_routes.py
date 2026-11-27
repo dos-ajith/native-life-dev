@@ -3,7 +3,6 @@ from fastapi import APIRouter, Response
 from app.api.deps import CurrentActiveUserDep, DbSessionDep
 from app.core.messages import NativePlaceMessages
 from app.core.openapi_tags import ApiTag
-from app.models.user_native_place import UserNativePlace
 from app.schemas.native_place import (
     NativePlaceSelect,
     PrimaryNativePlaceRead,
@@ -11,7 +10,7 @@ from app.schemas.native_place import (
 )
 from app.schemas.response import SuccessResponse
 from app.schemas.village_boundary import UserNativeBoundaryRead
-from app.services.user_native_place_service import UserNativePlaceService
+from app.services.user_native_place_service import LocatedNativePlace, UserNativePlaceService
 from app.services.village_boundary_service import VillageBoundaryService
 
 BOUNDARY_CACHE_CONTROL = "private, no-store"
@@ -20,11 +19,11 @@ router = APIRouter(prefix="/users/me/native-places", tags=[ApiTag.NATIVE_PLACES]
 
 
 def _to_response(
-    message: str, places: list[UserNativePlace]
+    message: str, places: list[LocatedNativePlace]
 ) -> SuccessResponse[list[UserNativePlaceRead]]:
     return SuccessResponse(
         message=message,
-        data=[UserNativePlaceRead.from_user_native_place(item) for item in places],
+        data=[UserNativePlaceRead.from_located(item) for item in places],
     )
 
 

@@ -132,6 +132,20 @@ class GisVillageRepository:
             return None
         return float(row[0]), float(row[1])
 
+    def get_representative_points(self, village_ids: list[UUID]) -> dict[UUID, tuple[float, float]]:
+        if not village_ids:
+            return {}
+        surface_point = func.ST_PointOnSurface(GisVillage.geom)
+        rows = self._db.execute(
+            select(GisVillage.id, func.ST_Y(surface_point), func.ST_X(surface_point)).where(
+                GisVillage.id.in_(village_ids)
+            )
+        ).all()
+        return {
+            village_id: (float(latitude), float(longitude))
+            for village_id, latitude, longitude in rows
+        }
+
     def list_by_taluk(
         self, taluk_id: UUID, params: PaginationParams
     ) -> tuple[list[GisVillage], int]:

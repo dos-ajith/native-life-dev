@@ -8,7 +8,7 @@ from app.core.messages import NativePlaceMessages
 from app.models.gis_village import GisVillage
 from app.models.native_place_suggestion import NativePlaceSuggestion, NativePlaceSuggestionStatus
 from app.models.user import User
-from app.models.user_native_place import NativePlaceSlot, UserNativePlace
+from app.models.user_native_place import NativePlaceSlot
 from app.schemas.base import BaseReadSchema
 from app.schemas.geography import GisDistrictRead
 from app.schemas.user import UserSummaryRead
@@ -16,6 +16,7 @@ from app.schemas.validators import NonBlankStr
 
 if TYPE_CHECKING:
     from app.services.user_native_place_service import (
+        LocatedNativePlace,
         PrimaryNativePlaceResult,
         SecondaryEligibility,
     )
@@ -76,6 +77,11 @@ class NativePlaceSearchItem(NativePlaceRead):
     is_my_native_place: bool
 
 
+class LocatedNativePlaceRead(NativePlaceRead):
+    latitude: float
+    longitude: float
+
+
 class NativePlaceSearchResult(BaseModel):
     places: list[NativePlaceSearchItem]
     districts: list[GisDistrictRead]
@@ -83,11 +89,18 @@ class NativePlaceSearchResult(BaseModel):
 
 class UserNativePlaceRead(BaseModel):
     slot: NativePlaceSlot
-    place: NativePlaceRead
+    place: LocatedNativePlaceRead
 
     @classmethod
-    def from_user_native_place(cls, item: UserNativePlace) -> "UserNativePlaceRead":
-        return cls(slot=item.slot, place=NativePlaceRead.from_village(item.village))
+    def from_located(cls, item: "LocatedNativePlace") -> "UserNativePlaceRead":
+        return cls(
+            slot=item.place.slot,
+            place=LocatedNativePlaceRead(
+                **NativePlaceRead.from_village(item.place.village).model_dump(),
+                latitude=item.latitude,
+                longitude=item.longitude,
+            ),
+        )
 
 
 class SecondaryEligibilityRead(BaseModel):
@@ -120,7 +133,7 @@ class PrimaryNativePlaceRead(BaseModel):
     @classmethod
     def from_result(cls, result: "PrimaryNativePlaceResult") -> "PrimaryNativePlaceRead":
         return cls(
-            places=[UserNativePlaceRead.from_user_native_place(item) for item in result.places],
+            places=[UserNativePlaceRead.from_located(item) for item in result.places],
             secondary_eligibility=SecondaryEligibilityRead.from_eligibility(
                 result.secondary_eligibility
             ),

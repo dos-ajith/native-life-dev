@@ -34,6 +34,13 @@ class NearbyArea:
 
 
 @dataclass(frozen=True)
+class LocatedNativePlace:
+    place: UserNativePlace
+    latitude: float
+    longitude: float
+
+
+@dataclass(frozen=True)
 class SecondaryEligibility:
     is_eligible: bool
     radius_km: int
@@ -43,7 +50,7 @@ class SecondaryEligibility:
 
 @dataclass(frozen=True)
 class PrimaryNativePlaceResult:
-    places: list[UserNativePlace]
+    places: list[LocatedNativePlace]
     secondary_eligibility: SecondaryEligibility
 
 
@@ -72,8 +79,10 @@ class UserNativePlaceService:
             raise NotFoundError(NativePlaceMessages.LOCATION_NOT_FOUND)
         return village
 
-    def list_for(self, user: User) -> list[UserNativePlace]:
-        return self._places.list_by_user(user.id)
+    def list_for(self, user: User) -> list[LocatedNativePlace]:
+        places = self._places.list_by_user(user.id)
+        points = self._villages.get_representative_points([place.village_id for place in places])
+        return [LocatedNativePlace(place, *points[place.village_id]) for place in places]
 
     def primary_village_id(self, user: User) -> UUID | None:
         primary = self._places.get_by_slot(user.id, NativePlaceSlot.PRIMARY)
@@ -100,7 +109,7 @@ class UserNativePlaceService:
             secondary_eligibility=self._secondary_eligibility(village_id),
         )
 
-    def set_secondary(self, user: User, village_id: UUID) -> list[UserNativePlace]:
+    def set_secondary(self, user: User, village_id: UUID) -> list[LocatedNativePlace]:
         self._ensure_village_exists(village_id)
         primary = self._places.get_by_slot(user.id, NativePlaceSlot.PRIMARY)
         if primary is None:

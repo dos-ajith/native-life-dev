@@ -19,7 +19,7 @@ def authenticated_user(user: User, db: Session) -> AuthenticatedUserRead:
         AccountRoleStatusService(db).describe(user),
         AadhaarDocumentService(db).has_document(user),
         [
-            UserNativePlaceRead.from_user_native_place(item)
+            UserNativePlaceRead.from_located(item)
             for item in UserNativePlaceService(db).list_for(user)
         ],
     )
